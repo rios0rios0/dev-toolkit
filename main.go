@@ -6,6 +6,8 @@ import (
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"os/exec"
+	
+	"runtime"
 )
 
 var log = logrus.New()
@@ -23,6 +25,7 @@ type YamlData struct {
 
 // ReadYAML reads the YAML slice of code from the file
 func (f *FileReader) ReadYAML() (YamlData, error) {
+	log.Info("i entered in the function readyaml")
 	data, err := ioutil.ReadFile(f.filePath)
 	if err != nil {
 		log.WithError(err).Error("Error reading file")
@@ -39,6 +42,17 @@ func (f *FileReader) ReadYAML() (YamlData, error) {
 
 // ExecCommand executes a command in the operating system
 func ExecCommand(cmd string) error {
+	if runtime.GOOS == "windows" {
+	execwindows(cmd)
+	} else {
+		execlinux(cmd)
+		
+	}
+return nil
+}
+	func execlinux(cmd string )error {
+		
+		log.Info("o comando executado é "+cmd)
 	command := exec.Command("sh", "-c", cmd)
 	output, err := command.CombinedOutput()
 	if err != nil {
@@ -53,8 +67,10 @@ var upCmd = &cobra.Command{
 	Short: "Runs the 'up' commands specified in the yaml file",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		log.Info("i entered in the function upCmd  ")
 		fileReader := &FileReader{filePath: args[0]}
 		yamlData, err := fileReader.ReadYAML()
+
 		if err != nil {
 			log.WithError(err).Error("Error reading YAML data")
 			return
@@ -75,6 +91,7 @@ var downCmd = &cobra.Command{
 	Short: "Runs the 'down' commands specified in the yaml file",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		log.Info("i entered in the function downCmd ")
 		fileReader := &FileReader{filePath: args[0]}
 		yamlData, err := fileReader.ReadYAML()
 		if err != nil {
@@ -92,12 +109,23 @@ var downCmd = &cobra.Command{
 	},
 }
 
-func main() {
-	var rootCmd = &cobra.Command{
+func main() { 
+	
+	 var rootCmd = &cobra.Command{ 
 		Use:   "lol [README.md]",
 		Short: "LocalLaunch is a CLI to read a YAML slice of code inside a README.md file",
-	}
+}
 	rootCmd.AddCommand(upCmd)
 	rootCmd.AddCommand(downCmd)
 	rootCmd.Execute()
+}
+func execwindows(command string) {
+	log.Info("o comando executado é "+command)
+	cmd := exec.Command("cmd", "/c", command)
+	output, err := cmd.Output()
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	log.Info(string(output))
 }
