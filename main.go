@@ -167,15 +167,15 @@ func processProject(globalConfig *GlobalConfig, config *Config) error {
 	if err != nil {
 		return err
 	}
-    
-    logger.Info("Getting CHANGELOG.md's path relative to repository root")
-    changelogRelativePath, err := filepath.Rel(changelogPath, projectPath)
+
+	logger.Info("Getting CHANGELOG.md's path relative to repository root")
+	changelogRelativePath, err := filepath.Rel(changelogPath, projectPath)
 	if err != nil {
 		return err
 	}
 
 	logger.Info("Adding version file to the worktree")
-    result, err := w.Add(changelogRelativePath)
+	result, err := w.Add(changelogRelativePath)
 	if err != nil {
 		logger.Errorf("Result not expected: %v", result)
 		return err
