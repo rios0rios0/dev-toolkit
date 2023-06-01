@@ -1,0 +1,18 @@
+languages:
+  python:
+    start: "pdm install && pdm start"
+    build: "pdm build"
+    extensions:
+      - "py"
+    special_patterns:
+      - "setup.cfg"
+      - "setup.py"
+      - "pyproject.toml"
+  java:
+    start: gradle bootRun
+    build: gradle build -x check -x test
+    extensions:
+      - "java"
+    special_patterns:
+      - "build.gradle"
+      - "pom.xml"
