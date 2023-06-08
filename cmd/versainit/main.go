@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -21,14 +21,21 @@ var (
 		Use:   "start",
 		Short: "Starts the application",
 		Run: func(cmd *cobra.Command, args []string) {
-			RunStart(cmd.Flag("path").Value.String())
+			executeCommandFromConfig(cmd.Flag("path").Value.String(), "Start")
+		},
+	}
+	stopCmd = &cobra.Command{
+		Use:   "stop",
+		Short: "Stops the application",
+		Run: func(cmd *cobra.Command, args []string) {
+			executeCommandFromConfig(cmd.Flag("path").Value.String(), "Stop")
 		},
 	}
 	buildCmd = &cobra.Command{
 		Use:   "build",
 		Short: "Builds the application",
 		Run: func(cmd *cobra.Command, args []string) {
-			RunBuild(cmd.Flag("path").Value.String())
+			executeCommandFromConfig(cmd.Flag("path").Value.String(), "Build")
 		},
 	}
 )
@@ -46,7 +53,7 @@ func main() {
 
 	err := mainCmd.Execute()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		log.Fatalf("Error: %s\n", err)
 		os.Exit(1)
 	}
 }
@@ -56,7 +63,7 @@ func init() {
 		if configPath == "" {
 			cwd, err := os.Getwd()
 			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
+				log.Fatalf("Error getting current working directory: %s", err)
 				os.Exit(1)
 			}
 			configPath = filepath.Join(cwd, "configs", "versainit.yaml")
@@ -64,7 +71,7 @@ func init() {
 
 		err := InitConfig(configPath)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error reading config file: %v\n", err)
+			log.Fatalf("Error initializing config: %s", err)
 			os.Exit(1)
 		}
 	})
