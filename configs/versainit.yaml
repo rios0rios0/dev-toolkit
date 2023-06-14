@@ -1,4 +1,9 @@
 languages:
+  docker-compose:
+    start: "docker-compose -f docker-compose.yaml up -d"
+    stop: "docker-compose down"
+    special_patterns:
+      "docker-compose.yaml"
   python:
     start: "pdm install && pdm start"
     build: "pdm build"
