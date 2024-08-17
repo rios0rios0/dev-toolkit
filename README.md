@@ -1,18 +1,30 @@
 # VersaInit
 
-VersaInit stands for versatile initialization tool. It is a tool written in Go that can help you to automatically bootstrap a project.
+VersaInit stands for versatile initialization tool. It is a tool written in Go that helps you automatically bootstrap a project.
 
-## Building
+## Features
 
-To build the project, you need to have Go installed. Then, you can run the following command:
+- **Automatic Project Initialization**: Quickly set up your project with predefined configurations.
+- **Multi-language Support**: Supports various programming languages with customizable commands.
+- **Easy Configuration**: Manage your project setup with a simple YAML configuration file.
+
+## Prerequisites
+
+- **Go**: Ensure you have Go installed on your system. You can download it from [here](https://golang.org/dl/).
+
+## Installation
+
+Clone the repository and build the project using the following commands:
 
 ```bash
+git clone https://github.com/yourusername/versainit.git
+cd versainit
 go build
 ```
 
 ## Usage
 
-To use the tool, you need to have a configuration file. The configuration file is a YAML file that contains the languages, their corresnponding patterns, and the commands to run for each language. Here is an example of a configuration file:
+To use VersaInit, you need a configuration file. The configuration file is a YAML file that contains the languages, their corresponding patterns, and the commands to run for each language. Here is an example of a configuration file:
 
 ```yaml
 languages:
@@ -26,8 +38,8 @@ languages:
       - "setup.py"
       - "pyproject.toml"
   java:
-    start: gradle bootRun
-    build: gradle build -x check -x test
+    start: "gradle bootRun"
+    build: "gradle build -x check -x test"
     extensions:
       - "java"
     special_patterns:
@@ -35,10 +47,18 @@ languages:
       - "pom.xml"
 ```
 
-Then, use `cd` to navigate to the directory of your project and run VersaInit. Below is an example of starting the program with VersaInit:
+Navigate to your project directory and run VersaInit with the following command:
 
 ```bash
 vinit -c versainit.yaml start
 ```
 
 For more information, you can run `vinit -h` to see the help message.
+
+## Contributing
+
+We welcome contributions! Please read our [contributing guidelines](CONTRIBUTING.md) for more details.
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
