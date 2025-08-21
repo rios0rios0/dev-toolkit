@@ -3,7 +3,15 @@ languages:
     start: "docker-compose -f docker-compose.yaml up -d"
     stop: "docker-compose down"
     special_patterns:
-      "docker-compose.yaml"
+      - "docker-compose.yaml"
+  go:
+    start: "go run ."
+    build: "go build ."
+    extensions:
+      - "go"
+    special_patterns:
+      - "go.mod"
+      - "go.sum"
   python:
     start: "pdm install && pdm start"
     build: "pdm build"

@@ -57,6 +57,10 @@ func detectLanguage(cwd string) (string, error) {
 		return "", err
 	}
 
+	if detected != "" {
+		return detected, nil
+	}
+
 	return "", errors.New("project language not found")
 }
 
