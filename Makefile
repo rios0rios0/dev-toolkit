@@ -1,3 +1,5 @@
+.PHONY: build debug build-musl run install
+
 build:
 	rm -rf bin
 	go build -o bin/vinit ./cmd/versainit
