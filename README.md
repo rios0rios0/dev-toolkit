@@ -10,6 +10,8 @@
         <img src="https://img.shields.io/sonar/coverage/rios0rios0_versainit?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonarqubecloud" alt="Coverage"/></a>
     <a href="https://sonarcloud.io/summary/overall?id=rios0rios0_versainit">
         <img src="https://img.shields.io/sonar/quality_gate/rios0rios0_versainit?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonarqubecloud" alt="Quality Gate"/></a>
+    <a href="https://www.bestpractices.dev/projects/12033">
+        <img src="https://img.shields.io/cii/level/12033?style=for-the-badge&logo=opensourceinitiative" alt="OpenSSF Best Practices"/></a>
 </p>
 
 VersaInit stands for versatile initialization tool. It is a tool written in Go that helps you automatically bootstrap a project by detecting its language and running the appropriate commands.
