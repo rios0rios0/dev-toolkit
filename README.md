@@ -21,7 +21,7 @@ VersaInit stands for versatile initialization tool. It is a tool written in Go t
 ```bash
 git clone https://github.com/rios0rios0/versainit.git
 cd versainit
-go build -o vinit
+go build -o vinit ./cmd/versainit
 ```
 
 ## Configuration
