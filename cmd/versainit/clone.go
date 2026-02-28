@@ -47,7 +47,6 @@ func findDependencyPath(dependencyURL string, cwd string) (string, error) {
 
 func launchDependencies(localConfig *GlobalConfig, cmdType string) error {
 	for _, dependency := range localConfig.Dependencies {
-
 		repoURL := dependency.URL
 		repoParent := localConfig.CacheDir
 		repoName := filepath.Base(repoURL)

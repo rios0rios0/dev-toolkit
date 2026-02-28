@@ -2,11 +2,12 @@ package main
 
 import (
 	"errors"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func detectLanguage(cwd string) (string, error) {
@@ -52,13 +53,8 @@ func detectLanguage(cwd string) (string, error) {
 
 		return nil
 	})
-
 	if err != nil {
 		return "", err
-	}
-
-	if detected != "" {
-		return detected, nil
 	}
 
 	return "", errors.New("project language not found")
