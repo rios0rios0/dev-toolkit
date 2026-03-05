@@ -7,12 +7,13 @@ Always reference these instructions first and fallback to search or bash command
 ## Working Effectively
 
 ### Prerequisites
-- **Go 1.20+**: Required for building. Check with `go version`.
+- **Go 1.26+**: Required for building. Check with `go version`.
 
 ### Bootstrap and Build
 - `make build` -- builds the `vinit` binary in `bin/` directory. Takes ~1 second. NEVER CANCEL.
 - `make run` -- builds and runs the tool showing help output.
 - `make debug` -- builds without optimizations for debugging.
+- `make build-musl` -- builds a fully static binary using musl-gcc (requires musl toolchain).
 - `make install` -- builds and copies binary to `/usr/local/bin/vinit` (requires sudo).
 
 ### Testing
@@ -67,11 +68,12 @@ echo 'print("Hello!")' > hello.py
 
 ### Key Files and Directories
 - `cmd/versainit/` -- Main application code
-  - `main.go` -- CLI command setup and entry point  
+  - `main.go` -- CLI command setup and entry point (registers `start` and `build` commands)
   - `actions.go` -- Language detection and command execution
   - `config.go` -- Configuration file parsing and management
   - `clone.go` -- Dependency management and repository cloning
 - `configs/versainit.yaml` -- Default language configuration file
+- `CONTRIBUTING.md` -- Development workflow and prerequisites
 - `Makefile` -- Build targets and development commands
 - `.github/workflows/default.yaml` -- CI pipeline (uses external rios0rios0/pipelines)
 
@@ -80,6 +82,7 @@ echo 'print("Hello!")' > hello.py
 - Language detection via `special_patterns` (priority) or `extensions` (fallback)
 - Global config merged with local `vinit.yaml` files
 - Dependencies can be cloned and managed automatically
+- Note: the `stop` command field exists in the config but the `stop` CLI subcommand is not currently registered
 
 ## Common Tasks
 
@@ -108,7 +111,6 @@ echo 'print("Hello!")' > hello.py
 
 ### Repository Structure Output
 ```
-ls -la /
 .
 ..
 .editorconfig
@@ -116,6 +118,7 @@ ls -la /
 .github/
 .gitignore
 CHANGELOG.md
+CONTRIBUTING.md
 LICENSE
 Makefile
 README.md
