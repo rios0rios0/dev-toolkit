@@ -1,4 +1,8 @@
-.PHONY: build debug build-musl run install
+SCRIPTS_DIR ?= $(HOME)/Development/github.com/rios0rios0/pipelines
+-include $(SCRIPTS_DIR)/makefiles/common.mk
+-include $(SCRIPTS_DIR)/makefiles/golang.mk
+
+.PHONY: debug build build-musl install run
 
 build:
 	rm -rf bin
@@ -19,4 +23,5 @@ run:
 
 install:
 	make build
-	sudo cp -v bin/vinit /usr/local/bin/vinit
+	mkdir -p ~/.local/bin
+	cp -v bin/vinit ~/.local/bin/vinit
