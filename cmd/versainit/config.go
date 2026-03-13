@@ -1,7 +1,7 @@
 package main
 
 import (
-	"io/ioutil"
+	"maps"
 	"os"
 	"path/filepath"
 
@@ -27,7 +27,7 @@ type Dependency struct {
 	Path string `yaml:"path"`
 }
 
-var Globalconf *GlobalConfig
+var Globalconf *GlobalConfig //nolint:gochecknoglobals // global config is needed for the application
 
 func InitConfig(configPath string) error {
 	var err error
@@ -40,13 +40,8 @@ func MergeConfigs(config1, config2 *GlobalConfig) *GlobalConfig {
 		LanguagesConfig: make(map[string]LanguageConfig),
 	}
 
-	for key, value := range config1.LanguagesConfig {
-		merged.LanguagesConfig[key] = value
-	}
-
-	for key, value := range config2.LanguagesConfig {
-		merged.LanguagesConfig[key] = value
-	}
+	maps.Copy(merged.LanguagesConfig, config1.LanguagesConfig)
+	maps.Copy(merged.LanguagesConfig, config2.LanguagesConfig)
 
 	merged.CacheDir = config2.CacheDir
 
@@ -56,7 +51,7 @@ func MergeConfigs(config1, config2 *GlobalConfig) *GlobalConfig {
 }
 
 func readConfig(configPath string) (*GlobalConfig, error) {
-	data, err := ioutil.ReadFile(configPath)
+	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, err
 	}

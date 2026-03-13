@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"errors"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -11,20 +11,22 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// findDependencyPath searches for the dependency directory in parent domains
+const domainAndPathParts = 2
+
+// findDependencyPath searches for the dependency directory in parent domains.
 func findDependencyPath(dependencyURL string, cwd string) (string, error) {
 	var domainAndPath []string
 	if strings.HasPrefix(dependencyURL, "git@") {
 		depURL := strings.Replace(dependencyURL, ":", "/", 1)
 		depURL = strings.TrimPrefix(depURL, "git@")
 		depURL = strings.TrimSuffix(depURL, ".git")
-		domainAndPath = strings.SplitN(depURL, "/", 2)
+		domainAndPath = strings.SplitN(depURL, "/", domainAndPathParts)
 	} else {
 		u, err := url.Parse(dependencyURL)
 		if err != nil {
 			return "", err
 		}
-		domainAndPath = strings.SplitN(u.Host+u.Path, "/", 2)
+		domainAndPath = strings.SplitN(u.Host+u.Path, "/", domainAndPathParts)
 	}
 
 	for {
@@ -42,49 +44,58 @@ func findDependencyPath(dependencyURL string, cwd string) (string, error) {
 		cwd = filepath.Dir(cwd)
 	}
 	log.Warnf("No existing dependency path found for %s\n", dependencyURL)
-	return "", fmt.Errorf("dependency path not found")
+	return "", errors.New("dependency path not found")
+}
+
+func cloneDependency(repoURL, repoPath string) error {
+	cloneOptions := &git.CloneOptions{
+		URL:   repoURL,
+		Depth: 1,
+	}
+
+	if _, err := git.PlainClone(repoPath, false, cloneOptions); err != nil {
+		if errors.Is(err, git.ErrRepositoryAlreadyExists) {
+			log.Warnf("Repository already exists: %s\n", repoPath)
+		} else {
+			log.Errorf("Error cloning: %s\n", err)
+			if removeErr := os.RemoveAll(repoPath); removeErr != nil {
+				log.Errorf("Error removing failed clone: %s\n", removeErr)
+			}
+			return err
+		}
+	}
+	return nil
+}
+
+func findDependencyDir(repoURL string) (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Errorf("Error getting current working directory: %s\n", err)
+		return "", err
+	}
+	depPath, err := findDependencyPath(repoURL, cwd)
+	if err != nil {
+		log.Errorf("Error finding dependency path: %s\n", err)
+		return "", err
+	}
+	return depPath, nil
 }
 
 func launchDependencies(localConfig *GlobalConfig, cmdType string) error {
 	for _, dependency := range localConfig.Dependencies {
 		repoURL := dependency.URL
-		repoParent := localConfig.CacheDir
 		repoName := filepath.Base(repoURL)
-		repoPath := filepath.Join(repoParent, repoName)
+		repoPath := filepath.Join(localConfig.CacheDir, repoName)
 
-		// Check for custom dependency path
 		if dependency.Path != "" {
-			repoParent = dependency.Path
-			log.Infof("Cloning %s into %s\n", repoURL, repoParent)
-
-			cloneOptions := &git.CloneOptions{
-				URL:   repoURL,
-				Depth: 1,
-			}
-
-			// Clone the repository
-			if _, err := git.PlainClone(repoPath, false, cloneOptions); err != nil {
-				if err == git.ErrRepositoryAlreadyExists {
-					log.Warnf("Repository already exists: %s\n", repoPath)
-				} else {
-					log.Errorf("Error cloning: %s\n", err)
-					os.RemoveAll(repoPath)
-					return err
-				}
+			log.Infof("Cloning %s into %s\n", repoURL, dependency.Path)
+			if err := cloneDependency(repoURL, repoPath); err != nil {
+				return err
 			}
 		} else {
-			// If no custom path, search for dependency in parent domains
-			cwd, err := os.Getwd()
-			if err != nil {
-				log.Errorf("Error getting current working directory: %s\n", err)
+			if _, err := findDependencyDir(repoURL); err != nil {
 				return err
 			}
-			depPath, err := findDependencyPath(repoURL, cwd)
-			if err != nil {
-				log.Errorf("Error finding dependency path: %s\n", err)
-				return err
-			}
-			repoParent = depPath
 		}
 
 		// Execute commands in the cloned repository
@@ -94,9 +105,15 @@ func launchDependencies(localConfig *GlobalConfig, cmdType string) error {
 			return err
 		}
 
-		os.Chdir(repoPath)
+		if err = os.Chdir(repoPath); err != nil {
+			log.Errorf("Error changing directory to %s: %s\n", repoPath, err)
+			return err
+		}
 		executeCommandFromConfig(repoPath, cmdType)
-		os.Chdir(cwdOld)
+		if err = os.Chdir(cwdOld); err != nil {
+			log.Errorf("Error changing directory back to %s: %s\n", cwdOld, err)
+			return err
+		}
 	}
 
 	return nil

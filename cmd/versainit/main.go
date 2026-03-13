@@ -8,39 +8,46 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	configPath string
-	mainCmd    = &cobra.Command{
-		Version: "1.0.0",
+func main() {
+	var configPath string
+
+	mainCmd := &cobra.Command{
+		Version: "0.1.0",
 		Use:     "vinit",
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, _ []string) {
 			_ = cmd.Help()
 		},
 	}
-	startCmd = &cobra.Command{
+	startCmd := &cobra.Command{
 		Use:   "start",
 		Short: "Starts the application",
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, _ []string) {
 			executeCommandFromConfig(cmd.Flag("path").Value.String(), "Start")
 		},
 	}
-	stopCmd = &cobra.Command{
-		Use:   "stop",
-		Short: "Stops the application",
-		Run: func(cmd *cobra.Command, args []string) {
-			executeCommandFromConfig(cmd.Flag("path").Value.String(), "Stop")
-		},
-	}
-	buildCmd = &cobra.Command{
+	buildCmd := &cobra.Command{
 		Use:   "build",
 		Short: "Builds the application",
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, _ []string) {
 			executeCommandFromConfig(cmd.Flag("path").Value.String(), "Build")
 		},
 	}
-)
 
-func main() {
+	cobra.OnInitialize(func() {
+		if configPath == "" {
+			cwd, err := os.Getwd()
+			if err != nil {
+				log.Fatalf("Error getting current working directory: %s", err)
+			}
+			configPath = filepath.Join(cwd, "configs", "versainit.yaml")
+		}
+
+		err := InitConfig(configPath)
+		if err != nil {
+			log.Fatalf("Error initializing config: %s", err)
+		}
+	})
+
 	mainCmd.PersistentFlags().StringVarP(
 		&configPath, "config", "c", "",
 		"path to the configuration file",
@@ -54,25 +61,5 @@ func main() {
 	err := mainCmd.Execute()
 	if err != nil {
 		log.Fatalf("Error: %s\n", err)
-		os.Exit(1)
 	}
-}
-
-func init() {
-	cobra.OnInitialize(func() {
-		if configPath == "" {
-			cwd, err := os.Getwd()
-			if err != nil {
-				log.Fatalf("Error getting current working directory: %s", err)
-				os.Exit(1)
-			}
-			configPath = filepath.Join(cwd, "configs", "versainit.yaml")
-		}
-
-		err := InitConfig(configPath)
-		if err != nil {
-			log.Fatalf("Error initializing config: %s", err)
-			os.Exit(1)
-		}
-	})
 }
