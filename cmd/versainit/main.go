@@ -12,7 +12,7 @@ func main() {
 	var configPath string
 
 	mainCmd := &cobra.Command{
-		Version: "0.1.0",
+		Version: "0.1.1",
 		Use:     "vinit",
 		Run: func(cmd *cobra.Command, _ []string) {
 			_ = cmd.Help()

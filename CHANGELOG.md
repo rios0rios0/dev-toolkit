@@ -16,6 +16,8 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-03-13
+
 ### Changed
 
 - created missing boilerplate and documentation with `CLAUDE.md` file
