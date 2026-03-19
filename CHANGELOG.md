@@ -21,6 +21,7 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 ### Changed
 
 - changed the Go module dependencies to their latest versions
+- changed version injection to use `ldflags` at build time instead of a hardcoded constant
 
 ## [0.1.1] - 2026-03-13
 

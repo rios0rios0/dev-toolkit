@@ -8,11 +8,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// version is set at build time via ldflags.
+// During development, it defaults to "dev".
+var version = "dev"
+
 func main() {
 	var configPath string
 
 	mainCmd := &cobra.Command{
-		Version: "0.1.1",
+		Version: version,
 		Use:     "vinit",
 		Run: func(cmd *cobra.Command, _ []string) {
 			_ = cmd.Help()
