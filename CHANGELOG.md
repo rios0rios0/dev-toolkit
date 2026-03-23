@@ -22,11 +22,15 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 - added `dev repo sync` command — syncs all repos under a directory with fetch/rebase and WIP branch preservation
 - added gitforge integration for multi-provider repository discovery (GitHub, Azure DevOps, GitLab)
 - added SSH alias clone URL support via gitforge
+- added comprehensive test suite with 81%+ coverage for all business logic
+- added test infrastructure with GitRunner stub, ForgeProvider stub, and Repository builder
 
 ### Changed
 
 - changed project name from versainit to devforge (binary: `dev`)
 - changed Go module path from `github.com/rios0rios0/versainit` to `github.com/rios0rios0/devforge`
+- changed architecture to extract business logic into `internal/repo/` with dependency injection for testability
+- changed `cmd/devforge/` to a thin CLI wiring layer delegating to `internal/repo/`
 
 ### Removed
 
