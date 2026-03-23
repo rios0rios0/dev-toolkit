@@ -19,4 +19,4 @@ jobs:
   default:
     uses: 'rios0rios0/pipelines/.github/workflows/go-binary.yaml@main'
     with:
-      binary_name: 'versainit'
+      binary_name: 'dev'

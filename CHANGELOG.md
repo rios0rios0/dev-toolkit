@@ -16,6 +16,22 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
+### Added
+
+- added `dev repo clone` command — discovers repos from Git providers, clones missing via SSH with parallel workers
+- added `dev repo sync` command — syncs all repos under a directory with fetch/rebase and WIP branch preservation
+- added gitforge integration for multi-provider repository discovery (GitHub, Azure DevOps, GitLab)
+- added SSH alias clone URL support via gitforge
+
+### Changed
+
+- changed project name from versainit to devforge (binary: `dev`)
+- changed Go module path from `github.com/rios0rios0/versainit` to `github.com/rios0rios0/devforge`
+
+### Removed
+
+- removed old versainit CLI code (actions.go, clone.go, config.go, versainit.yaml)
+
 ## [0.1.2] - 2026-03-19
 
 ### Changed
