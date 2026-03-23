@@ -1,69 +1,71 @@
-<h1 align="center">VersaInit</h1>
+<h1 align="center">DevForge</h1>
 <p align="center">
-    <a href="https://github.com/rios0rios0/versainit/releases/latest">
-        <img src="https://img.shields.io/github/release/rios0rios0/versainit.svg?style=for-the-badge&logo=github" alt="Latest Release"/></a>
-    <a href="https://github.com/rios0rios0/versainit/blob/main/LICENSE">
-        <img src="https://img.shields.io/github/license/rios0rios0/versainit.svg?style=for-the-badge&logo=github" alt="License"/></a>
-    <a href="https://github.com/rios0rios0/versainit/actions/workflows/default.yaml">
-        <img src="https://img.shields.io/github/actions/workflow/status/rios0rios0/versainit/default.yaml?branch=main&style=for-the-badge&logo=github" alt="Build Status"/></a>
-    <a href="https://sonarcloud.io/summary/overall?id=rios0rios0_versainit">
-        <img src="https://img.shields.io/sonar/coverage/rios0rios0_versainit?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonarqubecloud" alt="Coverage"/></a>
-    <a href="https://sonarcloud.io/summary/overall?id=rios0rios0_versainit">
-        <img src="https://img.shields.io/sonar/quality_gate/rios0rios0_versainit?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonarqubecloud" alt="Quality Gate"/></a>
+    <a href="https://github.com/rios0rios0/devforge/releases/latest">
+        <img src="https://img.shields.io/github/release/rios0rios0/devforge.svg?style=for-the-badge&logo=github" alt="Latest Release"/></a>
+    <a href="https://github.com/rios0rios0/devforge/blob/main/LICENSE">
+        <img src="https://img.shields.io/github/license/rios0rios0/devforge.svg?style=for-the-badge&logo=github" alt="License"/></a>
+    <a href="https://github.com/rios0rios0/devforge/actions/workflows/default.yaml">
+        <img src="https://img.shields.io/github/actions/workflow/status/rios0rios0/devforge/default.yaml?branch=main&style=for-the-badge&logo=github" alt="Build Status"/></a>
     <a href="https://www.bestpractices.dev/projects/12033">
         <img src="https://img.shields.io/cii/level/12033?style=for-the-badge&logo=opensourceinitiative" alt="OpenSSF Best Practices"/></a>
 </p>
 
-VersaInit stands for versatile initialization tool. It is a tool written in Go that helps you automatically bootstrap a project by detecting its language and running the appropriate commands.
+DevForge is a developer workspace toolkit that manages Git repositories across multiple providers and bootstraps projects by detecting their language. It consolidates [gitforge](https://github.com/rios0rios0/gitforge) and [langforge](https://github.com/rios0rios0/langforge) into a single CLI.
 
 ## Features
 
-- **Automatic Project Initialization**: Quickly set up your project with predefined configurations
-- **Multi-language Support**: Supports various programming languages with customizable commands
-- **Easy Configuration**: Manage your project setup with a simple YAML configuration file
+- **Repository Cloning**: discovers repos from GitHub, Azure DevOps, or GitLab and clones missing ones via SSH in parallel
+- **Repository Syncing**: fetches and rebases all repos under a directory, preserving uncommitted work via WIP branches
+- **Multi-Provider Support**: automatic provider detection from directory path with per-provider auth tokens
 
 ## Installation
 
 ```bash
-git clone https://github.com/rios0rios0/versainit.git
-cd versainit
-go build -o vinit ./cmd/versainit
+curl -fsSL https://raw.githubusercontent.com/rios0rios0/devforge/main/install.sh | sh
 ```
 
-## Configuration
+Or build from source:
 
-Create a `versainit.yaml` configuration file that defines the languages, their corresponding patterns, and the commands to run for each language:
-
-```yaml
-languages:
-  python:
-    start: 'pdm install && pdm start'
-    build: 'pdm build'
-    extensions:
-      - 'py'
-    special_patterns:
-      - 'setup.cfg'
-      - 'setup.py'
-      - 'pyproject.toml'
-  java:
-    start: 'gradle bootRun'
-    build: 'gradle build -x check -x test'
-    extensions:
-      - 'java'
-    special_patterns:
-      - 'build.gradle'
-      - 'pom.xml'
+```bash
+go install github.com/rios0rios0/devforge/cmd/devforge@latest
 ```
+
+Download pre-built binaries from the [releases page](https://github.com/rios0rios0/devforge/releases).
 
 ## Usage
 
-Navigate to your project directory and run VersaInit with the following command:
-
 ```bash
-vinit -c versainit.yaml start
+# Clone all repos for a GitHub user/org
+dev repo clone <ssh-alias> [root-dir]
+dev repo clone mine ~/Development/github.com/rios0rios0
+dev repo clone my-org ~/Development/dev.azure.com/ContosoSecurity
+dev repo clone mine --dry-run  # preview without cloning
+
+# Sync all repos under a directory
+dev repo sync [root-dir]
+dev repo sync ~/Development/github.com/rios0rios0
 ```
 
-For more information, you can run `vinit -h` to see the help message.
+### Authentication
+
+Set the appropriate environment variable for your provider:
+
+| Provider | Environment Variable |
+|----------|---------------------|
+| GitHub | `GH_TOKEN` |
+| Azure DevOps | `AZURE_DEVOPS_EXT_PAT` |
+| GitLab | `GITLAB_TOKEN` |
+
+### SSH Aliases
+
+The clone command uses SSH config aliases (e.g., `github.com-mine`). Configure these in `~/.ssh/config`:
+
+```
+Host github.com-mine
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519_personal
+```
 
 ## Contributing
 
@@ -71,4 +73,4 @@ Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+See [LICENSE](LICENSE) file for details.

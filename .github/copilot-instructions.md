@@ -1,6 +1,6 @@
-# VersaInit
+# DevForge
 
-VersaInit is a Go-based CLI tool that automatically bootstraps projects by detecting the project language and executing predefined commands. The tool works by analyzing special files (like go.mod, pyproject.toml, build.gradle) and file extensions to determine the project type, then runs configured commands for that language.
+DevForge is a Go-based CLI tool (binary: `dev`) that manages Git repositories across multiple providers and bootstraps projects by detecting their language. It consolidates gitforge (Git hosting abstractions) and langforge (language detection) into a single workspace toolkit.
 
 Always reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.
 
@@ -10,174 +10,73 @@ Always reference these instructions first and fallback to search or bash command
 - **Go 1.26+**: Required for building. Check with `go version`.
 
 ### Bootstrap and Build
-- `make build` -- builds the `vinit` binary in `bin/` directory. Takes ~1 second. NEVER CANCEL.
+- `make build` -- builds the `dev` binary in `bin/` directory. Takes ~1 second. NEVER CANCEL.
 - `make run` -- builds and runs the tool showing help output.
 - `make debug` -- builds without optimizations for debugging.
 - `make build-musl` -- builds a fully static binary using musl-gcc (requires musl toolchain).
-- `make install` -- builds and copies binary to `/usr/local/bin/vinit` (requires sudo).
+- `make install` -- builds and copies binary to `~/.local/bin/dev`.
 
 ### Testing
-- No unit tests exist currently. Test manually by creating sample projects.
+- `make lint` -- lint via external pipelines repo.
+- `make test` -- test via external pipelines repo.
+- `make sast` -- SAST security suite via external pipelines repo.
 - `go fmt ./...` -- format all Go code. Always run before committing.
 - `go vet ./...` -- static analysis. Always run before committing.
-- Manual validation is required - create sample projects and test functionality.
 
 ### Running the Application
 - Build first: `make build`
-- Basic usage: `./bin/vinit --help`
-- Test with project: `./bin/vinit -c configs/versainit.yaml start -p /path/to/project`
-- Configuration file: `configs/versainit.yaml` defines language commands and detection patterns.
+- Basic usage: `./bin/dev --help`
+- Clone repos: `./bin/dev repo clone mine ~/Development/github.com/rios0rios0`
+- Sync repos: `./bin/dev repo sync ~/Development/github.com/rios0rios0`
 
 ## Validation
 
 ### ALWAYS Test These Scenarios After Changes
 1. **Build validation**: `make build` should complete in ~1 second without errors.
-2. **Help commands**: Test `./bin/vinit --help`, `./bin/vinit start --help`, `./bin/vinit build --help`.
-3. **Language detection**: Create sample projects and verify detection works:
-   - Go project: Create directory with `go.mod` file, should detect as "go"
-   - Python project: Create directory with `pyproject.toml`, should detect as "python"  
-   - Java project: Create directory with `build.gradle` or `pom.xml`, should detect as "java"
-   - Extension detection: Create directory with `.go`, `.py`, or `.java` files, should detect correctly
-4. **Command execution**: Test `start` and `build` commands on sample projects.
-5. **Configuration validation**: Ensure `configs/versainit.yaml` is valid YAML and loads without errors.
-
-### Language Detection Priority
-- **Special patterns checked first** (go.mod, pyproject.toml, build.gradle, etc.)
-- **File extensions checked second** (.go, .py, .java files)
-- If both exist, special patterns take priority
-
-### Manual Testing Process
-```bash
-# Test Go project
-cd /tmp && mkdir test-go && cd test-go
-echo 'module test' > go.mod
-echo 'package main
-import "fmt"
-func main() { fmt.Println("Hello!") }' > main.go
-/path/to/versainit/bin/vinit -c /path/to/versainit/configs/versainit.yaml start -p .
-# Should output: "INFO[...] Detected project language: go" and "Hello!"
-
-# Test with extension-based detection
-cd /tmp && mkdir test-ext && cd test-ext  
-echo 'print("Hello!")' > hello.py
-/path/to/versainit/bin/vinit -c /path/to/versainit/configs/versainit.yaml start -p .
-# Should output: "INFO[...] Detected project language: python" (may fail due to missing pdm)
-```
+2. **Help commands**: Test `./bin/dev --help`, `./bin/dev repo clone --help`, `./bin/dev repo sync --help`.
+3. **Clone dry-run**: `./bin/dev repo clone mine --dry-run ~/Development/github.com/rios0rios0`
+4. **Sync**: `./bin/dev repo sync ~/Development/github.com/rios0rios0`
 
 ## Project Structure
 
 ### Key Files and Directories
-- `cmd/versainit/` -- Main application code
-  - `main.go` -- CLI command setup and entry point (registers `start` and `build` commands)
-  - `actions.go` -- Language detection and command execution
-  - `config.go` -- Configuration file parsing and management
-  - `clone.go` -- Dependency management and repository cloning
-- `configs/versainit.yaml` -- Default language configuration file
+- `cmd/devforge/` -- Main application code
+  - `main.go` -- CLI command setup with `repo` command group
+  - `clone.go` -- Repository cloning with gitforge integration and parallel SSH workers
+  - `sync.go` -- Repository syncing with fetch/rebase and WIP branch preservation
+- `install.sh` -- Generic installer for GitHub releases
 - `CONTRIBUTING.md` -- Development workflow and prerequisites
 - `Makefile` -- Build targets and development commands
 - `.github/workflows/default.yaml` -- CI pipeline (uses external rios0rios0/pipelines)
 
-### Configuration System
-- Languages defined in YAML with `start`, `stop`, `build` commands
-- Language detection via `special_patterns` (priority) or `extensions` (fallback)
-- Global config merged with local `vinit.yaml` files
-- Dependencies can be cloned and managed automatically
-- Note: the `stop` command field exists in the config but the `stop` CLI subcommand is not currently registered
+### Key Design Patterns
+- **Mapper pattern**: All provider detection uses maps (no switch/case)
+- **Parallel execution**: Goroutines with semaphore channel for controlled concurrency
+- **SSH preflight**: Verifies SSH connectivity before batch cloning
+- **WIP branches**: Preserves dirty state during sync via temporary commits
 
-## Common Tasks
-
-### Adding Support for New Language
-1. Edit `configs/versainit.yaml`
-2. Add language entry with commands and detection patterns:
-   ```yaml
-   languages:
-     newlang:
-       start: "command to start"
-       build: "command to build"  
-       extensions:
-         - "ext1"
-         - "ext2"
-       special_patterns:
-         - "special-file.conf"
-   ```
-3. Test detection: Create project with special file/extensions
-4. Test commands: Verify start/build commands work correctly
-
-### Debugging Language Detection Issues
-- Check `configs/versainit.yaml` syntax with `./bin/vinit -c configs/versainit.yaml --help`
-- Verify special_patterns files exist in test project
-- Check file extensions match configured patterns
-- Language detection logic in `cmd/versainit/actions.go:detectLanguage()`
-
-### Repository Structure Output
-```
-.
-..
-.editorconfig
-.git/
-.github/
-.gitignore
-CHANGELOG.md
-CONTRIBUTING.md
-LICENSE
-Makefile
-README.md
-cmd/
-configs/
-go.mod
-go.sum
-horusec.json
-```
+### Authentication
+| Provider | Environment Variable |
+|----------|---------------------|
+| GitHub | `GH_TOKEN` |
+| Azure DevOps | `AZURE_DEVOPS_EXT_PAT` |
+| GitLab | `GITLAB_TOKEN` |
 
 ### Key Commands Reference
 ```bash
 # Build (fast, ~1 second)
 make build
 
-# Test basic functionality  
+# Test basic functionality
 make run
 
 # Format and validate code
 go fmt ./...
 go vet ./...
 
-# Test with sample project
-mkdir /tmp/test && cd /tmp/test
-echo 'module test' > go.mod
-/path/to/versainit/bin/vinit -c /path/to/versainit/configs/versainit.yaml start -p .
-```
+# Test clone dry-run
+./bin/dev repo clone mine --dry-run ~/Development/github.com/rios0rios0
 
-### Configuration File Content
-```yaml
-languages:
-  docker-compose:
-    start: "docker-compose -f docker-compose.yaml up -d"
-    stop: "docker-compose down"
-    special_patterns:
-      - "docker-compose.yaml"
-  go:
-    start: "go run ."
-    build: "go build ."
-    extensions:
-      - "go"
-    special_patterns:
-      - "go.mod"
-      - "go.sum"
-  python:
-    start: "pdm install && pdm start"
-    build: "pdm build"
-    extensions:
-      - "py"
-    special_patterns:
-      - "setup.cfg"
-      - "setup.py" 
-      - "pyproject.toml"
-  java:
-    start: gradle bootRun
-    build: gradle build -x check -x test
-    extensions:
-      - "java"
-    special_patterns:
-      - "build.gradle"
-      - "pom.xml"
+# Test sync
+./bin/dev repo sync ~/Development/github.com/rios0rios0
 ```

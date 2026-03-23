@@ -4,15 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-VersaInit is a Go CLI tool that automatically bootstraps projects by detecting the programming language (via special files like `go.mod`, `pyproject.toml`, `build.gradle` or file extensions) and executing predefined commands. Built with Cobra (CLI), logrus (logging), go-git (cloning), and gopkg.in/yaml.v3 (config).
+DevForge is a Go CLI tool (binary: `dev`) that manages Git repositories across multiple providers and bootstraps projects by detecting their language. Built with Cobra (CLI), logrus (logging), gitforge (multi-provider Git operations), and langforge (language detection).
 
 ## Build and Development Commands
 
 ```bash
-make build          # Build binary to bin/vinit (~1 second), always run after changes
-make run            # go run ./cmd/versainit (shows help)
+make build          # Build binary to bin/dev (~1 second), always run after changes
+make run            # go run ./cmd/devforge (shows help)
 make debug          # Build with debug symbols (-N -l)
-make install        # Build and copy to ~/.local/bin/vinit
+make install        # Build and copy to ~/.local/bin/dev
 make lint           # Lint via external pipelines repo
 make test           # Test via external pipelines repo
 make sast           # SAST security suite via external pipelines repo
@@ -23,25 +23,33 @@ The Makefile includes shared targets from `$(HOME)/Development/github.com/rios0r
 ## Usage
 
 ```bash
-./bin/vinit -c configs/versainit.yaml start -p /path/to/project
-./bin/vinit -c configs/versainit.yaml build -p /path/to/project
+dev repo clone mine ~/Development/github.com/rios0rios0        # clone missing repos
+dev repo clone mine --dry-run                                   # preview without cloning
+dev repo sync ~/Development/github.com/rios0rios0               # sync all repos
 ```
 
 ## Architecture
 
-All application code lives in `cmd/versainit/` (4 files, ~400 lines total):
+All application code lives in `cmd/devforge/` (3 files):
 
-- **main.go** -- Cobra CLI setup, registers `start` and `build` subcommands, initializes global config
-- **actions.go** -- Language detection (special files first, extensions fallback) and command execution via `/bin/sh -c`
-- **config.go** -- YAML config parsing, `GlobalConfig` struct, config merging (local `vinit.yaml` overrides global)
-- **clone.go** -- Dependency resolution (searches parent dirs) and shallow git cloning
+- **main.go** -- Cobra CLI setup with `repo` command group containing `clone` and `sync`
+- **clone.go** -- Repository cloning: provider detection from path, gitforge discovery, parallel SSH cloning with goroutines, interactive extra repo deletion
+- **sync.go** -- Repository syncing: parallel fetch/rebase with WIP branch preservation for dirty trees
 
-Language definitions live in `configs/versainit.yaml`, not in code. Adding a new language requires only editing this YAML file.
+### Key Design Decisions
 
-## Key Design Decisions
+- **Provider detection**: Mapper pattern from directory path segments (`github.com` → `"github"`, `dev.azure.com` → `"azuredevops"`)
+- **Parallel operations**: Goroutines with semaphore channel (`runtime.NumCPU()` workers)
+- **Git operations**: Uses `exec.Command("git", ...)` for clone/fetch/rebase (go-git lacks rebase support)
+- **SSH cloning**: Sets `GIT_SSH_COMMAND` with `StrictHostKeyChecking=accept-new` and `BatchMode=yes`
+- **Private repos**: gitforge uses authenticated `/user/repos?affiliation=owner` endpoint when the token owner matches
+- **No switch/case**: All dispatch uses mapper pattern (maps of string → value/function)
 
-- **Detection priority**: Special pattern files (e.g. `go.mod`) take precedence over file extension scanning
-- **Config merging**: Local `vinit.yaml` in a project directory overrides the global config passed via `-c`
-- **Global config**: Single `Globalconf` variable initialized at startup (appropriate for CLI scope)
-- **No tests yet**: `internal/` and `test/` directories are reserved with `.gitkeep` for future use
-- **`stop` command**: Defined in config schema but no CLI subcommand is registered for it
+### Dependencies
+
+- **gitforge** -- Multi-provider Git hosting abstractions (GitHub, Azure DevOps, GitLab)
+- **langforge** -- Language detection and ecosystem abstractions (planned for Phase 2)
+
+### Local Development with Replace Directives
+
+During development, `go.mod` uses `replace` directives to point to local gitforge/langforge checkouts. Remove these before releasing.

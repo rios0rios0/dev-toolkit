@@ -9,22 +9,22 @@ LDFLAGS := -X main.version=$(VERSION)
 
 build:
 	rm -rf bin
-	go build -ldflags "$(LDFLAGS) -s -w" -o bin/vinit ./cmd/versainit
-	strip -s bin/vinit
+	go build -ldflags "$(LDFLAGS) -s -w" -o bin/dev ./cmd/devforge
+	strip -s bin/dev
 
 debug:
 	rm -rf bin
-	go build -gcflags "-N -l" -ldflags "$(LDFLAGS)" -o bin/vinit ./cmd/versainit
+	go build -gcflags "-N -l" -ldflags "$(LDFLAGS)" -o bin/dev ./cmd/devforge
 
 build-musl:
 	CGO_ENABLED=1 CC=musl-gcc go build \
-		-ldflags '$(LDFLAGS) -linkmode external -extldflags="-static"' -o bin/vinit ./cmd/versainit
-	strip -s bin/vinit
+		-ldflags '$(LDFLAGS) -linkmode external -extldflags="-static"' -o bin/dev ./cmd/devforge
+	strip -s bin/dev
 
 run:
-	go run ./cmd/versainit
+	go run ./cmd/devforge
 
 install:
 	make build
 	mkdir -p ~/.local/bin
-	cp -v bin/vinit ~/.local/bin/vinit
+	cp -v bin/dev ~/.local/bin/dev
