@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-DevForge is a Go CLI tool (binary: `dev`) that manages Git repositories across multiple providers. Built with Cobra (CLI), logrus (logging), and gitforge (multi-provider Git operations).
+DevForge is a Go CLI tool (binary: `dev`) that manages Git repositories across multiple providers and provides language-aware project commands. Built with Cobra (CLI), logrus (logging), gitforge (multi-provider Git operations), and langforge (language detection).
 
 ## Build and Development Commands
 
@@ -26,6 +26,10 @@ The Makefile includes shared targets from `$(HOME)/Development/github.com/rios0r
 dev repo clone mine ~/Development/github.com/rios0rios0        # clone missing repos
 dev repo clone mine --dry-run                                   # preview without cloning
 dev repo sync ~/Development/github.com/rios0rios0               # sync all repos
+dev project info .                                              # detect language and show info
+dev project start .                                             # run project start command
+dev project build .                                             # run project build commands
+dev project stop .                                              # run project stop command
 ```
 
 ## Architecture
@@ -41,12 +45,17 @@ internal/
     clone.go                 -- clone orchestration with dependency injection
     sync.go                  -- sync orchestration with dependency injection
     *_test.go                -- BDD tests (81%+ coverage)
+  project/
+    runner.go                -- CommandRunner interface + DefaultCommandRunner (passthrough I/O)
+    detect.go                -- LanguageDetector interface + DefaultLanguageDetector (wraps langforge)
+    start.go                 -- RunStart: detect language, run start command
+    build.go                 -- RunBuild: detect language, run build commands
+    stop.go                  -- RunStop: detect language, run stop command
+    info.go                  -- RunInfo: detect language, display metadata
+    *_test.go                -- BDD tests
   testutil/
-    doubles/
-      git_runner_stub.go     -- GitRunner stub with configurable behavior
-      forge_provider_stub.go -- ForgeProvider stub for testing
-    builders/
-      repository_builder.go  -- fluent builder for gitforge Repository
+    doubles/                 -- GitRunnerStub, ForgeProviderStub, CommandRunnerStub, LanguageDetectorStub
+    builders/                -- RepositoryBuilder
 ```
 
 ### Key Design Decisions
@@ -55,9 +64,11 @@ internal/
 - **Parallel operations**: Goroutines with semaphore channel (`runtime.NumCPU()` workers)
 - **Git operations**: Uses `exec.Command("git", ...)` behind `GitRunner` interface for testability
 - **SSH cloning**: Sets `GIT_SSH_COMMAND` with `StrictHostKeyChecking=accept-new` and `BatchMode=yes`
-- **Dependency injection**: Business logic in `internal/repo/` accepts interfaces (`GitRunner`, `ForgeProvider`, `io.Writer`, `io.Reader`) for testability
+- **Language detection**: Uses langforge's `LanguageRegistry` behind `LanguageDetector` interface for testability
+- **Dependency injection**: Business logic accepts interfaces (`GitRunner`, `ForgeProvider`, `LanguageDetector`, `CommandRunner`, `io.Writer`) for testability
 - **No switch/case**: All dispatch uses mapper pattern (maps of string -> value/function)
 
 ### Dependencies
 
 - **gitforge** -- Multi-provider Git hosting abstractions (GitHub, Azure DevOps, GitLab)
+- **langforge** -- Language detection, version management, and runtime information (Go, Node, Python, Java, C#, Terraform)

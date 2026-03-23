@@ -22,6 +22,11 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 - added `dev repo sync` command — syncs all repos under a directory with fetch/rebase and WIP branch preservation
 - added gitforge integration for multi-provider repository discovery (GitHub, Azure DevOps, GitLab)
 - added SSH alias clone URL support via gitforge
+- added `dev project start` command — detects language and runs start command via langforge
+- added `dev project build` command — detects language and runs build commands via langforge
+- added `dev project stop` command — detects language and runs stop command via langforge
+- added `dev project info` command — detects language and displays SDK, version, and available commands
+- added langforge integration for automatic language detection (Go, Node, Python, Java, C#, Terraform)
 - added comprehensive test suite with 81%+ coverage for all business logic
 - added test infrastructure with GitRunner stub, ForgeProvider stub, and Repository builder
 
