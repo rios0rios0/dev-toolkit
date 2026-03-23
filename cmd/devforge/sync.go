@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -83,71 +84,93 @@ type syncResult struct {
 
 func syncSingleRepo(repoPath, rootDir string) syncResult {
 	name := strings.TrimPrefix(repoPath, rootDir+"/")
-
-	// detect default branch
-	defaultBranch := gitOutput(repoPath, "symbolic-ref", "refs/remotes/origin/HEAD")
-	defaultBranch = strings.TrimPrefix(defaultBranch, "refs/remotes/origin/")
-	if defaultBranch == "" {
-		defaultBranch = "main"
-	}
-
-	// save current branch
-	currentBranch := gitOutput(repoPath, "branch", "--show-current")
-	if currentBranch == "" {
-		currentBranch = defaultBranch
-	}
-
-	// check for dirty tree
+	defaultBranch := detectDefaultBranch(repoPath)
+	currentBranch := detectCurrentBranch(repoPath, defaultBranch)
 	isDirty := gitOutput(repoPath, "status", "--porcelain") != ""
 	wipBranch := fmt.Sprintf("wip/%s", currentBranch)
 
 	if isDirty {
-		logf("%s: dirty tree, saving to %s", name, wipBranch)
-		// create or reset WIP branch and commit
-		if err := gitRun(repoPath, "checkout", "-B", wipBranch); err != nil {
-			return syncResult{name: name, status: fmt.Sprintf("FAIL (wip branch: %v)", err)}
-		}
-		if err := gitRun(repoPath, "add", "-A"); err != nil {
-			_ = gitRun(repoPath, "checkout", currentBranch)
-			_ = gitRun(repoPath, "branch", "-D", wipBranch)
-			return syncResult{name: name, status: fmt.Sprintf("FAIL (wip add: %v)", err)}
-		}
-		msg := fmt.Sprintf("wip: auto-stash %s", time.Now().Format("2006-01-02T15:04:05"))
-		if err := gitRun(repoPath, "commit", "--no-verify", "-m", msg); err != nil {
-			_ = gitRun(repoPath, "checkout", currentBranch)
-			_ = gitRun(repoPath, "branch", "-D", wipBranch)
-			return syncResult{name: name, status: fmt.Sprintf("FAIL (wip commit: %v)", err)}
+		if result, ok := saveWIPState(repoPath, name, currentBranch, wipBranch); !ok {
+			return result
 		}
 	}
 
-	// checkout default branch and sync
+	return syncAndRestore(repoPath, name, defaultBranch, currentBranch, wipBranch, isDirty)
+}
+
+func detectDefaultBranch(repoPath string) string {
+	branch := gitOutput(repoPath, "symbolic-ref", "refs/remotes/origin/HEAD")
+	branch = strings.TrimPrefix(branch, "refs/remotes/origin/")
+	if branch == "" {
+		return "main"
+	}
+	return branch
+}
+
+func detectCurrentBranch(repoPath, defaultBranch string) string {
+	branch := gitOutput(repoPath, "branch", "--show-current")
+	if branch == "" {
+		return defaultBranch
+	}
+	return branch
+}
+
+func saveWIPState(repoPath, name, currentBranch, wipBranch string) (syncResult, bool) {
+	logf("%s: dirty tree, saving to %s", name, wipBranch)
+
+	if err := gitRun(repoPath, "checkout", "-B", wipBranch); err != nil {
+		return syncResult{name: name, status: fmt.Sprintf("FAIL (wip branch: %v)", err)}, false
+	}
+
+	if err := gitRun(repoPath, "add", "-A"); err != nil {
+		_ = gitRun(repoPath, "checkout", currentBranch)
+		_ = gitRun(repoPath, "branch", "-D", wipBranch)
+		return syncResult{name: name, status: fmt.Sprintf("FAIL (wip add: %v)", err)}, false
+	}
+
+	msg := fmt.Sprintf("wip: auto-stash %s", time.Now().Format("2006-01-02T15:04:05"))
+	if err := gitRun(repoPath, "commit", "--no-verify", "-m", msg); err != nil {
+		_ = gitRun(repoPath, "checkout", currentBranch)
+		_ = gitRun(repoPath, "branch", "-D", wipBranch)
+		return syncResult{name: name, status: fmt.Sprintf("FAIL (wip commit: %v)", err)}, false
+	}
+
+	return syncResult{}, true
+}
+
+func syncAndRestore(
+	repoPath, name, defaultBranch, currentBranch, wipBranch string, isDirty bool,
+) syncResult {
 	if err := gitRun(repoPath, "checkout", defaultBranch); err != nil {
-		if isDirty {
-			_ = gitRun(repoPath, "checkout", wipBranch)
-		}
+		restoreBranch(repoPath, currentBranch, wipBranch, isDirty)
 		return syncResult{name: name, status: fmt.Sprintf("FAIL (checkout %s: %v)", defaultBranch, err)}
 	}
 
 	if err := gitRun(repoPath, "fetch", "--all", "--prune", "-q"); err != nil {
-		if isDirty {
-			_ = gitRun(repoPath, "checkout", wipBranch)
-		} else {
-			_ = gitRun(repoPath, "checkout", currentBranch)
-		}
+		restoreBranch(repoPath, currentBranch, wipBranch, isDirty)
 		return syncResult{name: name, status: fmt.Sprintf("FAIL (fetch: %v)", err)}
 	}
 
 	if err := gitRun(repoPath, "pull", "--rebase"); err != nil {
 		_ = gitRun(repoPath, "rebase", "--abort")
-		if isDirty {
-			_ = gitRun(repoPath, "checkout", wipBranch)
-		} else {
-			_ = gitRun(repoPath, "checkout", currentBranch)
-		}
+		restoreBranch(repoPath, currentBranch, wipBranch, isDirty)
 		return syncResult{name: name, status: fmt.Sprintf("FAIL (pull --rebase: %v)", err)}
 	}
 
-	// restore original state
+	return restoreAfterSync(repoPath, name, defaultBranch, currentBranch, wipBranch, isDirty)
+}
+
+func restoreBranch(repoPath, currentBranch, wipBranch string, isDirty bool) {
+	if isDirty {
+		_ = gitRun(repoPath, "checkout", wipBranch)
+	} else {
+		_ = gitRun(repoPath, "checkout", currentBranch)
+	}
+}
+
+func restoreAfterSync(
+	repoPath, name, defaultBranch, currentBranch, wipBranch string, isDirty bool,
+) syncResult {
 	status := "synced"
 	if isDirty {
 		_ = gitRun(repoPath, "checkout", wipBranch)
@@ -159,15 +182,14 @@ func syncSingleRepo(repoPath, rootDir string) syncResult {
 	} else if currentBranch != defaultBranch {
 		_ = gitRun(repoPath, "checkout", currentBranch)
 	}
-
 	return syncResult{name: name, status: status}
 }
 
 func findAllRepos(rootDir string) []string {
 	var repos []string
-	_ = filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return nil
+	_ = filepath.Walk(rootDir, func(path string, info os.FileInfo, _ error) error {
+		if info == nil {
+			return filepath.SkipDir
 		}
 		if info.IsDir() && info.Name() == ".git" {
 			repoPath := filepath.Dir(path)
@@ -182,7 +204,7 @@ func findAllRepos(rootDir string) []string {
 }
 
 func gitRun(dir string, args ...string) error {
-	cmd := exec.Command("git", args...) // #nosec G204
+	cmd := exec.CommandContext(context.Background(), "git", args...) // #nosec G204
 	cmd.Dir = dir
 	cmd.Stdin = nil
 	output, err := cmd.CombinedOutput()
@@ -193,7 +215,7 @@ func gitRun(dir string, args ...string) error {
 }
 
 func gitOutput(dir string, args ...string) string {
-	cmd := exec.Command("git", args...) // #nosec G204
+	cmd := exec.CommandContext(context.Background(), "git", args...) // #nosec G204
 	cmd.Dir = dir
 	cmd.Stdin = nil
 	output, err := cmd.Output()
