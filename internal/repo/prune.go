@@ -3,6 +3,7 @@ package repo
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -40,7 +41,7 @@ func RunPrune(rootDir string, runner GitRunner, dryRun bool, output io.Writer) e
 		go func(idx int, name string) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			repoPath := rootDir + "/" + name
+			repoPath := filepath.Join(rootDir, name)
 			results[idx] = PruneSingleRepo(repoPath, rootDir, runner, dryRun)
 		}(i, repoName)
 	}
@@ -49,11 +50,15 @@ func RunPrune(rootDir string, runner GitRunner, dryRun bool, output io.Writer) e
 
 	pruned, skipped, failed := 0, 0, 0
 	for _, r := range results {
-		if len(r.Deleted) > 0 || strings.HasPrefix(r.Status, "FAIL") {
+		statusLower := strings.ToLower(r.Status)
+		hasFailure := strings.HasPrefix(r.Status, "FAIL") || strings.Contains(statusLower, "failed")
+
+		if len(r.Deleted) > 0 || hasFailure {
 			Logf(output, "%s: %s", r.Name, r.Status)
 		}
+
 		switch {
-		case strings.HasPrefix(r.Status, "FAIL"):
+		case hasFailure:
 			failed++
 		case len(r.Deleted) > 0:
 			pruned += len(r.Deleted)
@@ -68,7 +73,7 @@ func RunPrune(rootDir string, runner GitRunner, dryRun bool, output io.Writer) e
 
 // PruneSingleRepo finds and deletes local branches that have been merged into the default branch.
 func PruneSingleRepo(repoPath, rootDir string, runner GitRunner, dryRun bool) PruneResult {
-	name := strings.TrimPrefix(repoPath, rootDir+"/")
+	name, _ := filepath.Rel(rootDir, repoPath)
 	defaultBranch := DetectDefaultBranch(repoPath, runner)
 
 	merged := ListMergedBranches(repoPath, defaultBranch, runner)
@@ -112,10 +117,11 @@ func ListMergedBranches(repoPath, baseBranch string, runner GitRunner) []string 
 	}
 
 	var merged []string
-	for _, line := range strings.Split(output, "\n") {
+	for line := range strings.SplitSeq(output, "\n") {
 		branch := strings.TrimSpace(line)
 		branch = strings.TrimPrefix(branch, "* ")
-		if branch == "" || branch == baseBranch || strings.Contains(branch, "HEAD") {
+		// skip empty lines, the base branch itself, and HEAD pointer/detached HEAD lines
+		if branch == "" || branch == baseBranch || strings.HasPrefix(branch, "HEAD") {
 			continue
 		}
 		merged = append(merged, branch)
