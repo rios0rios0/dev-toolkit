@@ -3,7 +3,7 @@ module github.com/rios0rios0/devforge
 go 1.26.1
 
 require (
-	github.com/rios0rios0/gitforge v0.7.3
+	github.com/rios0rios0/gitforge v0.8.0
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
 )

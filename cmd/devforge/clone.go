@@ -116,7 +116,7 @@ func runClone(rootDir, sshAlias string, dryRun, includeArchived bool) error {
 		return nil
 	}
 
-	cloned, failed := cloneMissing(missing, providerName, sshAlias, rootDir, dryRun)
+	cloned, failed := cloneMissing(missing, provider, providerName, sshAlias, rootDir, dryRun)
 	handleExtraRepos(extra, rootDir, dryRun)
 
 	logf("summary: %d cloned, %d failed, %d extra", cloned, failed, len(extra))
@@ -193,6 +193,7 @@ func computeDiff(
 
 func cloneMissing(
 	missing []globalEntities.Repository,
+	provider globalEntities.ForgeProvider,
 	providerName, sshAlias, rootDir string,
 	dryRun bool,
 ) (int, int) {
@@ -202,7 +203,7 @@ func cloneMissing(
 
 	if dryRun {
 		for _, r := range missing {
-			url := sshCloneURL(r, providerName, sshAlias)
+			url := provider.SSHCloneURL(r, sshAlias)
 			target := filepath.Join(rootDir, repoKey(r))
 			logf("would clone %s -> %s", url, target)
 		}
@@ -214,7 +215,7 @@ func cloneMissing(
 		return 0, len(missing)
 	}
 
-	return parallelClone(missing, providerName, sshAlias, rootDir)
+	return parallelClone(missing, provider, sshAlias, rootDir)
 }
 
 func handleExtraRepos(extra []string, rootDir string, dryRun bool) {
@@ -373,7 +374,8 @@ type cloneResult struct {
 
 func parallelClone(
 	repos []globalEntities.Repository,
-	providerName, sshAlias, rootDir string,
+	provider globalEntities.ForgeProvider,
+	sshAlias, rootDir string,
 ) (int, int) {
 	workers := runtime.NumCPU()
 	sem := make(chan struct{}, workers)
@@ -388,7 +390,7 @@ func parallelClone(
 		go func(idx int, repo globalEntities.Repository) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			results[idx] = cloneSingleRepo(repo, providerName, sshAlias, rootDir)
+			results[idx] = cloneSingleRepo(repo, provider, sshAlias, rootDir)
 		}(i, r)
 	}
 
@@ -409,9 +411,10 @@ func parallelClone(
 
 func cloneSingleRepo(
 	repo globalEntities.Repository,
-	providerName, sshAlias, rootDir string,
+	provider globalEntities.ForgeProvider,
+	sshAlias, rootDir string,
 ) cloneResult {
-	url := sshCloneURL(repo, providerName, sshAlias)
+	url := provider.SSHCloneURL(repo, sshAlias)
 	target := filepath.Join(rootDir, repoKey(repo))
 
 	if mkdirErr := os.MkdirAll(filepath.Dir(target), dirPermissions); mkdirErr != nil {
@@ -430,20 +433,6 @@ func cloneSingleRepo(
 		return cloneResult{name: repoKey(repo), err: strings.TrimSpace(string(output))}
 	}
 	return cloneResult{name: repoKey(repo), success: true}
-}
-
-func sshCloneURL(repo globalEntities.Repository, providerName, sshAlias string) string {
-	host := providerHostMap[providerName]
-	aliasHost := fmt.Sprintf("%s-%s", host, sshAlias)
-	if repo.SSHURL != "" {
-		return strings.Replace(repo.SSHURL, host, aliasHost, 1)
-	}
-	if repo.Project != "" {
-		return fmt.Sprintf(
-			"git@%s:v3/%s/%s/%s", aliasHost, repo.Organization, repo.Project, repo.Name,
-		)
-	}
-	return fmt.Sprintf("git@%s:%s/%s.git", aliasHost, repo.Organization, repo.Name)
 }
 
 func logf(format string, args ...any) {
