@@ -61,7 +61,7 @@ clones missing repos via SSH, and optionally removes extra local repos.`,
 			if len(args) > 1 {
 				rootDir = args[1]
 			}
-			rootDir = strings.TrimRight(rootDir, "/")
+			rootDir = filepath.Clean(rootDir)
 			return runClone(rootDir, sshAlias, dryRun, includeArchived)
 		},
 	}
@@ -158,7 +158,7 @@ func runClone(rootDir, sshAlias string, dryRun, includeArchived bool) error {
 	if len(missing) > 0 {
 		if dryRun {
 			for _, r := range missing {
-				url := provider.SSHCloneURL(r, sshAlias)
+				url := sshCloneURL(r, providerName, sshAlias)
 				target := filepath.Join(rootDir, repoKey(r))
 				logf("would clone %s -> %s", url, target)
 			}
@@ -168,14 +168,20 @@ func runClone(rootDir, sshAlias string, dryRun, includeArchived bool) error {
 				return err
 			}
 
-			cloned, failed = parallelClone(missing, provider, sshAlias, rootDir)
+			cloned, failed = parallelClone(missing, providerName, sshAlias, rootDir)
 		}
 	}
 
 	// handle extra repos
+	isInteractive := false
+	if fi, err := os.Stdin.Stat(); err == nil {
+		isInteractive = fi.Mode()&os.ModeCharDevice != 0
+	}
 	for _, name := range extra {
 		if dryRun {
 			logf("extra: %s", name)
+		} else if !isInteractive {
+			logf("extra: %s (kept, non-interactive)", name)
 		} else {
 			fmt.Fprintf(os.Stderr, "[dev] \"%s\" exists locally but not on remote. Delete? [y/N] ", name)
 			scanner := bufio.NewScanner(os.Stdin)
@@ -301,8 +307,7 @@ type cloneResult struct {
 
 func parallelClone(
 	repos []globalEntities.Repository,
-	provider globalEntities.ForgeProvider,
-	sshAlias, rootDir string,
+	providerName, sshAlias, rootDir string,
 ) (cloned, failed int) {
 	workers := runtime.NumCPU()
 	sem := make(chan struct{}, workers)
@@ -318,7 +323,7 @@ func parallelClone(
 			defer wg.Done()
 			defer func() { <-sem }()
 
-			url := provider.SSHCloneURL(repo, sshAlias)
+			url := sshCloneURL(repo, providerName, sshAlias)
 			target := filepath.Join(rootDir, repoKey(repo))
 
 			if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
@@ -352,6 +357,18 @@ func parallelClone(
 		}
 	}
 	return cloned, failed
+}
+
+func sshCloneURL(repo globalEntities.Repository, providerName, sshAlias string) string {
+	host := providerHostMap[providerName]
+	aliasHost := fmt.Sprintf("%s-%s", host, sshAlias)
+	if repo.SSHURL != "" {
+		return strings.Replace(repo.SSHURL, host, aliasHost, 1)
+	}
+	if repo.Project != "" {
+		return fmt.Sprintf("git@%s:v3/%s/%s/%s", aliasHost, repo.Organization, repo.Project, repo.Name)
+	}
+	return fmt.Sprintf("git@%s:%s/%s.git", aliasHost, repo.Organization, repo.Name)
 }
 
 func logf(format string, args ...any) {

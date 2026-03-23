@@ -3,7 +3,7 @@ module github.com/rios0rios0/devforge
 go 1.26.1
 
 require (
-	github.com/rios0rios0/gitforge v0.0.0
+	github.com/rios0rios0/gitforge v0.7.3
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
 )
@@ -33,7 +33,3 @@ require (
 	golang.org/x/time v0.15.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )
-
-replace github.com/rios0rios0/gitforge => /data/data/com.termux/files/home/Development/github.com/rios0rios0/gitforge
-
-replace github.com/rios0rios0/langforge => /data/data/com.termux/files/home/Development/github.com/rios0rios0/langforge

@@ -25,7 +25,7 @@ rebases the default branch, and preserves any uncommitted work via WIP commits.`
 			if len(args) > 0 {
 				rootDir = args[0]
 			}
-			rootDir = strings.TrimRight(rootDir, "/")
+			rootDir = filepath.Clean(rootDir)
 			return runSync(rootDir)
 		},
 	}
@@ -103,11 +103,15 @@ func syncSingleRepo(repoPath, rootDir string) syncResult {
 
 	if isDirty {
 		logf("%s: dirty tree, saving to %s", name, wipBranch)
-		// create WIP branch and commit
-		if err := gitRun(repoPath, "checkout", "-b", wipBranch); err != nil {
+		// create or reset WIP branch and commit
+		if err := gitRun(repoPath, "checkout", "-B", wipBranch); err != nil {
 			return syncResult{name: name, status: fmt.Sprintf("FAIL (wip branch: %v)", err)}
 		}
-		_ = gitRun(repoPath, "add", "-A")
+		if err := gitRun(repoPath, "add", "-A"); err != nil {
+			_ = gitRun(repoPath, "checkout", currentBranch)
+			_ = gitRun(repoPath, "branch", "-D", wipBranch)
+			return syncResult{name: name, status: fmt.Sprintf("FAIL (wip add: %v)", err)}
+		}
 		msg := fmt.Sprintf("wip: auto-stash %s", time.Now().Format("2006-01-02T15:04:05"))
 		if err := gitRun(repoPath, "commit", "--no-verify", "-m", msg); err != nil {
 			_ = gitRun(repoPath, "checkout", currentBranch)
@@ -124,7 +128,14 @@ func syncSingleRepo(repoPath, rootDir string) syncResult {
 		return syncResult{name: name, status: fmt.Sprintf("FAIL (checkout %s: %v)", defaultBranch, err)}
 	}
 
-	_ = gitRun(repoPath, "fetch", "--all", "--prune", "-q")
+	if err := gitRun(repoPath, "fetch", "--all", "--prune", "-q"); err != nil {
+		if isDirty {
+			_ = gitRun(repoPath, "checkout", wipBranch)
+		} else {
+			_ = gitRun(repoPath, "checkout", currentBranch)
+		}
+		return syncResult{name: name, status: fmt.Sprintf("FAIL (fetch: %v)", err)}
+	}
 
 	if err := gitRun(repoPath, "pull", "--rebase"); err != nil {
 		_ = gitRun(repoPath, "rebase", "--abort")
