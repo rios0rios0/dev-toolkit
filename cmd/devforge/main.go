@@ -28,6 +28,7 @@ func main() {
 	}
 	repoCmd.AddCommand(newCloneCmd())
 	repoCmd.AddCommand(newSyncCmd())
+	repoCmd.AddCommand(newPruneCmd())
 
 	projectCmd := &cobra.Command{
 		Use:   "project",
@@ -104,6 +105,30 @@ rebases the default branch, and preserves any uncommitted work via WIP commits.`
 			return repo.RunSync(rootDir, &repo.DefaultGitRunner{}, os.Stderr)
 		},
 	}
+}
+
+func newPruneCmd() *cobra.Command {
+	var dryRun bool
+
+	cmd := &cobra.Command{
+		Use:   "prune [root-dir]",
+		Short: "Delete local branches that have been merged into the default branch",
+		Long: `For each repository found one level deep under the root directory,
+lists local branches merged into the default branch and deletes them.`,
+		Args: cobra.MaximumNArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			rootDir, _ := os.Getwd()
+			if len(args) > 0 {
+				rootDir = args[0]
+			}
+			rootDir = filepath.Clean(rootDir)
+			return repo.RunPrune(rootDir, &repo.DefaultGitRunner{}, dryRun, os.Stderr)
+		},
+	}
+
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "show which branches would be deleted without deleting them")
+
+	return cmd
 }
 
 func newProjectConfig(args []string) project.Config {
