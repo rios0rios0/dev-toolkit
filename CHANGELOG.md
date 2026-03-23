@@ -20,6 +20,7 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 - added `dev repo clone` command — discovers repos from Git providers, clones missing via SSH with parallel workers
 - added `dev repo sync` command — syncs all repos under a directory with fetch/rebase and WIP branch preservation
+- added `dev repo prune` command — deletes local branches merged into the default branch across repos
 - added gitforge integration for multi-provider repository discovery (GitHub, Azure DevOps, GitLab)
 - added SSH alias clone URL support via gitforge
 - added `dev project start` command — detects language and runs start command via langforge

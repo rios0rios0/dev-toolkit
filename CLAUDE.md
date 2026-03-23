@@ -26,6 +26,8 @@ The Makefile includes shared targets from `$(HOME)/Development/github.com/rios0r
 dev repo clone mine ~/Development/github.com/rios0rios0        # clone missing repos
 dev repo clone mine --dry-run                                   # preview without cloning
 dev repo sync ~/Development/github.com/rios0rios0               # sync all repos
+dev repo prune ~/Development/github.com/rios0rios0              # delete merged branches
+dev repo prune ~/Development/github.com/rios0rios0 --dry-run    # preview without deleting
 dev project info .                                              # detect language and show info
 dev project start .                                             # run project start command
 dev project build .                                             # run project build commands
@@ -44,6 +46,7 @@ internal/
     scanner.go               -- local repo scanning (flat/nested/recursive)
     clone.go                 -- clone orchestration with dependency injection
     sync.go                  -- sync orchestration with dependency injection
+    prune.go                 -- prune merged branches with dry-run support
     *_test.go                -- BDD tests (81%+ coverage)
   project/
     runner.go                -- CommandRunner interface + DefaultCommandRunner (passthrough I/O)
