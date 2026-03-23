@@ -38,7 +38,7 @@ Download pre-built binaries from the [releases page](https://github.com/rios0rio
 # Clone all repos for a GitHub user/org
 dev repo clone <ssh-alias> [root-dir]
 dev repo clone mine ~/Development/github.com/rios0rios0
-dev repo clone my-org ~/Development/dev.azure.com/ContosoSecurity
+dev repo clone my-org ~/Development/dev.azure.com/my-org
 dev repo clone mine --dry-run  # preview without cloning
 
 # Sync all repos under a directory
