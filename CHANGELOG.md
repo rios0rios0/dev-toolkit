@@ -23,13 +23,16 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 - added `dev repo prune` command — deletes local branches merged into the default branch across repos
 - added gitforge integration for multi-provider repository discovery (GitHub, Azure DevOps, GitLab)
 - added SSH alias clone URL support via gitforge
+- added `dev project use` command — detects required SDK version and prints shell commands to install/switch versions
 - added `dev project start` command — detects language and runs start command via langforge
 - added `dev project build` command — detects language and runs build commands via langforge
 - added `dev project stop` command — detects language and runs stop command via langforge
 - added `dev project info` command — detects language and displays SDK, version, and available commands
 - added langforge integration for automatic language detection (Go, Node, Python, Java, C#, Terraform)
+- added `dev docker ips` command — lists IP addresses of all running Docker containers
+- added `dev docker reset` command — stops all containers and prunes containers, volumes, networks, and build cache
 - added comprehensive test suite with 81%+ coverage for all business logic
-- added test infrastructure with GitRunner stub, ForgeProvider stub, and Repository builder
+- added test infrastructure with GitRunner stub, ForgeProvider stub, DockerRunner stub, and Repository builder
 
 ### Changed
 

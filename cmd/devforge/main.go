@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/rios0rios0/devforge/internal/docker"
 	"github.com/rios0rios0/devforge/internal/project"
 	"github.com/rios0rios0/devforge/internal/repo"
 	log "github.com/sirupsen/logrus"
@@ -38,9 +39,18 @@ func main() {
 	projectCmd.AddCommand(newProjectBuildCmd())
 	projectCmd.AddCommand(newProjectStopCmd())
 	projectCmd.AddCommand(newProjectInfoCmd())
+	projectCmd.AddCommand(newProjectUseCmd())
+
+	dockerCmd := &cobra.Command{
+		Use:   "docker",
+		Short: "Docker environment management commands",
+	}
+	dockerCmd.AddCommand(newDockerIPsCmd())
+	dockerCmd.AddCommand(newDockerResetCmd())
 
 	rootCmd.AddCommand(repoCmd)
 	rootCmd.AddCommand(projectCmd)
+	rootCmd.AddCommand(dockerCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal(err)
@@ -190,6 +200,58 @@ func newProjectInfoCmd() *cobra.Command {
 			return project.RunInfo(newProjectConfig(args))
 		},
 	}
+}
+
+func newProjectUseCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "use [path]",
+		Short: "Detect language and print shell commands to switch to the required SDK version",
+		Long: `Reads the required SDK version from project files (go.mod, .nvmrc, pyproject.toml),
+compares with the currently installed version, and prints shell commands to stdout.
+
+Use with eval to switch versions in the current shell:
+  eval "$(dev project use .)"
+
+Or define a shell function:
+  dev-use() { eval "$(dev project use "${1:-.}")"; }`,
+		Args: cobra.MaximumNArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			cfg := newProjectConfig(args)
+			cfg.Stdout = os.Stdout
+			cfg.Output = os.Stderr
+			return project.RunUse(cfg)
+		},
+	}
+}
+
+func newDockerIPsCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "ips",
+		Short: "List IP addresses of all running Docker containers",
+		Args:  cobra.NoArgs,
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return docker.RunIPs(&docker.DefaultRunner{}, os.Stderr)
+		},
+	}
+}
+
+func newDockerResetCmd() *cobra.Command {
+	var dryRun bool
+
+	cmd := &cobra.Command{
+		Use:   "reset",
+		Short: "Stop all containers and prune all Docker resources",
+		Long: `Stops all running containers, then prunes stopped containers,
+volumes, networks, and the build cache.`,
+		Args: cobra.NoArgs,
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return docker.RunReset(&docker.DefaultRunner{}, dryRun, os.Stderr)
+		},
+	}
+
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "show what would be done without making changes")
+
+	return cmd
 }
 
 func mustDetectProvider(rootDir string) string {
