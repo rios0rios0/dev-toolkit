@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"gopkg.in/yaml.v3"
 )
+
+// ErrDependencyCycle indicates a circular dependency was detected in the dependency graph.
+var ErrDependencyCycle = errors.New("dependency cycle detected")
 
 // DevConfig represents the contents of a .dev.yaml file.
 type DevConfig struct {
@@ -68,7 +70,7 @@ func dfsResolve(
 		return nil
 	}
 	if visiting[absPath] {
-		return fmt.Errorf("dependency cycle detected at %s", absPath)
+		return fmt.Errorf("%w at %s", ErrDependencyCycle, absPath)
 	}
 
 	visiting[absPath] = true
@@ -85,7 +87,7 @@ func dfsResolve(
 				return fmt.Errorf("failed to resolve dependency path %s: %w", dep, absErr)
 			}
 			if err := dfsResolve(depAbs, reader, visited, visiting, result); err != nil {
-				if strings.Contains(err.Error(), "dependency cycle detected") {
+				if errors.Is(err, ErrDependencyCycle) {
 					return fmt.Errorf("%w -> %s", err, absPath)
 				}
 				return err

@@ -151,7 +151,7 @@ func TestRunStartWithDeps(t *testing.T) {
 
 		// then
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "dependency cycle detected")
+		assert.ErrorIs(t, err, project.ErrDependencyCycle)
 	})
 }
 

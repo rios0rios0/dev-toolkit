@@ -180,7 +180,7 @@ func TestResolveDependencyOrder(t *testing.T) {
 		// then
 		require.Error(t, err)
 		assert.Nil(t, order)
-		assert.Contains(t, err.Error(), "dependency cycle detected")
+		assert.ErrorIs(t, err, project.ErrDependencyCycle)
 	})
 
 	t.Run("should detect indirect cycle and return error", func(t *testing.T) {
@@ -203,7 +203,7 @@ func TestResolveDependencyOrder(t *testing.T) {
 		// then
 		require.Error(t, err)
 		assert.Nil(t, order)
-		assert.Contains(t, err.Error(), "dependency cycle detected")
+		assert.ErrorIs(t, err, project.ErrDependencyCycle)
 	})
 
 	t.Run("should return error when config reader fails", func(t *testing.T) {

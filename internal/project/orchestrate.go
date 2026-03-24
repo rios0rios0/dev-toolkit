@@ -63,7 +63,7 @@ func RunStopWithDeps(cfg Config) error {
 			logf(cfg.Output, "stopping dependency: %s", path)
 		}
 		if stopErr := RunStop(derived); stopErr != nil {
-			logf(cfg.Output, "failed to stop %s: %s", path, stopErr)
+			logf(cfg.Output, "failed to stop %s: %v", path, stopErr)
 			errs = append(errs, fmt.Errorf("failed to stop %s: %w", path, stopErr))
 		}
 	}
