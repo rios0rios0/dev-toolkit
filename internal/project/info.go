@@ -24,5 +24,16 @@ func RunInfo(cfg Config) error {
 	logf(cfg.Output, "stop command:    %s", valueOrNone(info.StopCommand))
 	logf(cfg.Output, "lint commands:   %s", commandsOrNone(info.LintCommands))
 	logf(cfg.Output, "build commands:  %s", commandsOrNone(info.BuildCommands))
+
+	if cfg.ConfigReader != nil {
+		devCfg, readErr := cfg.ConfigReader.Read(repoPath)
+		if readErr == nil && devCfg != nil && len(devCfg.Dependencies) > 0 {
+			logf(cfg.Output, "dependencies:")
+			for _, dep := range devCfg.Dependencies {
+				logf(cfg.Output, "  %s", dep)
+			}
+		}
+	}
+
 	return nil
 }

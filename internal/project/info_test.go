@@ -71,6 +71,59 @@ func TestRunInfo(t *testing.T) {
 		assert.Contains(t, buf.String(), "current version: (not installed)")
 	})
 
+	t.Run("should display dependencies when .dev.yaml exists", func(t *testing.T) {
+		t.Parallel()
+		// given
+		detector := doubles.NewLanguageDetectorStub(&project.LanguageInfo{
+			Language: "go",
+			SDKName:  "Go",
+		})
+		reader := doubles.NewConfigReaderStub().
+			WithConfig("/tmp/my-project", &project.DevConfig{
+				Dependencies: []string{"../service-auth", "../service-gateway"},
+			})
+		var buf bytes.Buffer
+		cfg := project.Config{
+			RepoPath:     "/tmp/my-project",
+			Detector:     detector,
+			ConfigReader: reader,
+			Output:       &buf,
+		}
+
+		// when
+		err := project.RunInfo(cfg)
+
+		// then
+		require.NoError(t, err)
+		assert.Contains(t, buf.String(), "dependencies:")
+		assert.Contains(t, buf.String(), "../service-auth")
+		assert.Contains(t, buf.String(), "../service-gateway")
+	})
+
+	t.Run("should not display dependencies section when no .dev.yaml", func(t *testing.T) {
+		t.Parallel()
+		// given
+		detector := doubles.NewLanguageDetectorStub(&project.LanguageInfo{
+			Language: "go",
+			SDKName:  "Go",
+		})
+		reader := doubles.NewConfigReaderStub()
+		var buf bytes.Buffer
+		cfg := project.Config{
+			RepoPath:     "/tmp/my-project",
+			Detector:     detector,
+			ConfigReader: reader,
+			Output:       &buf,
+		}
+
+		// when
+		err := project.RunInfo(cfg)
+
+		// then
+		require.NoError(t, err)
+		assert.NotContains(t, buf.String(), "dependencies:")
+	})
+
 	t.Run("should return error when language detection fails", func(t *testing.T) {
 		t.Parallel()
 		// given

@@ -30,9 +30,9 @@ dev repo prune ~/Development/github.com/rios0rios0              # delete merged 
 dev repo prune ~/Development/github.com/rios0rios0 --dry-run    # preview without deleting
 dev project info .                                              # detect language and show info
 dev project use .                                               # print version switch commands (eval it)
-dev project start .                                             # run project start command
+dev project start .                                             # run project start command (with .dev.yaml deps)
 dev project build .                                             # run project build commands
-dev project stop .                                              # run project stop command
+dev project stop .                                              # run project stop command (with .dev.yaml deps)
 dev docker ips                                                  # list container IP addresses
 dev docker reset                                                # stop all, prune everything
 dev docker reset --dry-run                                      # preview without executing
@@ -55,11 +55,13 @@ internal/
   project/
     runner.go                -- CommandRunner interface + DefaultCommandRunner (passthrough I/O)
     detect.go                -- LanguageDetector interface + DefaultLanguageDetector (wraps langforge)
+    devconfig.go             -- ConfigReader interface + FileConfigReader (.dev.yaml) + dependency graph resolver
+    orchestrate.go           -- RunStartWithDeps/RunStopWithDeps: recursive dependency start/stop
     use.go                   -- RunUse: detect language, print version switch commands to stdout
     start.go                 -- RunStart: detect language, run start command
     build.go                 -- RunBuild: detect language, run build commands
     stop.go                  -- RunStop: detect language, run stop command
-    info.go                  -- RunInfo: detect language, display metadata
+    info.go                  -- RunInfo: detect language, display metadata + dependencies
     *_test.go                -- BDD tests
   docker/
     runner.go                -- Runner interface + DefaultRunner (exec.Command wrapper for docker)
@@ -67,7 +69,7 @@ internal/
     reset.go                 -- RunReset: stop all containers, prune resources with dry-run support
     *_test.go                -- BDD tests
   testutil/
-    doubles/                 -- GitRunnerStub, ForgeProviderStub, CommandRunnerStub, LanguageDetectorStub, DockerRunnerStub
+    doubles/                 -- GitRunnerStub, ForgeProviderStub, CommandRunnerStub, LanguageDetectorStub, LanguageDetectorMultiStub, ConfigReaderStub, DockerRunnerStub
     builders/                -- RepositoryBuilder
 ```
 
@@ -79,7 +81,8 @@ internal/
 - **SSH cloning**: Sets `GIT_SSH_COMMAND` with `StrictHostKeyChecking=accept-new` and `BatchMode=yes`
 - **Language detection**: Uses langforge's `LanguageRegistry` behind `LanguageDetector` interface for testability
 - **Docker operations**: Uses `exec.Command("docker", ...)` behind `docker.Runner` interface for testability
-- **Dependency injection**: Business logic accepts interfaces (`GitRunner`, `ForgeProvider`, `LanguageDetector`, `CommandRunner`, `docker.Runner`, `io.Writer`) for testability
+- **Dependency injection**: Business logic accepts interfaces (`GitRunner`, `ForgeProvider`, `LanguageDetector`, `CommandRunner`, `ConfigReader`, `docker.Runner`, `io.Writer`) for testability
+- **Project dependencies**: `.dev.yaml` declares relative paths to dependent projects; resolved via DFS topological sort with cycle detection
 - **No switch/case**: All dispatch uses mapper pattern (maps of string -> value/function)
 
 ### Dependencies

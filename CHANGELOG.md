@@ -31,6 +31,8 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 - added langforge integration for automatic language detection (Go, Node, Python, Java, C#, Terraform)
 - added `dev docker ips` command — lists IP addresses of all running Docker containers
 - added `dev docker reset` command — stops all containers and prunes containers, volumes, networks, and build cache
+- added `.dev.yaml` dependency orchestration — `dev project start` and `dev project stop` recursively resolve and start/stop project dependencies in topological order
+- added `dev project info` dependency display — shows declared dependencies when `.dev.yaml` exists
 - added comprehensive test suite with 81%+ coverage for all business logic
 - added test infrastructure with GitRunner stub, ForgeProvider stub, DockerRunner stub, and Repository builder
 
