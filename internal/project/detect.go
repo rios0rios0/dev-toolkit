@@ -35,11 +35,12 @@ type LanguageDetector interface {
 
 // Config holds all dependencies for a project operation.
 type Config struct {
-	RepoPath string
-	Detector LanguageDetector
-	Runner   CommandRunner
-	Output   io.Writer
-	Stdout   io.Writer
+	RepoPath     string
+	Detector     LanguageDetector
+	Runner       CommandRunner
+	ConfigReader ConfigReader
+	Output       io.Writer
+	Stdout       io.Writer
 }
 
 // DefaultLanguageDetector uses langforge's registry for detection.

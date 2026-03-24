@@ -147,8 +147,9 @@ func newProjectConfig(args []string) project.Config {
 		repoPath = args[0]
 	}
 	return project.Config{
-		RepoPath: repoPath,
-		Detector: project.NewDefaultLanguageDetector(),
+		RepoPath:     repoPath,
+		Detector:     project.NewDefaultLanguageDetector(),
+		ConfigReader: &project.FileConfigReader{},
 		Runner: &project.DefaultCommandRunner{
 			Stdin:  os.Stdin,
 			Stdout: os.Stdout,
@@ -164,7 +165,7 @@ func newProjectStartCmd() *cobra.Command {
 		Short: "Detect language and run the project start command",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
-			return project.RunStart(newProjectConfig(args))
+			return project.RunStartWithDeps(newProjectConfig(args))
 		},
 	}
 }
@@ -186,7 +187,7 @@ func newProjectStopCmd() *cobra.Command {
 		Short: "Detect language and run the project stop command",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
-			return project.RunStop(newProjectConfig(args))
+			return project.RunStopWithDeps(newProjectConfig(args))
 		},
 	}
 }
