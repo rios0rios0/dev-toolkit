@@ -12,6 +12,9 @@ import (
 // ErrDependencyCycle indicates a circular dependency was detected in the dependency graph.
 var ErrDependencyCycle = errors.New("dependency cycle detected")
 
+// ErrNoConfig indicates that no .dev.yaml file was found for the given project.
+var ErrNoConfig = errors.New("no .dev.yaml found")
+
 // DevConfig represents the contents of a .dev.yaml file.
 type DevConfig struct {
 	Dependencies []string `yaml:"dependencies"`
@@ -30,14 +33,14 @@ func (r *FileConfigReader) Read(repoPath string) (*DevConfig, error) {
 	data, err := os.ReadFile(filePath) // #nosec G304
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return nil, nil
+			return nil, ErrNoConfig
 		}
 		return nil, fmt.Errorf("failed to read .dev.yaml: %w", err)
 	}
 
 	var cfg DevConfig
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse .dev.yaml: %w", err)
+	if unmarshalErr := yaml.Unmarshal(data, &cfg); unmarshalErr != nil {
+		return nil, fmt.Errorf("failed to parse .dev.yaml: %w", unmarshalErr)
 	}
 	return &cfg, nil
 }
@@ -54,8 +57,8 @@ func ResolveDependencyOrder(rootPath string, reader ConfigReader) ([]string, err
 	visited := map[string]bool{}
 	visiting := map[string]bool{}
 
-	if err := dfsResolve(absRoot, reader, visited, visiting, &result); err != nil {
-		return nil, err
+	if resolveErr := dfsResolve(absRoot, reader, visited, visiting, &result); resolveErr != nil {
+		return nil, resolveErr
 	}
 	return result, nil
 }
@@ -77,7 +80,9 @@ func dfsResolve(
 
 	cfg, err := reader.Read(absPath)
 	if err != nil {
-		return fmt.Errorf("failed to read config for %s: %w", absPath, err)
+		if !errors.Is(err, ErrNoConfig) {
+			return fmt.Errorf("failed to read config for %s: %w", absPath, err)
+		}
 	}
 
 	if cfg != nil {
@@ -86,11 +91,11 @@ func dfsResolve(
 			if absErr != nil {
 				return fmt.Errorf("failed to resolve dependency path %s: %w", dep, absErr)
 			}
-			if err := dfsResolve(depAbs, reader, visited, visiting, result); err != nil {
-				if errors.Is(err, ErrDependencyCycle) {
-					return fmt.Errorf("%w -> %s", err, absPath)
+			if resolveErr := dfsResolve(depAbs, reader, visited, visiting, result); resolveErr != nil {
+				if errors.Is(resolveErr, ErrDependencyCycle) {
+					return fmt.Errorf("%w -> %s", resolveErr, absPath)
 				}
-				return err
+				return resolveErr
 			}
 		}
 	}

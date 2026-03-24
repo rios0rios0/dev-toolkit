@@ -15,7 +15,7 @@ import (
 func TestFileConfigReader(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should return nil when no .dev.yaml exists", func(t *testing.T) {
+	t.Run("should return ErrNoConfig when no .dev.yaml exists", func(t *testing.T) {
 		t.Parallel()
 		// given
 		dir := t.TempDir()
@@ -25,7 +25,7 @@ func TestFileConfigReader(t *testing.T) {
 		cfg, err := reader.Read(dir)
 
 		// then
-		require.NoError(t, err)
+		require.ErrorIs(t, err, project.ErrNoConfig)
 		assert.Nil(t, cfg)
 	})
 

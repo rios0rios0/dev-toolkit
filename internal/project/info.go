@@ -1,6 +1,9 @@
 package project
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 // RunInfo detects the project language and displays all available metadata.
 func RunInfo(cfg Config) error {
@@ -30,7 +33,9 @@ func RunInfo(cfg Config) error {
 	if cfg.ConfigReader != nil {
 		devCfg, readErr := cfg.ConfigReader.Read(repoPath)
 		if readErr != nil {
-			return fmt.Errorf("failed to read .dev.yaml: %w", readErr)
+			if !errors.Is(readErr, ErrNoConfig) {
+				return fmt.Errorf("failed to read .dev.yaml: %w", readErr)
+			}
 		}
 		if devCfg != nil && len(devCfg.Dependencies) > 0 {
 			logf(cfg.Output, "dependencies:")

@@ -26,5 +26,9 @@ func (s *ConfigReaderStub) Read(repoPath string) (*project.DevConfig, error) {
 	if s.Err != nil {
 		return nil, s.Err
 	}
-	return s.Configs[repoPath], nil
+	cfg, ok := s.Configs[repoPath]
+	if !ok {
+		return nil, project.ErrNoConfig
+	}
+	return cfg, nil
 }
