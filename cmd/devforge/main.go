@@ -230,7 +230,7 @@ func newDockerIPsCmd() *cobra.Command {
 		Short: "List IP addresses of all running Docker containers",
 		Args:  cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			return docker.RunIPs(&docker.DefaultRunner{}, os.Stderr)
+			return docker.RunIPs(&docker.DefaultRunner{}, os.Stdout)
 		},
 	}
 }

@@ -3,6 +3,7 @@ package docker
 import (
 	"fmt"
 	"io"
+	"strings"
 )
 
 // RunReset stops all running containers and prunes all Docker resources.
@@ -37,7 +38,8 @@ func RunReset(runner Runner, dryRun bool, output io.Writer) error {
 
 	if ids != "" {
 		logf(output, "stopping all containers...")
-		if stopErr := runner.Run("container", "stop", "-t", "5", ids); stopErr != nil {
+		stopArgs := append([]string{"container", "stop", "-t", "5"}, strings.Fields(ids)...)
+		if stopErr := runner.Run(stopArgs...); stopErr != nil {
 			logf(output, "warning: some containers could not be stopped: %v", stopErr)
 		}
 	} else {

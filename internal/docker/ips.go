@@ -20,7 +20,7 @@ func RunIPs(runner Runner, output io.Writer) error {
 
 	args := []string{
 		"inspect",
-		"--format", "{{ .Name }}: {{ range .NetworkSettings.Networks }}{{ .IPAddress }}{{ end }}",
+		"--format", "{{ .Name }}: {{ range .NetworkSettings.Networks }}{{ .IPAddress }} {{ end }}",
 	}
 	args = append(args, strings.Fields(ids)...)
 

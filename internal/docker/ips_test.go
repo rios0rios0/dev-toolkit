@@ -24,7 +24,7 @@ func TestRunIPs(t *testing.T) {
 				[]string{
 					"inspect",
 					"--format",
-					"{{ .Name }}: {{ range .NetworkSettings.Networks }}{{ .IPAddress }}{{ end }}",
+					"{{ .Name }}: {{ range .NetworkSettings.Networks }}{{ .IPAddress }} {{ end }}",
 					"abc123",
 					"def456",
 				},
@@ -79,7 +79,7 @@ func TestRunIPs(t *testing.T) {
 				[]string{
 					"inspect",
 					"--format",
-					"{{ .Name }}: {{ range .NetworkSettings.Networks }}{{ .IPAddress }}{{ end }}",
+					"{{ .Name }}: {{ range .NetworkSettings.Networks }}{{ .IPAddress }} {{ end }}",
 					"abc123",
 				},
 				errors.New("inspect failed"),

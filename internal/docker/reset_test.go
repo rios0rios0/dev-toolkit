@@ -18,8 +18,13 @@ func TestRunReset(t *testing.T) {
 	t.Run("should stop containers and prune when containers exist", func(t *testing.T) {
 		t.Parallel()
 		// given
+		var runCalls [][]string
 		runner := doubles.NewDockerRunnerStub().
 			WithOutput([]string{"container", "ls", "-aq"}, "abc123\ndef456")
+		runner.RunFunc = func(args ...string) error {
+			runCalls = append(runCalls, args)
+			return nil
+		}
 		var buf bytes.Buffer
 
 		// when
@@ -28,6 +33,8 @@ func TestRunReset(t *testing.T) {
 		// then
 		require.NoError(t, err)
 		assert.Contains(t, buf.String(), "stopping all containers")
+		require.NotEmpty(t, runCalls)
+		assert.Equal(t, []string{"container", "stop", "-t", "5", "abc123", "def456"}, runCalls[0])
 		assert.Contains(t, buf.String(), "pruning containers")
 		assert.Contains(t, buf.String(), "pruning volumes")
 		assert.Contains(t, buf.String(), "pruning networks")

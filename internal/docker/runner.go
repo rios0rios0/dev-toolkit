@@ -2,6 +2,7 @@ package docker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -31,7 +32,16 @@ func (r *DefaultRunner) Output(args ...string) (string, error) {
 	cmd.Stdin = nil
 	output, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("%s: %s", strings.Join(args, " "), strings.TrimSpace(string(output)))
+		exitErr := &exec.ExitError{}
+		if errors.As(err, &exitErr) {
+			stderr := strings.TrimSpace(string(exitErr.Stderr))
+			return "", fmt.Errorf("%s: %s", strings.Join(args, " "), stderr)
+		}
+		msg := strings.TrimSpace(string(output))
+		if msg == "" {
+			return "", fmt.Errorf("%s: %w", strings.Join(args, " "), err)
+		}
+		return "", fmt.Errorf("%s: %s", strings.Join(args, " "), msg)
 	}
 	return strings.TrimSpace(string(output)), nil
 }
