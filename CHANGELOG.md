@@ -16,36 +16,38 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-03-25
+
 ### Added
 
-- added `dev repo clone` command — discovers repos from Git providers, clones missing via SSH with parallel workers
-- added `dev repo sync` command — syncs all repos under a directory with fetch/rebase and WIP branch preservation
-- added `dev repo prune` command — deletes local branches merged into the default branch across repos
-- added gitforge integration for multi-provider repository discovery (GitHub, Azure DevOps, GitLab)
 - added SSH alias clone URL support via gitforge
-- added `dev project use` command — detects required SDK version and prints shell commands to install/switch versions
-- added `dev project start` command — detects language and runs start command via langforge
-- added `dev project build` command — detects language and runs build commands via langforge
-- added `dev project stop` command — detects language and runs stop command via langforge
-- added `dev project info` command — detects language and displays SDK, version, and available commands
-- added langforge integration for automatic language detection (Go, Node, Python, Java, C#, Terraform)
+- added `.dev.yaml` dependency orchestration — `dev project start` and `dev project stop` recursively resolve and start/stop project dependencies in topological order
 - added `dev docker ips` command — lists IP addresses of all running Docker containers
 - added `dev docker reset` command — stops all containers and prunes containers, volumes, networks, and build cache
-- added `.dev.yaml` dependency orchestration — `dev project start` and `dev project stop` recursively resolve and start/stop project dependencies in topological order
+- added `dev project build` command — detects language and runs build commands via `langforge`
+- added `dev project info` command — detects language and displays SDK, version, and available commands
 - added `dev project info` dependency display — shows declared dependencies when `.dev.yaml` exists
+- added `dev project start` command — detects language and runs start command via `langforge`
+- added `dev project stop` command — detects language and runs stop command via `langforge`
+- added `dev project use` command — detects required SDK version and prints shell commands to install/switch versions
+- added `dev repo clone` command — discovers repos from Git providers, clones missing via SSH with parallel workers
+- added `dev repo prune` command — deletes local branches merged into the default branch across repos
+- added `dev repo sync` command — syncs all repos under a directory with fetch/rebase and WIP branch preservation
+- added `gitforge` integration for multi-provider repository discovery (GitHub, Azure DevOps, GitLab)
+- added `langforge` integration for automatic language detection (Go, Node, Python, Java, C#, Terraform)
 - added comprehensive test suite with 81%+ coverage for all business logic
-- added test infrastructure with GitRunner stub, ForgeProvider stub, DockerRunner stub, and Repository builder
+- added test infrastructure with `GitRunner` stub, `ForgeProvider` stub, `DockerRunner` stub, and `Repository` builder
 
 ### Changed
 
-- changed project name from versainit to devforge (binary: `dev`)
 - changed Go module path from `github.com/rios0rios0/versainit` to `github.com/rios0rios0/devforge`
-- changed architecture to extract business logic into `internal/repo/` with dependency injection for testability
 - changed `cmd/devforge/` to a thin CLI wiring layer delegating to `internal/repo/`
+- changed architecture to extract business logic into `internal/repo/` with dependency injection for testability
+- changed project name from `versainit` to `devforge` (binary: `dev`)
 
 ### Removed
 
-- removed old versainit CLI code (actions.go, clone.go, config.go, versainit.yaml)
+- removed old `versainit` CLI code (`actions.go`, `clone.go`, `config.go`, `versainit.yaml`)
 
 ## [0.1.2] - 2026-03-19
 
