@@ -2,6 +2,7 @@ package repo
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -153,28 +154,61 @@ func CloneMissing(missing []globalEntities.Repository, cfg CloneConfig) (int, in
 	return ParallelClone(missing, cfg.Provider, cfg.SSHAlias, cfg.RootDir, cfg.Runner, cfg.Output)
 }
 
-// SSHPreflight verifies SSH connectivity to the provider host.
+// sshSuccessPatterns are stderr fragments that indicate the remote Git server
+// responded, confirming that SSH connectivity and authentication succeeded.
+// Different providers use different messages and exit codes (e.g., Azure DevOps
+// exits 255 even on success), so we check the output rather than the exit code.
+//
+//nolint:gochecknoglobals // read-only configuration lookup table
+var sshSuccessPatterns = []string{
+	"shell access is not supported",  // Azure DevOps
+	"successfully authenticated",     // GitHub
+	"welcome to gitlab",              // GitLab
+}
+
+// SSHPreflight verifies SSH connectivity to the provider host via the SSH config alias.
 func SSHPreflight(providerName, sshAlias string, output io.Writer) error {
 	host := ProviderHost(providerName)
 	if host == "" {
 		return fmt.Errorf("unknown provider for SSH preflight: %s", providerName)
 	}
-	sshHost := fmt.Sprintf("%s-%s", host, sshAlias)
+
+	sshHost := host
+	if sshAlias != "" {
+		sshHost = fmt.Sprintf("%s-%s", host, sshAlias)
+	}
 	Logf(output, "verifying SSH connectivity to %s...", sshHost)
 
+	var stderr bytes.Buffer
 	cmd := exec.CommandContext(
 		context.Background(), "ssh", "-T", "-o", "ConnectTimeout=10",
 		fmt.Sprintf("git@%s", sshHost),
 	) // #nosec G204
 	cmd.Stdin = nil
+	cmd.Stderr = &stderr
 	err := cmd.Run()
 
-	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) && exitErr.ExitCode() == SSHFailCode {
-		return fmt.Errorf("SSH connection to %s failed (check SSH config and keys)", sshHost)
+	if err == nil {
+		Logf(output, "SSH connectivity OK")
+		return nil
 	}
-	Logf(output, "SSH connectivity OK")
-	return nil
+
+	stderrStr := stderr.String()
+	stderrLower := strings.ToLower(stderrStr)
+	for _, pattern := range sshSuccessPatterns {
+		if strings.Contains(stderrLower, pattern) {
+			Logf(output, "SSH connectivity OK")
+			return nil
+		}
+	}
+
+	var exitErr *exec.ExitError
+	if !errors.As(err, &exitErr) {
+		return fmt.Errorf("SSH preflight failed: %w", err)
+	}
+
+	return fmt.Errorf("SSH connection to %s failed (check SSH config and keys): %s",
+		sshHost, strings.TrimSpace(stderrStr))
 }
 
 type cloneResult struct {

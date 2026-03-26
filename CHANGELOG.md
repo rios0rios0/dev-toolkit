@@ -16,6 +16,11 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
+### Fixed
+
+- fixed SSH preflight to detect successful authentication from stderr output instead of relying on exit codes, resolving false failures with Azure DevOps (which returns exit code 255 on success)
+- removed unused `SSHFailCode` constant
+
 ## [0.2.0] - 2026-03-25
 
 ### Added

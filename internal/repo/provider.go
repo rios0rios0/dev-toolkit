@@ -16,7 +16,6 @@ import (
 const (
 	ScanDepthNested = 2
 	splitOwnerLimit = 2
-	SSHFailCode     = 255
 	DirPermissions  = 0o750
 )
 
@@ -47,7 +46,6 @@ var providerHostMap = map[string]string{
 	"azuredevops": "dev.azure.com",
 	"gitlab":      "gitlab.com",
 }
-
 // DetectProviderAndOwner parses a root directory path to determine the Git provider and owner.
 func DetectProviderAndOwner(rootDir string) (string, string, error) {
 	for pathSegment, name := range providerPathMap {
@@ -75,10 +73,11 @@ func ProviderTokenEnv(providerName string) string {
 	return providerTokenEnv[providerName]
 }
 
-// ProviderHost returns the SSH hostname for the given provider.
+// ProviderHost returns the alias hostname for the given provider (used in SSH config aliases).
 func ProviderHost(providerName string) string {
 	return providerHostMap[providerName]
 }
+
 
 // Key returns the local directory key for a repository.
 func Key(r globalEntities.Repository) string {
