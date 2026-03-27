@@ -16,6 +16,23 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
+### Added
+
+- added structured `logrus` logging to the `repo` package (`clone`, `sync`, `prune`) with per-repo real-time visibility during parallel operations
+- added `NewLogger` factory in `internal/repo/logger.go` for creating isolated `logrus` instances
+
+### Changed
+
+- changed `gitforge` dependency to latest main branch commit for Azure DevOps SSH clone URL fix
+- changed clone workflow to log each repository's URL and target directory in real-time during parallel clone
+- changed `PreflightFunc` signature to accept `*logrus.Logger` instead of `io.Writer`
+- changed `DiscoverRepos`, `ParallelClone`, `HandleExtraRepos`, and `PromptDeleteExtra` to use structured `logrus` logging
+- changed `main.go` `logrus` import alias from `log` to `logger`
+
+### Removed
+
+- removed `Logf` helper function from `provider.go` in favor of structured `logrus` logging
+
 ### Fixed
 
 - fixed SSH preflight to detect successful authentication from stderr output instead of relying on exit codes, resolving false failures with Azure DevOps (which returns exit code 255 on success)

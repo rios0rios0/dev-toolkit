@@ -7,6 +7,8 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+
+	logger "github.com/sirupsen/logrus"
 )
 
 // PruneResult holds the outcome of pruning a single repository.
@@ -18,17 +20,19 @@ type PruneResult struct {
 
 // RunPrune deletes merged branches in all repositories under rootDir in parallel.
 func RunPrune(rootDir string, runner GitRunner, dryRun bool, output io.Writer) error {
+	log := NewLogger(output)
+
 	repos := ScanFlatRepos(rootDir)
 	total := len(repos)
 	if total == 0 {
-		Logf(output, "no git repositories found in %s", rootDir)
+		log.WithField("dir", rootDir).Warn("no git repositories found")
 		return nil
 	}
 
 	workers := runtime.NumCPU()
-	Logf(output, "found %d repositories to prune", total)
+	log.WithField("count", total).Info("found repositories to prune")
 	if dryRun {
-		Logf(output, "(dry-run mode)")
+		log.Info("dry-run mode enabled")
 	}
 
 	sem := make(chan struct{}, workers)
@@ -54,7 +58,10 @@ func RunPrune(rootDir string, runner GitRunner, dryRun bool, output io.Writer) e
 		hasFailure := strings.HasPrefix(r.Status, "FAIL") || strings.Contains(statusLower, "failed")
 
 		if len(r.Deleted) > 0 || hasFailure {
-			Logf(output, "%s: %s", r.Name, r.Status)
+			log.WithFields(logger.Fields{
+				"repo":   r.Name,
+				"status": r.Status,
+			}).Info("prune result")
 		}
 
 		switch {
@@ -67,7 +74,11 @@ func RunPrune(rootDir string, runner GitRunner, dryRun bool, output io.Writer) e
 		}
 	}
 
-	Logf(output, "summary: %d branches pruned, %d repos clean, %d failed", pruned, skipped, failed)
+	log.WithFields(logger.Fields{
+		"pruned": pruned,
+		"clean":  skipped,
+		"failed": failed,
+	}).Info("summary")
 	return nil
 }
 

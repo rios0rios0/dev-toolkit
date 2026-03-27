@@ -3,12 +3,12 @@ package repo_test
 import (
 	"bytes"
 	"errors"
-	"io"
 	"os"
 	"strings"
 	"testing"
 
 	globalEntities "github.com/rios0rios0/gitforge/pkg/global/domain/entities"
+	logger "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -147,9 +147,10 @@ func TestDiscoverRepos(t *testing.T) {
 			builders.NewRepositoryBuilder().WithName("archived").WithArchived(true).Build(),
 		})
 		var buf bytes.Buffer
+		log := repo.NewLogger(&buf)
 
 		// when
-		repos, err := repo.DiscoverRepos(provider, "owner", false, &buf)
+		repos, err := repo.DiscoverRepos(provider, "owner", false, log)
 
 		// then
 		require.NoError(t, err)
@@ -165,9 +166,10 @@ func TestDiscoverRepos(t *testing.T) {
 			builders.NewRepositoryBuilder().WithName("archived").WithArchived(true).Build(),
 		})
 		var buf bytes.Buffer
+		log := repo.NewLogger(&buf)
 
 		// when
-		repos, err := repo.DiscoverRepos(provider, "owner", true, &buf)
+		repos, err := repo.DiscoverRepos(provider, "owner", true, log)
 
 		// then
 		require.NoError(t, err)
@@ -179,9 +181,10 @@ func TestDiscoverRepos(t *testing.T) {
 		// given
 		provider := doubles.NewForgeProviderStub().WithDiscoverError(errors.New("API error"))
 		var buf bytes.Buffer
+		log := repo.NewLogger(&buf)
 
 		// when
-		_, err := repo.DiscoverRepos(provider, "owner", false, &buf)
+		_, err := repo.DiscoverRepos(provider, "owner", false, log)
 
 		// then
 		require.Error(t, err)
@@ -195,10 +198,12 @@ func TestCloneMissing(t *testing.T) {
 	t.Run("should return zero counts when no missing repos", func(t *testing.T) {
 		t.Parallel()
 		// given
+		var buf bytes.Buffer
 		cfg := repo.CloneConfig{
 			RootDir:  "/tmp/test",
 			DryRun:   false,
-			Output:   &bytes.Buffer{},
+			Output:   &buf,
+			Logger:   repo.NewLogger(&buf),
 			Provider: doubles.NewForgeProviderStub(),
 		}
 
@@ -216,7 +221,7 @@ func TestCloneMissing(t *testing.T) {
 		var buf bytes.Buffer
 		provider := doubles.NewForgeProviderStub()
 		runner := doubles.NewGitRunnerStub()
-		noopPreflight := func(_, _ string, _ io.Writer) error { return nil }
+		noopPreflight := func(_, _ string, _ *logger.Logger) error { return nil }
 		missing := []globalEntities.Repository{
 			builders.NewRepositoryBuilder().WithName("repo-a").Build(),
 		}
@@ -225,6 +230,7 @@ func TestCloneMissing(t *testing.T) {
 			SSHAlias:  "mine",
 			DryRun:    false,
 			Output:    &buf,
+			Logger:    repo.NewLogger(&buf),
 			Provider:  provider,
 			Runner:    runner,
 			Preflight: noopPreflight,
@@ -236,7 +242,7 @@ func TestCloneMissing(t *testing.T) {
 		// then
 		assert.Equal(t, 1, cloned)
 		assert.Equal(t, 0, failed)
-		assert.Contains(t, buf.String(), "CLONED")
+		assert.Contains(t, buf.String(), "repository cloned")
 	})
 
 	t.Run("should return all failed when preflight fails", func(t *testing.T) {
@@ -244,7 +250,7 @@ func TestCloneMissing(t *testing.T) {
 		// given
 		var buf bytes.Buffer
 		provider := doubles.NewForgeProviderStub()
-		failPreflight := func(_, _ string, _ io.Writer) error { return errors.New("ssh failed") }
+		failPreflight := func(_, _ string, _ *logger.Logger) error { return errors.New("ssh failed") }
 		missing := []globalEntities.Repository{
 			builders.NewRepositoryBuilder().WithName("repo-a").Build(),
 			builders.NewRepositoryBuilder().WithName("repo-b").Build(),
@@ -254,6 +260,7 @@ func TestCloneMissing(t *testing.T) {
 			SSHAlias:  "mine",
 			DryRun:    false,
 			Output:    &buf,
+			Logger:    repo.NewLogger(&buf),
 			Provider:  provider,
 			Preflight: failPreflight,
 		}
@@ -264,7 +271,7 @@ func TestCloneMissing(t *testing.T) {
 		// then
 		assert.Equal(t, 0, cloned)
 		assert.Equal(t, 2, failed)
-		assert.Contains(t, buf.String(), "ERROR")
+		assert.Contains(t, buf.String(), "SSH preflight failed")
 	})
 
 	t.Run("should log URLs without cloning in dry-run mode", func(t *testing.T) {
@@ -280,6 +287,7 @@ func TestCloneMissing(t *testing.T) {
 			SSHAlias: "mine",
 			DryRun:   true,
 			Output:   &buf,
+			Logger:   repo.NewLogger(&buf),
 			Provider: provider,
 		}
 
@@ -289,7 +297,7 @@ func TestCloneMissing(t *testing.T) {
 		// then
 		assert.Equal(t, 0, cloned)
 		assert.Equal(t, 0, failed)
-		assert.Contains(t, buf.String(), "would clone")
+		assert.Contains(t, buf.String(), "would clone repository")
 	})
 }
 
@@ -312,6 +320,7 @@ func TestRunClone(t *testing.T) {
 			Provider: provider,
 			Runner:   doubles.NewGitRunnerStub(),
 			Output:   &buf,
+			Logger:   repo.NewLogger(&buf),
 			Input:    strings.NewReader(""),
 		}
 
@@ -329,6 +338,7 @@ func TestRunClone(t *testing.T) {
 		cfg := repo.CloneConfig{
 			RootDir: "/invalid/path",
 			Output:  &buf,
+			Logger:  repo.NewLogger(&buf),
 			Input:   strings.NewReader(""),
 		}
 
@@ -350,6 +360,7 @@ func TestRunClone(t *testing.T) {
 			SSHAlias: "mine",
 			Provider: provider,
 			Output:   &buf,
+			Logger:   repo.NewLogger(&buf),
 			Input:    strings.NewReader(""),
 		}
 
@@ -373,6 +384,7 @@ func TestRunClone(t *testing.T) {
 			Provider: provider,
 			Runner:   doubles.NewGitRunnerStub(),
 			Output:   &buf,
+			Logger:   repo.NewLogger(&buf),
 			Input:    strings.NewReader(""),
 		}
 		_ = root
@@ -399,14 +411,15 @@ func TestParallelClone(t *testing.T) {
 		provider := doubles.NewForgeProviderStub()
 		runner := doubles.NewGitRunnerStub()
 		var buf bytes.Buffer
+		log := repo.NewLogger(&buf)
 
 		// when
-		cloned, failed := repo.ParallelClone(repos, provider, "mine", "/tmp/root", runner, &buf)
+		cloned, failed := repo.ParallelClone(repos, provider, "mine", "/tmp/root", runner, log)
 
 		// then
 		assert.Equal(t, 2, cloned)
 		assert.Equal(t, 0, failed)
-		assert.Contains(t, buf.String(), "CLONED")
+		assert.Contains(t, buf.String(), "repository cloned")
 	})
 
 	t.Run("should count failures when clone errors occur", func(t *testing.T) {
@@ -419,14 +432,15 @@ func TestParallelClone(t *testing.T) {
 		provider := doubles.NewForgeProviderStub()
 		runner := doubles.NewGitRunnerStub().WithCloneError(errors.New("permission denied"))
 		var buf bytes.Buffer
+		log := repo.NewLogger(&buf)
 
 		// when
-		cloned, failed := repo.ParallelClone(repos, provider, "mine", "/tmp/root", runner, &buf)
+		cloned, failed := repo.ParallelClone(repos, provider, "mine", "/tmp/root", runner, log)
 
 		// then
 		assert.Equal(t, 0, cloned)
 		assert.Equal(t, 2, failed)
-		assert.Contains(t, buf.String(), "FAIL")
+		assert.Contains(t, buf.String(), "clone failed")
 	})
 
 	t.Run("should handle empty repo list", func(t *testing.T) {
@@ -435,9 +449,10 @@ func TestParallelClone(t *testing.T) {
 		provider := doubles.NewForgeProviderStub()
 		runner := doubles.NewGitRunnerStub()
 		var buf bytes.Buffer
+		log := repo.NewLogger(&buf)
 
 		// when
-		cloned, failed := repo.ParallelClone(nil, provider, "mine", "/tmp/root", runner, &buf)
+		cloned, failed := repo.ParallelClone(nil, provider, "mine", "/tmp/root", runner, log)
 
 		// then
 		assert.Equal(t, 0, cloned)
@@ -454,9 +469,10 @@ func TestPromptDeleteExtra(t *testing.T) {
 		root := t.TempDir()
 		createGitRepo(t, root+"/extra-repo")
 		var buf bytes.Buffer
+		log := repo.NewLogger(&buf)
 
 		// when
-		repo.HandleExtraRepos([]string{"extra-repo"}, root, false, nil, &buf)
+		repo.HandleExtraRepos([]string{"extra-repo"}, root, false, nil, log)
 
 		// then
 		assert.Contains(t, buf.String(), "kept, non-interactive")
@@ -468,13 +484,14 @@ func TestPromptDeleteExtra(t *testing.T) {
 		root := t.TempDir()
 		createGitRepo(t, root+"/extra-repo")
 		var buf bytes.Buffer
+		log := repo.NewLogger(&buf)
 		input := strings.NewReader("n\n")
 
 		// when
-		repo.PromptDeleteExtra("extra-repo", root, input, &buf)
+		repo.PromptDeleteExtra("extra-repo", root, input, log)
 
 		// then
-		assert.Contains(t, buf.String(), "kept extra-repo")
+		assert.Contains(t, buf.String(), "kept extra repository")
 	})
 
 	t.Run("should delete repo when user answers y via PromptDeleteExtra", func(t *testing.T) {
@@ -483,13 +500,14 @@ func TestPromptDeleteExtra(t *testing.T) {
 		root := t.TempDir()
 		createGitRepo(t, root+"/extra-repo")
 		var buf bytes.Buffer
+		log := repo.NewLogger(&buf)
 		input := strings.NewReader("y\n")
 
 		// when
-		repo.PromptDeleteExtra("extra-repo", root, input, &buf)
+		repo.PromptDeleteExtra("extra-repo", root, input, log)
 
 		// then
-		assert.Contains(t, buf.String(), "deleted extra-repo")
+		assert.Contains(t, buf.String(), "deleted extra repository")
 	})
 
 	t.Run("should keep repo when scanner returns empty input", func(t *testing.T) {
@@ -498,13 +516,14 @@ func TestPromptDeleteExtra(t *testing.T) {
 		root := t.TempDir()
 		createGitRepo(t, root+"/extra-repo")
 		var buf bytes.Buffer
+		log := repo.NewLogger(&buf)
 		input := strings.NewReader("")
 
 		// when
-		repo.PromptDeleteExtra("extra-repo", root, input, &buf)
+		repo.PromptDeleteExtra("extra-repo", root, input, log)
 
 		// then
-		assert.Contains(t, buf.String(), "kept extra-repo")
+		assert.Contains(t, buf.String(), "kept extra repository")
 	})
 }
 
@@ -604,10 +623,11 @@ func TestIsTerminal(t *testing.T) {
 		t.Parallel()
 		// given
 		var buf bytes.Buffer
+		log := repo.NewLogger(&buf)
 		input := strings.NewReader("")
 
 		// when
-		repo.HandleExtraRepos([]string{"repo"}, "/tmp", false, input, &buf)
+		repo.HandleExtraRepos([]string{"repo"}, "/tmp", false, input, log)
 
 		// then
 		assert.Contains(t, buf.String(), "kept, non-interactive")
@@ -617,13 +637,14 @@ func TestIsTerminal(t *testing.T) {
 		t.Parallel()
 		// given
 		var buf bytes.Buffer
+		log := repo.NewLogger(&buf)
 		r, w, _ := os.Pipe()
 		defer r.Close()
 		_, _ = w.WriteString("")
 		w.Close()
 
 		// when
-		repo.HandleExtraRepos([]string{"repo"}, "/tmp", false, r, &buf)
+		repo.HandleExtraRepos([]string{"repo"}, "/tmp", false, r, log)
 
 		// then
 		assert.Contains(t, buf.String(), "kept, non-interactive")
@@ -637,21 +658,24 @@ func TestHandleExtraRepos(t *testing.T) {
 		t.Parallel()
 		// given
 		var buf bytes.Buffer
+		log := repo.NewLogger(&buf)
 
 		// when
-		repo.HandleExtraRepos([]string{"extra-repo"}, "/tmp", true, strings.NewReader(""), &buf)
+		repo.HandleExtraRepos([]string{"extra-repo"}, "/tmp", true, strings.NewReader(""), log)
 
 		// then
-		assert.Contains(t, buf.String(), "extra: extra-repo")
+		assert.Contains(t, buf.String(), "extra-repo")
+		assert.Contains(t, buf.String(), "extra repository")
 	})
 
 	t.Run("should skip deletion in non-interactive mode", func(t *testing.T) {
 		t.Parallel()
 		// given
 		var buf bytes.Buffer
+		log := repo.NewLogger(&buf)
 
 		// when
-		repo.HandleExtraRepos([]string{"extra-repo"}, "/tmp", false, strings.NewReader(""), &buf)
+		repo.HandleExtraRepos([]string{"extra-repo"}, "/tmp", false, strings.NewReader(""), log)
 
 		// then
 		assert.Contains(t, buf.String(), "kept, non-interactive")
@@ -661,22 +685,24 @@ func TestHandleExtraRepos(t *testing.T) {
 		t.Parallel()
 		// given
 		var buf bytes.Buffer
+		log := repo.NewLogger(&buf)
 
 		// when
-		repo.HandleExtraRepos([]string{"a", "b"}, "/tmp", true, strings.NewReader(""), &buf)
+		repo.HandleExtraRepos([]string{"a", "b"}, "/tmp", true, strings.NewReader(""), log)
 
 		// then
-		assert.Contains(t, buf.String(), "extra: a")
-		assert.Contains(t, buf.String(), "extra: b")
+		assert.Contains(t, buf.String(), "repo=a")
+		assert.Contains(t, buf.String(), "repo=b")
 	})
 
 	t.Run("should do nothing when extra list is empty", func(t *testing.T) {
 		t.Parallel()
 		// given
 		var buf bytes.Buffer
+		log := repo.NewLogger(&buf)
 
 		// when
-		repo.HandleExtraRepos(nil, "/tmp", false, strings.NewReader(""), &buf)
+		repo.HandleExtraRepos(nil, "/tmp", false, strings.NewReader(""), log)
 
 		// then
 		assert.Empty(t, buf.String())

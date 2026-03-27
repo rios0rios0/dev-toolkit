@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	logger "github.com/sirupsen/logrus"
 )
 
 // SyncResult holds the outcome of syncing a single repository.
@@ -17,15 +19,17 @@ type SyncResult struct {
 
 // RunSync syncs all repositories under rootDir in parallel.
 func RunSync(rootDir string, runner GitRunner, output io.Writer) error {
+	log := NewLogger(output)
+
 	repos := FindAllRepos(rootDir)
 	total := len(repos)
 	if total == 0 {
-		Logf(output, "no git repositories found in %s", rootDir)
+		log.WithField("dir", rootDir).Warn("no git repositories found")
 		return nil
 	}
 
 	workers := runtime.NumCPU()
-	Logf(output, "found %d repositories to sync", total)
+	log.WithField("count", total).Info("found repositories to sync")
 
 	sem := make(chan struct{}, workers)
 	results := make([]SyncResult, total)
@@ -45,7 +49,10 @@ func RunSync(rootDir string, runner GitRunner, output io.Writer) error {
 
 	synced, wip, failed := 0, 0, 0
 	for _, r := range results {
-		Logf(output, "%s: %s", r.Name, r.Status)
+		log.WithFields(logger.Fields{
+			"repo":   r.Name,
+			"status": r.Status,
+		}).Info("sync result")
 		switch {
 		case strings.HasPrefix(r.Status, "synced"):
 			synced++
@@ -57,7 +64,11 @@ func RunSync(rootDir string, runner GitRunner, output io.Writer) error {
 		}
 	}
 
-	Logf(output, "summary: %d synced, %d with WIP commits, %d failed", synced, wip, failed)
+	log.WithFields(logger.Fields{
+		"synced": synced,
+		"wip":    wip,
+		"failed": failed,
+	}).Info("summary")
 	return nil
 }
 

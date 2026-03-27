@@ -169,7 +169,7 @@ func TestRunPrune(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		assert.Contains(t, buf.String(), "summary:")
+		assert.Contains(t, buf.String(), "summary")
 		assert.Contains(t, buf.String(), "pruned")
 	})
 
@@ -207,6 +207,6 @@ func TestRunPrune(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		assert.Contains(t, buf.String(), "repos clean")
+		assert.Contains(t, buf.String(), "clean=1")
 	})
 }
