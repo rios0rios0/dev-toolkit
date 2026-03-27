@@ -7,7 +7,7 @@ import (
 	"github.com/rios0rios0/devforge/internal/docker"
 	"github.com/rios0rios0/devforge/internal/project"
 	"github.com/rios0rios0/devforge/internal/repo"
-	log "github.com/sirupsen/logrus"
+	logger "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -53,7 +53,7 @@ func main() {
 	rootCmd.AddCommand(dockerCmd)
 
 	if err := rootCmd.Execute(); err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 }
 
@@ -258,7 +258,7 @@ volumes, networks, and the build cache.`,
 func mustDetectProvider(rootDir string) string {
 	providerName, _, err := repo.DetectProviderAndOwner(rootDir)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 	return providerName
 }

@@ -328,7 +328,7 @@ func TestRunSync(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		assert.Contains(t, buf.String(), "summary:")
+		assert.Contains(t, buf.String(), "summary")
 		assert.Contains(t, buf.String(), "synced")
 	})
 

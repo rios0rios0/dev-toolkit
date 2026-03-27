@@ -15,12 +15,13 @@ import (
 	"sync"
 
 	globalEntities "github.com/rios0rios0/gitforge/pkg/global/domain/entities"
+	logger "github.com/sirupsen/logrus"
 )
 
 const maxCloneArgs = 2
 
 // PreflightFunc is a function that verifies SSH connectivity before cloning.
-type PreflightFunc func(providerName, sshAlias string, output io.Writer) error
+type PreflightFunc func(providerName, sshAlias string, log logger.FieldLogger) error
 
 // CloneConfig holds all dependencies for a clone operation.
 type CloneConfig struct {
@@ -33,49 +34,69 @@ type CloneConfig struct {
 	Output          io.Writer
 	Input           io.Reader
 	Preflight       PreflightFunc
+	Logger          logger.FieldLogger
+}
+
+func (c *CloneConfig) log() logger.FieldLogger {
+	if c.Logger == nil {
+		c.Logger = NewLogger(c.Output)
+	}
+	return c.Logger
 }
 
 // RunClone executes the full clone workflow.
 func RunClone(cfg CloneConfig) error {
+	log := cfg.log()
+
 	providerName, owner, err := DetectProviderAndOwner(cfg.RootDir)
 	if err != nil {
 		return err
 	}
 
-	Logf(cfg.Output, "provider=%s owner=%s", providerName, owner)
+	log.WithFields(logger.Fields{
+		"provider": providerName,
+		"owner":    owner,
+	}).Info("clone workflow started")
 	if cfg.DryRun {
-		Logf(cfg.Output, "(dry-run mode)")
+		log.Info("dry-run mode enabled")
 	}
 
-	remoteRepos, discoverErr := DiscoverRepos(cfg.Provider, owner, cfg.IncludeArchived, cfg.Output)
+	remoteRepos, discoverErr := DiscoverRepos(cfg.Provider, owner, cfg.IncludeArchived, log)
 	if discoverErr != nil {
 		return discoverErr
 	}
 
 	depth := ProviderScanDepth(providerName)
 	localRepos := ScanLocalRepos(cfg.RootDir, depth)
-	Logf(cfg.Output, "found %d local repositories", len(localRepos))
+	log.WithField("count", len(localRepos)).Info("scanned local repositories")
 
 	missing, extra := ComputeDiff(remoteRepos, localRepos)
-	Logf(cfg.Output, "%d missing, %d extra", len(missing), len(extra))
+	log.WithFields(logger.Fields{
+		"missing": len(missing),
+		"extra":   len(extra),
+	}).Info("computed repository diff")
 
 	if len(missing) == 0 && len(extra) == 0 {
-		Logf(cfg.Output, "everything is in sync")
+		log.Info("everything is in sync")
 		return nil
 	}
 
 	cloned, failed := CloneMissing(missing, cfg)
-	HandleExtraRepos(extra, cfg.RootDir, cfg.DryRun, cfg.Input, cfg.Output)
+	HandleExtraRepos(extra, cfg.RootDir, cfg.DryRun, cfg.Input, cfg.Output, log)
 
-	Logf(cfg.Output, "summary: %d cloned, %d failed, %d extra", cloned, failed, len(extra))
+	log.WithFields(logger.Fields{
+		"cloned": cloned,
+		"failed": failed,
+		"extra":  len(extra),
+	}).Info("clone workflow completed")
 	return nil
 }
 
 // DiscoverRepos fetches repositories from the provider and optionally filters archived ones.
 func DiscoverRepos(
-	provider globalEntities.ForgeProvider, owner string, includeArchived bool, output io.Writer,
+	provider globalEntities.ForgeProvider, owner string, includeArchived bool, log logger.FieldLogger,
 ) ([]globalEntities.Repository, error) {
-	Logf(output, "discovering remote repositories...")
+	log.Info("discovering remote repositories")
 	remoteRepos, err := provider.DiscoverRepositories(context.Background(), owner)
 	if err != nil {
 		return nil, fmt.Errorf("failed to discover repositories: %w", err)
@@ -91,7 +112,7 @@ func DiscoverRepos(
 		remoteRepos = filtered
 	}
 
-	Logf(output, "found %d remote repositories", len(remoteRepos))
+	log.WithField("count", len(remoteRepos)).Info("remote repositories discovered")
 	return remoteRepos, nil
 }
 
@@ -128,6 +149,8 @@ func ComputeDiff(
 
 // CloneMissing clones missing repositories, respecting dry-run mode.
 func CloneMissing(missing []globalEntities.Repository, cfg CloneConfig) (int, int) {
+	log := cfg.log()
+
 	if len(missing) == 0 {
 		return 0, 0
 	}
@@ -136,7 +159,11 @@ func CloneMissing(missing []globalEntities.Repository, cfg CloneConfig) (int, in
 		for _, r := range missing {
 			url := cfg.Provider.SSHCloneURL(r, cfg.SSHAlias)
 			target := filepath.Join(cfg.RootDir, Key(r))
-			Logf(cfg.Output, "would clone %s -> %s", url, target)
+			log.WithFields(logger.Fields{
+				"repo":   Key(r),
+				"url":    url,
+				"target": target,
+			}).Info("would clone repository")
 		}
 		return 0, 0
 	}
@@ -146,12 +173,12 @@ func CloneMissing(missing []globalEntities.Repository, cfg CloneConfig) (int, in
 		preflight = SSHPreflight
 	}
 	providerName, _, _ := DetectProviderAndOwner(cfg.RootDir)
-	if preflightErr := preflight(providerName, cfg.SSHAlias, cfg.Output); preflightErr != nil {
-		Logf(cfg.Output, "ERROR: %v", preflightErr)
+	if preflightErr := preflight(providerName, cfg.SSHAlias, log); preflightErr != nil {
+		log.WithError(preflightErr).Error("SSH preflight failed")
 		return 0, len(missing)
 	}
 
-	return ParallelClone(missing, cfg.Provider, cfg.SSHAlias, cfg.RootDir, cfg.Runner, cfg.Output)
+	return ParallelClone(missing, cfg.Provider, cfg.SSHAlias, cfg.RootDir, cfg.Runner, log)
 }
 
 // sshSuccessPatterns are stderr fragments that indicate the remote Git server
@@ -180,7 +207,7 @@ func IsSSHSuccess(stderr string) bool {
 }
 
 // SSHPreflight verifies SSH connectivity to the provider host via the SSH config alias.
-func SSHPreflight(providerName, sshAlias string, output io.Writer) error {
+func SSHPreflight(providerName, sshAlias string, log logger.FieldLogger) error {
 	host := ProviderHost(providerName)
 	if host == "" {
 		return fmt.Errorf("unknown provider for SSH preflight: %s", providerName)
@@ -190,7 +217,7 @@ func SSHPreflight(providerName, sshAlias string, output io.Writer) error {
 	if sshAlias != "" {
 		sshHost = fmt.Sprintf("%s-%s", host, sshAlias)
 	}
-	Logf(output, "verifying SSH connectivity to %s...", sshHost)
+	log.WithField("host", sshHost).Info("verifying SSH connectivity")
 
 	var stderr bytes.Buffer
 	cmd := exec.CommandContext(
@@ -207,13 +234,13 @@ func SSHPreflight(providerName, sshAlias string, output io.Writer) error {
 	err := cmd.Run()
 
 	if err == nil {
-		Logf(output, "SSH connectivity OK")
+		log.WithField("host", sshHost).Info("SSH connectivity verified")
 		return nil
 	}
 
 	stderrStr := stderr.String()
 	if IsSSHSuccess(stderrStr) {
-		Logf(output, "SSH connectivity OK")
+		log.WithField("host", sshHost).Info("SSH connectivity verified")
 		return nil
 	}
 
@@ -238,14 +265,17 @@ func ParallelClone(
 	provider globalEntities.ForgeProvider,
 	sshAlias, rootDir string,
 	runner GitRunner,
-	output io.Writer,
+	log logger.FieldLogger,
 ) (int, int) {
 	workers := runtime.NumCPU()
 	sem := make(chan struct{}, workers)
 	results := make([]cloneResult, len(repos))
 	var wg sync.WaitGroup
 
-	Logf(output, "cloning %d repos (%d parallel workers)", len(repos), workers)
+	log.WithFields(logger.Fields{
+		"count":   len(repos),
+		"workers": workers,
+	}).Info("starting parallel clone")
 
 	for i, r := range repos {
 		wg.Add(1)
@@ -253,7 +283,7 @@ func ParallelClone(
 		go func(idx int, repo globalEntities.Repository) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			results[idx] = cloneSingleRepo(repo, provider, sshAlias, rootDir, runner)
+			results[idx] = cloneSingleRepo(repo, provider, sshAlias, rootDir, runner, log)
 		}(i, r)
 	}
 
@@ -262,13 +292,16 @@ func ParallelClone(
 	cloned, failed := 0, 0
 	for _, r := range results {
 		if r.success {
-			fmt.Fprintf(output, "  %-50s CLONED\n", r.name)
 			cloned++
 		} else {
-			fmt.Fprintf(output, "  %-50s FAIL (%s)\n", r.name, r.err)
 			failed++
 		}
 	}
+
+	log.WithFields(logger.Fields{
+		"cloned": cloned,
+		"failed": failed,
+	}).Info("parallel clone completed")
 	return cloned, failed
 }
 
@@ -277,18 +310,36 @@ func cloneSingleRepo(
 	provider globalEntities.ForgeProvider,
 	sshAlias, rootDir string,
 	runner GitRunner,
+	log logger.FieldLogger,
 ) cloneResult {
 	url := provider.SSHCloneURL(repo, sshAlias)
 	target := filepath.Join(rootDir, Key(repo))
+	repoKey := Key(repo)
+
+	log.WithFields(logger.Fields{
+		"repo":   repoKey,
+		"url":    url,
+		"target": target,
+	}).Info("cloning repository")
 
 	if cloneErr := runner.Clone(url, target); cloneErr != nil {
-		return cloneResult{name: Key(repo), err: cloneErr.Error()}
+		log.WithFields(logger.Fields{
+			"repo": repoKey,
+		}).WithError(cloneErr).Error("clone failed")
+		return cloneResult{name: repoKey, err: cloneErr.Error()}
 	}
-	return cloneResult{name: Key(repo), success: true}
+
+	log.WithFields(logger.Fields{
+		"repo":   repoKey,
+		"target": target,
+	}).Info("repository cloned")
+	return cloneResult{name: repoKey, success: true}
 }
 
 // HandleExtraRepos prompts for deletion of extra local repos or skips in non-interactive mode.
-func HandleExtraRepos(extra []string, rootDir string, dryRun bool, input io.Reader, output io.Writer) {
+func HandleExtraRepos(
+	extra []string, rootDir string, dryRun bool, input io.Reader, output io.Writer, log logger.FieldLogger,
+) {
 	if len(extra) == 0 {
 		return
 	}
@@ -298,11 +349,11 @@ func HandleExtraRepos(extra []string, rootDir string, dryRun bool, input io.Read
 	for _, name := range extra {
 		switch {
 		case dryRun:
-			Logf(output, "extra: %s", name)
+			log.WithField("repo", name).Warn("extra repository")
 		case !isInteractive:
-			Logf(output, "extra: %s (kept, non-interactive)", name)
+			log.WithField("repo", name).Warn("extra repository (kept, non-interactive)")
 		default:
-			PromptDeleteExtra(name, rootDir, input, output)
+			PromptDeleteExtra(name, rootDir, input, output, log)
 		}
 	}
 }
@@ -320,17 +371,19 @@ func isTerminal(input io.Reader) bool {
 }
 
 // PromptDeleteExtra asks the user to confirm deletion of an extra local repo.
-func PromptDeleteExtra(name, rootDir string, input io.Reader, output io.Writer) {
+func PromptDeleteExtra(name, rootDir string, input io.Reader, output io.Writer, log logger.FieldLogger) {
 	fmt.Fprintf(output, "[dev] \"%s\" exists locally but not on remote. Delete? [y/N] ", name)
 	scanner := bufio.NewScanner(input)
 	if scanner.Scan() && strings.EqualFold(strings.TrimSpace(scanner.Text()), "y") {
 		if removeErr := os.RemoveAll(filepath.Join(rootDir, name)); removeErr != nil {
-			Logf(output, "ERROR: could not delete %s: %v", name, removeErr)
+			log.WithFields(logger.Fields{
+				"repo": name,
+			}).WithError(removeErr).Error("could not delete repository")
 		} else {
-			Logf(output, "deleted %s", name)
+			log.WithField("repo", name).Info("deleted extra repository")
 		}
 	} else {
-		Logf(output, "kept %s", name)
+		log.WithField("repo", name).Info("kept extra repository")
 	}
 }
 

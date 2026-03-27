@@ -2,7 +2,6 @@ package repo
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
@@ -110,9 +109,4 @@ func ResolveProvider(providerName string) (globalEntities.ForgeProvider, error) 
 		return nil, fmt.Errorf("unknown provider: %s", providerName)
 	}
 	return provider, nil
-}
-
-// Logf writes a formatted log message to the given writer.
-func Logf(w io.Writer, format string, args ...any) {
-	fmt.Fprintf(w, "[dev] "+format+"\n", args...)
 }

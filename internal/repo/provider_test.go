@@ -198,18 +198,20 @@ func TestNewProviderRegistry(t *testing.T) {
 	})
 }
 
-func TestLogf(t *testing.T) {
+func TestNewLogger(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should write formatted message with prefix", func(t *testing.T) {
+	t.Run("should create a logger that writes to the given writer", func(t *testing.T) {
 		t.Parallel()
 		// given
 		var buf bytes.Buffer
 
 		// when
-		repo.Logf(&buf, "found %d repos", 42)
+		log := repo.NewLogger(&buf)
+		log.Info("test message")
 
 		// then
-		assert.Equal(t, "[dev] found 42 repos\n", buf.String())
+		assert.Contains(t, buf.String(), "test message")
+		assert.Contains(t, buf.String(), "level=info")
 	})
 }
