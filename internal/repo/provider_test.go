@@ -166,6 +166,15 @@ func TestProviderHost(t *testing.T) {
 		assert.Equal(t, "github.com", host)
 	})
 
+	t.Run("should return dev.azure.com for azuredevops", func(t *testing.T) {
+		t.Parallel()
+		// given / when
+		host := repo.ProviderHost("azuredevops")
+
+		// then
+		assert.Equal(t, "dev.azure.com", host)
+	})
+
 	t.Run("should return empty string for unknown provider", func(t *testing.T) {
 		t.Parallel()
 		// given / when

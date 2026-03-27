@@ -16,7 +16,6 @@ import (
 const (
 	ScanDepthNested = 2
 	splitOwnerLimit = 2
-	SSHFailCode     = 255
 	DirPermissions  = 0o750
 )
 
@@ -75,7 +74,7 @@ func ProviderTokenEnv(providerName string) string {
 	return providerTokenEnv[providerName]
 }
 
-// ProviderHost returns the SSH hostname for the given provider.
+// ProviderHost returns the alias hostname for the given provider (used in SSH config aliases).
 func ProviderHost(providerName string) string {
 	return providerHostMap[providerName]
 }
