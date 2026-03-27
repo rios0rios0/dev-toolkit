@@ -112,9 +112,9 @@ func RunMirror(cfg MirrorConfig) error {
 	}
 
 	log.WithFields(logger.Fields{
-		"mirrored": counts["mirrored"],
-		"skipped":  counts["skipped"],
-		mirrorStatusFailed:   counts[mirrorStatusFailed],
+		"mirrored":         counts["mirrored"],
+		"skipped":          counts["skipped"],
+		mirrorStatusFailed: counts[mirrorStatusFailed],
 	}).Info("mirror completed")
 	return nil
 }
