@@ -472,7 +472,7 @@ func TestPromptDeleteExtra(t *testing.T) {
 		log := repo.NewLogger(&buf)
 
 		// when
-		repo.HandleExtraRepos([]string{"extra-repo"}, root, false, nil, log)
+		repo.HandleExtraRepos([]string{"extra-repo"}, root, false, nil, &buf, log)
 
 		// then
 		assert.Contains(t, buf.String(), "kept, non-interactive")
@@ -488,7 +488,7 @@ func TestPromptDeleteExtra(t *testing.T) {
 		input := strings.NewReader("n\n")
 
 		// when
-		repo.PromptDeleteExtra("extra-repo", root, input, log)
+		repo.PromptDeleteExtra("extra-repo", root, input, &buf, log)
 
 		// then
 		assert.Contains(t, buf.String(), "kept extra repository")
@@ -504,7 +504,7 @@ func TestPromptDeleteExtra(t *testing.T) {
 		input := strings.NewReader("y\n")
 
 		// when
-		repo.PromptDeleteExtra("extra-repo", root, input, log)
+		repo.PromptDeleteExtra("extra-repo", root, input, &buf, log)
 
 		// then
 		assert.Contains(t, buf.String(), "deleted extra repository")
@@ -520,7 +520,7 @@ func TestPromptDeleteExtra(t *testing.T) {
 		input := strings.NewReader("")
 
 		// when
-		repo.PromptDeleteExtra("extra-repo", root, input, log)
+		repo.PromptDeleteExtra("extra-repo", root, input, &buf, log)
 
 		// then
 		assert.Contains(t, buf.String(), "kept extra repository")
@@ -627,7 +627,7 @@ func TestIsTerminal(t *testing.T) {
 		input := strings.NewReader("")
 
 		// when
-		repo.HandleExtraRepos([]string{"repo"}, "/tmp", false, input, log)
+		repo.HandleExtraRepos([]string{"repo"}, "/tmp", false, input, &buf, log)
 
 		// then
 		assert.Contains(t, buf.String(), "kept, non-interactive")
@@ -644,7 +644,7 @@ func TestIsTerminal(t *testing.T) {
 		w.Close()
 
 		// when
-		repo.HandleExtraRepos([]string{"repo"}, "/tmp", false, r, log)
+		repo.HandleExtraRepos([]string{"repo"}, "/tmp", false, r, &buf, log)
 
 		// then
 		assert.Contains(t, buf.String(), "kept, non-interactive")
@@ -661,7 +661,7 @@ func TestHandleExtraRepos(t *testing.T) {
 		log := repo.NewLogger(&buf)
 
 		// when
-		repo.HandleExtraRepos([]string{"extra-repo"}, "/tmp", true, strings.NewReader(""), log)
+		repo.HandleExtraRepos([]string{"extra-repo"}, "/tmp", true, strings.NewReader(""), &buf, log)
 
 		// then
 		assert.Contains(t, buf.String(), "extra-repo")
@@ -675,7 +675,7 @@ func TestHandleExtraRepos(t *testing.T) {
 		log := repo.NewLogger(&buf)
 
 		// when
-		repo.HandleExtraRepos([]string{"extra-repo"}, "/tmp", false, strings.NewReader(""), log)
+		repo.HandleExtraRepos([]string{"extra-repo"}, "/tmp", false, strings.NewReader(""), &buf, log)
 
 		// then
 		assert.Contains(t, buf.String(), "kept, non-interactive")
@@ -688,7 +688,7 @@ func TestHandleExtraRepos(t *testing.T) {
 		log := repo.NewLogger(&buf)
 
 		// when
-		repo.HandleExtraRepos([]string{"a", "b"}, "/tmp", true, strings.NewReader(""), log)
+		repo.HandleExtraRepos([]string{"a", "b"}, "/tmp", true, strings.NewReader(""), &buf, log)
 
 		// then
 		assert.Contains(t, buf.String(), "repo=a")
@@ -702,7 +702,7 @@ func TestHandleExtraRepos(t *testing.T) {
 		log := repo.NewLogger(&buf)
 
 		// when
-		repo.HandleExtraRepos(nil, "/tmp", false, strings.NewReader(""), log)
+		repo.HandleExtraRepos(nil, "/tmp", false, strings.NewReader(""), &buf, log)
 
 		// then
 		assert.Empty(t, buf.String())

@@ -37,11 +37,11 @@ type CloneConfig struct {
 	Logger          *logger.Logger
 }
 
-func (c CloneConfig) log() *logger.Logger {
-	if c.Logger != nil {
-		return c.Logger
+func (c *CloneConfig) log() *logger.Logger {
+	if c.Logger == nil {
+		c.Logger = NewLogger(c.Output)
 	}
-	return NewLogger(c.Output)
+	return c.Logger
 }
 
 // RunClone executes the full clone workflow.
@@ -82,7 +82,7 @@ func RunClone(cfg CloneConfig) error {
 	}
 
 	cloned, failed := CloneMissing(missing, cfg)
-	HandleExtraRepos(extra, cfg.RootDir, cfg.DryRun, cfg.Input, log)
+	HandleExtraRepos(extra, cfg.RootDir, cfg.DryRun, cfg.Input, cfg.Output, log)
 
 	log.WithFields(logger.Fields{
 		"cloned": cloned,
@@ -337,7 +337,9 @@ func cloneSingleRepo(
 }
 
 // HandleExtraRepos prompts for deletion of extra local repos or skips in non-interactive mode.
-func HandleExtraRepos(extra []string, rootDir string, dryRun bool, input io.Reader, log *logger.Logger) {
+func HandleExtraRepos(
+	extra []string, rootDir string, dryRun bool, input io.Reader, output io.Writer, log *logger.Logger,
+) {
 	if len(extra) == 0 {
 		return
 	}
@@ -351,7 +353,7 @@ func HandleExtraRepos(extra []string, rootDir string, dryRun bool, input io.Read
 		case !isInteractive:
 			log.WithField("repo", name).Warn("extra repository (kept, non-interactive)")
 		default:
-			PromptDeleteExtra(name, rootDir, input, log)
+			PromptDeleteExtra(name, rootDir, input, output, log)
 		}
 	}
 }
@@ -369,8 +371,8 @@ func isTerminal(input io.Reader) bool {
 }
 
 // PromptDeleteExtra asks the user to confirm deletion of an extra local repo.
-func PromptDeleteExtra(name, rootDir string, input io.Reader, log *logger.Logger) {
-	fmt.Fprintf(log.Out, "[dev] \"%s\" exists locally but not on remote. Delete? [y/N] ", name)
+func PromptDeleteExtra(name, rootDir string, input io.Reader, output io.Writer, log *logger.Logger) {
+	fmt.Fprintf(output, "[dev] \"%s\" exists locally but not on remote. Delete? [y/N] ", name)
 	scanner := bufio.NewScanner(input)
 	if scanner.Scan() && strings.EqualFold(strings.TrimSpace(scanner.Text()), "y") {
 		if removeErr := os.RemoveAll(filepath.Join(rootDir, name)); removeErr != nil {

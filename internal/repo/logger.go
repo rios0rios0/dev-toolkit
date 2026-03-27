@@ -14,6 +14,6 @@ func NewLogger(w io.Writer) *logger.Logger {
 		DisableTimestamp: false,
 		FullTimestamp:    true,
 	})
-	l.SetLevel(logger.DebugLevel)
+	l.SetLevel(logger.InfoLevel)
 	return l
 }
