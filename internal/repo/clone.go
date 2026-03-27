@@ -21,7 +21,7 @@ import (
 const maxCloneArgs = 2
 
 // PreflightFunc is a function that verifies SSH connectivity before cloning.
-type PreflightFunc func(providerName, sshAlias string, log *logger.Logger) error
+type PreflightFunc func(providerName, sshAlias string, log logger.FieldLogger) error
 
 // CloneConfig holds all dependencies for a clone operation.
 type CloneConfig struct {
@@ -34,10 +34,10 @@ type CloneConfig struct {
 	Output          io.Writer
 	Input           io.Reader
 	Preflight       PreflightFunc
-	Logger          *logger.Logger
+	Logger          logger.FieldLogger
 }
 
-func (c *CloneConfig) log() *logger.Logger {
+func (c *CloneConfig) log() logger.FieldLogger {
 	if c.Logger == nil {
 		c.Logger = NewLogger(c.Output)
 	}
@@ -94,7 +94,7 @@ func RunClone(cfg CloneConfig) error {
 
 // DiscoverRepos fetches repositories from the provider and optionally filters archived ones.
 func DiscoverRepos(
-	provider globalEntities.ForgeProvider, owner string, includeArchived bool, log *logger.Logger,
+	provider globalEntities.ForgeProvider, owner string, includeArchived bool, log logger.FieldLogger,
 ) ([]globalEntities.Repository, error) {
 	log.Info("discovering remote repositories")
 	remoteRepos, err := provider.DiscoverRepositories(context.Background(), owner)
@@ -207,7 +207,7 @@ func IsSSHSuccess(stderr string) bool {
 }
 
 // SSHPreflight verifies SSH connectivity to the provider host via the SSH config alias.
-func SSHPreflight(providerName, sshAlias string, log *logger.Logger) error {
+func SSHPreflight(providerName, sshAlias string, log logger.FieldLogger) error {
 	host := ProviderHost(providerName)
 	if host == "" {
 		return fmt.Errorf("unknown provider for SSH preflight: %s", providerName)
@@ -265,7 +265,7 @@ func ParallelClone(
 	provider globalEntities.ForgeProvider,
 	sshAlias, rootDir string,
 	runner GitRunner,
-	log *logger.Logger,
+	log logger.FieldLogger,
 ) (int, int) {
 	workers := runtime.NumCPU()
 	sem := make(chan struct{}, workers)
@@ -310,7 +310,7 @@ func cloneSingleRepo(
 	provider globalEntities.ForgeProvider,
 	sshAlias, rootDir string,
 	runner GitRunner,
-	log *logger.Logger,
+	log logger.FieldLogger,
 ) cloneResult {
 	url := provider.SSHCloneURL(repo, sshAlias)
 	target := filepath.Join(rootDir, Key(repo))
@@ -338,7 +338,7 @@ func cloneSingleRepo(
 
 // HandleExtraRepos prompts for deletion of extra local repos or skips in non-interactive mode.
 func HandleExtraRepos(
-	extra []string, rootDir string, dryRun bool, input io.Reader, output io.Writer, log *logger.Logger,
+	extra []string, rootDir string, dryRun bool, input io.Reader, output io.Writer, log logger.FieldLogger,
 ) {
 	if len(extra) == 0 {
 		return
@@ -371,7 +371,7 @@ func isTerminal(input io.Reader) bool {
 }
 
 // PromptDeleteExtra asks the user to confirm deletion of an extra local repo.
-func PromptDeleteExtra(name, rootDir string, input io.Reader, output io.Writer, log *logger.Logger) {
+func PromptDeleteExtra(name, rootDir string, input io.Reader, output io.Writer, log logger.FieldLogger) {
 	fmt.Fprintf(output, "[dev] \"%s\" exists locally but not on remote. Delete? [y/N] ", name)
 	scanner := bufio.NewScanner(input)
 	if scanner.Scan() && strings.EqualFold(strings.TrimSpace(scanner.Text()), "y") {

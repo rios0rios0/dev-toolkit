@@ -221,7 +221,7 @@ func TestCloneMissing(t *testing.T) {
 		var buf bytes.Buffer
 		provider := doubles.NewForgeProviderStub()
 		runner := doubles.NewGitRunnerStub()
-		noopPreflight := func(_, _ string, _ *logger.Logger) error { return nil }
+		noopPreflight := func(_, _ string, _ logger.FieldLogger) error { return nil }
 		missing := []globalEntities.Repository{
 			builders.NewRepositoryBuilder().WithName("repo-a").Build(),
 		}
@@ -250,7 +250,7 @@ func TestCloneMissing(t *testing.T) {
 		// given
 		var buf bytes.Buffer
 		provider := doubles.NewForgeProviderStub()
-		failPreflight := func(_, _ string, _ *logger.Logger) error { return errors.New("ssh failed") }
+		failPreflight := func(_, _ string, _ logger.FieldLogger) error { return errors.New("ssh failed") }
 		missing := []globalEntities.Repository{
 			builders.NewRepositoryBuilder().WithName("repo-a").Build(),
 			builders.NewRepositoryBuilder().WithName("repo-b").Build(),

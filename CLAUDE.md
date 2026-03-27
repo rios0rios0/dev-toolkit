@@ -46,7 +46,8 @@ cmd/devforge/
 internal/
   repo/
     git.go                   -- GitRunner interface + DefaultGitRunner (exec.Command wrapper)
-    provider.go              -- provider detection, maps, registry, Logf helper
+    provider.go              -- provider detection, maps, registry
+    logger.go                -- NewLogger factory for isolated logrus instances
     scanner.go               -- local repo scanning (flat/nested/recursive)
     clone.go                 -- clone orchestration with dependency injection
     sync.go                  -- sync orchestration with dependency injection
