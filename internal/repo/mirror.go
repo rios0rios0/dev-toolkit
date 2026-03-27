@@ -87,11 +87,17 @@ func RunMirror(cfg MirrorConfig) error {
 			defer wg.Done()
 			defer func() { <-sem }()
 			time.Sleep(time.Duration(idx) * mirrorAPIDelay / time.Duration(workers))
-			results[idx] = mirrorSingleRepo(path, cfg, owner, mirrorProvider)
+			results[idx] = mirrorSingleRepo(path, cfg, providerName, owner, mirrorProvider)
 		}(i, repoPath)
 	}
 
 	wg.Wait()
+
+	mirrorStatusCategory := map[string]string{
+		"mirrored":                  "mirrored",
+		"mirrored (remote add failed)": "mirrored",
+		"skipped (remote exists)":   "skipped",
+	}
 
 	mirrored, skipped, failed := 0, 0, 0
 	for _, r := range results {
@@ -99,13 +105,13 @@ func RunMirror(cfg MirrorConfig) error {
 			"repo":   r.Name,
 			"status": r.Status,
 		}).Info(r.Status)
-		switch {
-		case r.Status == "mirrored" || r.Status == "mirrored (remote add failed)":
-			mirrored++
-		case r.Status == "skipped (remote exists)":
-			skipped++
-		default:
+		category, ok := mirrorStatusCategory[r.Status]
+		if !ok {
 			failed++
+		} else if category == "mirrored" {
+			mirrored++
+		} else {
+			skipped++
 		}
 	}
 
@@ -120,7 +126,7 @@ func RunMirror(cfg MirrorConfig) error {
 func mirrorSingleRepo(
 	repoPath string,
 	cfg MirrorConfig,
-	owner string,
+	providerName, owner string,
 	mirrorProvider globalEntities.MirrorProvider,
 ) MirrorResult {
 	name := extractRepoName(repoPath, cfg.SourceDir)
@@ -132,13 +138,14 @@ func mirrorSingleRepo(
 	}
 
 	// create mirror on target provider
-	cloneAddr := fmt.Sprintf("https://github.com/%s/%s.git", owner, name)
+	sourceHost := ProviderHost(providerName)
+	cloneAddr := fmt.Sprintf("https://%s/%s/%s.git", sourceHost, owner, name)
 	input := globalEntities.MirrorInput{
 		CloneAddr: cloneAddr,
 		RepoName:  name,
 		RepoOwner: owner,
 		Mirror:    true,
-		Service:   "github",
+		Service:   providerName,
 	}
 
 	if migrateErr := mirrorProvider.MigrateRepository(context.Background(), input); migrateErr != nil {

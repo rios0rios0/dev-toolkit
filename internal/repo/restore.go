@@ -51,19 +51,24 @@ func RunRestore(cfg RestoreConfig) error {
 
 	wg.Wait()
 
+	restoreStatusCategory := map[string]string{
+		"restored":                       "restored",
+		"skipped (not in failover state)": "skipped",
+	}
+
 	restored, skipped, failed := 0, 0, 0
 	for _, r := range results {
 		log.WithFields(logger.Fields{
 			"repo":   r.Name,
 			"status": r.Status,
 		}).Info(r.Status)
-		switch r.Status {
-		case "restored":
-			restored++
-		case "skipped (not in failover state)":
-			skipped++
-		default:
+		category, ok := restoreStatusCategory[r.Status]
+		if !ok {
 			failed++
+		} else if category == "restored" {
+			restored++
+		} else {
+			skipped++
 		}
 	}
 

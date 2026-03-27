@@ -51,19 +51,25 @@ func RunFailover(cfg FailoverConfig) error {
 
 	wg.Wait()
 
+	failoverStatusCategory := map[string]string{
+		"switched":                      "switched",
+		"skipped (no codeberg remote)":  "skipped",
+		"skipped (already failed over)": "skipped",
+	}
+
 	switched, skipped, failed := 0, 0, 0
 	for _, r := range results {
 		log.WithFields(logger.Fields{
 			"repo":   r.Name,
 			"status": r.Status,
 		}).Info(r.Status)
-		switch r.Status {
-		case "switched":
-			switched++
-		case "skipped (no codeberg remote)", "skipped (already failed over)":
-			skipped++
-		default:
+		category, ok := failoverStatusCategory[r.Status]
+		if !ok {
 			failed++
+		} else if category == "switched" {
+			switched++
+		} else {
+			skipped++
 		}
 	}
 
