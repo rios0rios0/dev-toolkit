@@ -20,12 +20,16 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 - added structured `logrus` logging to the `repo` package (`clone`, `sync`, `prune`) with per-repo real-time visibility during parallel operations
 - added `NewLogger` factory in `internal/repo/logger.go` for creating isolated `logrus` instances
+- added `dev repo mirror` command — creates Codeberg pull mirrors for all repositories via the Forgejo migration API
+- added `dev repo failover` command — switches all repos from GitHub to Codeberg as primary remote
+- added `dev repo restore` command — restores GitHub as primary remote after a failover
+- added Codeberg provider support (`codeberg.org` path detection, `CODEBERG_TOKEN`, SSH host mapping)
 
 ### Changed
 
-- changed `gitforge` dependency to latest main branch commit for Azure DevOps SSH clone URL fix
+- changed `gitforge` dependency to latest main branch commit with Codeberg provider support
 - changed clone workflow to log each repository's URL and target directory in real-time during parallel clone
-- changed `PreflightFunc` signature to accept `*logrus.Logger` instead of `io.Writer`
+- changed `PreflightFunc` signature to accept `logger.FieldLogger` instead of `io.Writer`
 - changed `DiscoverRepos`, `ParallelClone`, `HandleExtraRepos`, and `PromptDeleteExtra` to use structured `logrus` logging
 - changed `main.go` `logrus` import alias from `log` to `logger`
 
