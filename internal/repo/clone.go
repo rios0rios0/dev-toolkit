@@ -191,6 +191,7 @@ var sshSuccessPatterns = []string{
 	"shell access is not supported", // Azure DevOps
 	"successfully authenticated",    // GitHub
 	"welcome to gitlab",             // GitLab
+	"hi there",                      // Codeberg/Forgejo/Gitea
 }
 
 // IsSSHSuccess checks whether SSH stderr output contains a provider-specific

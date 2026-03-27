@@ -11,6 +11,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
+replace github.com/rios0rios0/gitforge => ../gitforge
+
 require (
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.6.1 // indirect

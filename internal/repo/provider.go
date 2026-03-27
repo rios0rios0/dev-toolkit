@@ -7,6 +7,7 @@ import (
 
 	globalEntities "github.com/rios0rios0/gitforge/pkg/global/domain/entities"
 	adoProvider "github.com/rios0rios0/gitforge/pkg/providers/infrastructure/azuredevops"
+	cbProvider "github.com/rios0rios0/gitforge/pkg/providers/infrastructure/codeberg"
 	ghProvider "github.com/rios0rios0/gitforge/pkg/providers/infrastructure/github"
 	glProvider "github.com/rios0rios0/gitforge/pkg/providers/infrastructure/gitlab"
 	gitRegistry "github.com/rios0rios0/gitforge/pkg/registry/infrastructure"
@@ -23,6 +24,7 @@ var providerPathMap = map[string]string{
 	"github.com":    "github",
 	"dev.azure.com": "azuredevops",
 	"gitlab.com":    "gitlab",
+	"codeberg.org":  "codeberg",
 }
 
 //nolint:gochecknoglobals // read-only configuration lookup table
@@ -30,6 +32,7 @@ var providerScanDepth = map[string]int{
 	"github":      1,
 	"azuredevops": ScanDepthNested,
 	"gitlab":      1,
+	"codeberg":    1,
 }
 
 //nolint:gochecknoglobals // read-only configuration lookup table
@@ -37,6 +40,7 @@ var providerTokenEnv = map[string]string{
 	"github":      "GH_TOKEN",
 	"azuredevops": "AZURE_DEVOPS_EXT_PAT",
 	"gitlab":      "GITLAB_TOKEN",
+	"codeberg":    "CODEBERG_TOKEN",
 }
 
 //nolint:gochecknoglobals // read-only configuration lookup table
@@ -44,6 +48,7 @@ var providerHostMap = map[string]string{
 	"github":      "github.com",
 	"azuredevops": "dev.azure.com",
 	"gitlab":      "gitlab.com",
+	"codeberg":    "codeberg.org",
 }
 
 // DetectProviderAndOwner parses a root directory path to determine the Git provider and owner.
@@ -92,6 +97,7 @@ func NewProviderRegistry() *gitRegistry.ProviderRegistry {
 	r.RegisterFactory("github", ghProvider.NewProvider)
 	r.RegisterFactory("azuredevops", adoProvider.NewProvider)
 	r.RegisterFactory("gitlab", glProvider.NewProvider)
+	r.RegisterFactory("codeberg", cbProvider.NewProvider)
 	return r
 }
 
