@@ -3,6 +3,7 @@ package repo_test
 import (
 	"bytes"
 	"errors"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -38,7 +39,7 @@ func TestRunFailover(t *testing.T) {
 		t.Parallel()
 		// given
 		root := t.TempDir()
-		createGitRepo(t, root+"/repo-a")
+		createGitRepo(t, filepath.Join(root, "repo-a"))
 
 		var renamedPairs [][]string
 		runner := doubles.NewGitRunnerStub().
@@ -69,7 +70,7 @@ func TestRunFailover(t *testing.T) {
 		t.Parallel()
 		// given
 		root := t.TempDir()
-		createGitRepo(t, root+"/repo-a")
+		createGitRepo(t, filepath.Join(root, "repo-a"))
 		runner := doubles.NewGitRunnerStub()
 		var buf bytes.Buffer
 
@@ -89,7 +90,7 @@ func TestRunFailover(t *testing.T) {
 		t.Parallel()
 		// given
 		root := t.TempDir()
-		createGitRepo(t, root+"/repo-a")
+		createGitRepo(t, filepath.Join(root, "repo-a"))
 		runner := doubles.NewGitRunnerStub().
 			WithOutput([]string{"remote", "get-url", "github"}, "git@github.com:owner/repo-a.git").
 			WithOutput([]string{"remote", "get-url", "codeberg"}, "git@codeberg.org:owner/repo-a.git")
@@ -111,7 +112,7 @@ func TestRunFailover(t *testing.T) {
 		t.Parallel()
 		// given
 		root := t.TempDir()
-		createGitRepo(t, root+"/repo-a")
+		createGitRepo(t, filepath.Join(root, "repo-a"))
 
 		renameCount := 0
 		runner := doubles.NewGitRunnerStub().
@@ -137,6 +138,6 @@ func TestRunFailover(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		assert.Contains(t, buf.String(), "FAIL (rename codeberg)")
+		assert.Contains(t, buf.String(), "FAIL (rename codeberg:")
 	})
 }

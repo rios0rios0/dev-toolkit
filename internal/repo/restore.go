@@ -2,6 +2,7 @@ package repo
 
 import (
 	"fmt"
+	"path/filepath"
 	"runtime"
 	"sync"
 
@@ -75,7 +76,7 @@ func RunRestore(cfg RestoreConfig) error {
 }
 
 func restoreSingleRepo(repoPath, rootDir string, runner GitRunner) RestoreResult {
-	name := repoPath[len(rootDir)+1:]
+	name, _ := filepath.Rel(rootDir, repoPath)
 
 	// check if in failover state (github remote exists as backup)
 	githubURL := runner.Output(repoPath, "remote", "get-url", "github")
@@ -83,8 +84,8 @@ func restoreSingleRepo(repoPath, rootDir string, runner GitRunner) RestoreResult
 		return RestoreResult{Name: name, Status: "skipped (not in failover state)"}
 	}
 
-	// push any Codeberg-only commits back to GitHub (best-effort)
-	_ = runner.Run(repoPath, "push", "github", "--all", "--tags")
+	// push any Codeberg-only commits back to GitHub
+	pushErr := runner.Run(repoPath, "push", "github", "--all", "--tags")
 
 	// rename origin -> codeberg
 	if err := runner.Run(repoPath, "remote", "rename", "origin", "codeberg"); err != nil {
@@ -98,5 +99,8 @@ func restoreSingleRepo(repoPath, rootDir string, runner GitRunner) RestoreResult
 		return RestoreResult{Name: name, Status: fmt.Sprintf("FAIL (rename github: %v)", err)}
 	}
 
+	if pushErr != nil {
+		return RestoreResult{Name: name, Status: fmt.Sprintf("restored (push failed: %v)", pushErr)}
+	}
 	return RestoreResult{Name: name, Status: "restored"}
 }

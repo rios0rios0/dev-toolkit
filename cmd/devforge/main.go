@@ -267,8 +267,7 @@ func newMirrorCmd() *cobra.Command {
 		Long: `For each repository under the source directory, creates a pull mirror
 on Codeberg via the Forgejo migration API and adds a 'codeberg' remote locally.
 
-Requires CODEBERG_TOKEN environment variable. Optionally reads GH_TOKEN for
-repository metadata (visibility, description).`,
+Requires CODEBERG_TOKEN environment variable.`,
 		Args: cobra.RangeArgs(1, 2),
 		RunE: func(_ *cobra.Command, args []string) error {
 			sshAlias := args[0]

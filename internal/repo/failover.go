@@ -1,6 +1,8 @@
 package repo
 
 import (
+	"fmt"
+	"path/filepath"
 	"runtime"
 	"sync"
 
@@ -74,7 +76,7 @@ func RunFailover(cfg FailoverConfig) error {
 }
 
 func failoverSingleRepo(repoPath, rootDir string, runner GitRunner) FailoverResult {
-	name := repoPath[len(rootDir)+1:]
+	name, _ := filepath.Rel(rootDir, repoPath)
 
 	// check if already failed over (github remote exists)
 	githubURL := runner.Output(repoPath, "remote", "get-url", "github")
@@ -90,14 +92,14 @@ func failoverSingleRepo(repoPath, rootDir string, runner GitRunner) FailoverResu
 
 	// rename origin -> github
 	if err := runner.Run(repoPath, "remote", "rename", "origin", "github"); err != nil {
-		return FailoverResult{Name: name, Status: "FAIL (rename origin)"}
+		return FailoverResult{Name: name, Status: fmt.Sprintf("FAIL (rename origin: %v)", err)}
 	}
 
 	// rename codeberg -> origin
 	if err := runner.Run(repoPath, "remote", "rename", "codeberg", "origin"); err != nil {
 		// rollback
 		_ = runner.Run(repoPath, "remote", "rename", "github", "origin")
-		return FailoverResult{Name: name, Status: "FAIL (rename codeberg)"}
+		return FailoverResult{Name: name, Status: fmt.Sprintf("FAIL (rename codeberg: %v)", err)}
 	}
 
 	return FailoverResult{Name: name, Status: "switched"}

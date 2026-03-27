@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"runtime"
 	"sync"
 	"time"
@@ -37,9 +38,13 @@ type MirrorResult struct {
 func RunMirror(cfg MirrorConfig) error {
 	log := cfg.Output
 
-	_, owner, err := DetectProviderAndOwner(cfg.SourceDir)
+	providerName, owner, err := DetectProviderAndOwner(cfg.SourceDir)
 	if err != nil {
 		return err
+	}
+
+	if providerName != "github" {
+		return fmt.Errorf("mirror only supports GitHub as source provider, detected %q", providerName)
 	}
 
 	repos := FindAllRepos(cfg.SourceDir)
@@ -154,5 +159,6 @@ func mirrorSingleRepo(
 }
 
 func extractRepoName(repoPath, sourceDir string) string {
-	return repoPath[len(sourceDir)+1:]
+	name, _ := filepath.Rel(sourceDir, repoPath)
+	return name
 }

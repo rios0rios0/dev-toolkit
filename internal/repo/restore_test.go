@@ -3,6 +3,7 @@ package repo_test
 import (
 	"bytes"
 	"errors"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -38,7 +39,7 @@ func TestRunRestore(t *testing.T) {
 		t.Parallel()
 		// given
 		root := t.TempDir()
-		createGitRepo(t, root+"/repo-a")
+		createGitRepo(t, filepath.Join(root, "repo-a"))
 
 		var renamedPairs [][]string
 		runner := doubles.NewGitRunnerStub().
@@ -68,7 +69,7 @@ func TestRunRestore(t *testing.T) {
 		t.Parallel()
 		// given
 		root := t.TempDir()
-		createGitRepo(t, root+"/repo-a")
+		createGitRepo(t, filepath.Join(root, "repo-a"))
 		runner := doubles.NewGitRunnerStub()
 		var buf bytes.Buffer
 
@@ -88,7 +89,7 @@ func TestRunRestore(t *testing.T) {
 		t.Parallel()
 		// given
 		root := t.TempDir()
-		createGitRepo(t, root+"/repo-a")
+		createGitRepo(t, filepath.Join(root, "repo-a"))
 		runner := doubles.NewGitRunnerStub().
 			WithOutput([]string{"remote", "get-url", "github"}, "git@github.com:owner/repo-a.git").
 			WithRunError([]string{"push", "github", "--all", "--tags"}, errors.New("network error"))
@@ -103,14 +104,14 @@ func TestRunRestore(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		assert.Contains(t, buf.String(), "restored")
+		assert.Contains(t, buf.String(), "restored (push failed:")
 	})
 
 	t.Run("should rollback when github rename fails", func(t *testing.T) {
 		t.Parallel()
 		// given
 		root := t.TempDir()
-		createGitRepo(t, root+"/repo-a")
+		createGitRepo(t, filepath.Join(root, "repo-a"))
 
 		renameCount := 0
 		runner := doubles.NewGitRunnerStub().
