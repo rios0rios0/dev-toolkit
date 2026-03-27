@@ -30,6 +30,9 @@ func main() {
 	repoCmd.AddCommand(newCloneCmd())
 	repoCmd.AddCommand(newSyncCmd())
 	repoCmd.AddCommand(newPruneCmd())
+	repoCmd.AddCommand(newMirrorCmd())
+	repoCmd.AddCommand(newFailoverCmd())
+	repoCmd.AddCommand(newRestoreCmd())
 
 	projectCmd := &cobra.Command{
 		Use:   "project",
@@ -253,6 +256,98 @@ volumes, networks, and the build cache.`,
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "show what would be done without making changes")
 
 	return cmd
+}
+
+func newMirrorCmd() *cobra.Command {
+	var dryRun bool
+
+	cmd := &cobra.Command{
+		Use:   "mirror <ssh-alias> [source-dir]",
+		Short: "Create Codeberg pull mirrors for all repositories",
+		Long: `For each repository under the source directory, creates a pull mirror
+on Codeberg via the Forgejo migration API and adds a 'codeberg' remote locally.
+
+Requires CODEBERG_TOKEN environment variable.`,
+		Args: cobra.RangeArgs(1, repo.MaxMirrorArgs()),
+		RunE: func(_ *cobra.Command, args []string) error {
+			sshAlias := args[0]
+			sourceDir, _ := os.Getwd()
+			if len(args) > 1 {
+				sourceDir = args[1]
+			}
+			sourceDir = filepath.Clean(sourceDir)
+
+			targetProvider, targetErr := repo.ResolveProvider("codeberg")
+			if targetErr != nil {
+				return targetErr
+			}
+
+			// source provider is optional (used for metadata)
+			sourceProviderName, _, _ := repo.DetectProviderAndOwner(sourceDir)
+			sourceProvider, _ := repo.ResolveProvider(sourceProviderName)
+
+			return repo.RunMirror(repo.MirrorConfig{
+				SourceDir:      sourceDir,
+				SSHAlias:       sshAlias,
+				DryRun:         dryRun,
+				SourceProvider: sourceProvider,
+				TargetProvider: targetProvider,
+				Runner:         &repo.DefaultGitRunner{},
+				Output:         repo.NewLogger(os.Stderr),
+			})
+		},
+	}
+
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "show what would be done without making changes")
+
+	return cmd
+}
+
+func newFailoverCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "failover [root-dir]",
+		Short: "Switch all repos from GitHub to Codeberg as primary remote",
+		Long: `For each repository that has a 'codeberg' remote, renames 'origin' to 'github'
+and 'codeberg' to 'origin'. This makes all tooling use Codeberg during GitHub outages.
+
+Use 'dev repo restore' to switch back after GitHub recovers.`,
+		Args: cobra.MaximumNArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			rootDir, _ := os.Getwd()
+			if len(args) > 0 {
+				rootDir = args[0]
+			}
+			rootDir = filepath.Clean(rootDir)
+			return repo.RunFailover(repo.FailoverConfig{
+				RootDir: rootDir,
+				Runner:  &repo.DefaultGitRunner{},
+				Output:  repo.NewLogger(os.Stderr),
+			})
+		},
+	}
+}
+
+func newRestoreCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "restore [root-dir]",
+		Short: "Restore GitHub as primary remote after a failover",
+		Long: `For each repository in failover state (has 'github' remote), pushes any
+Codeberg-only commits to GitHub, then renames remotes back to normal
+('origin' -> 'codeberg', 'github' -> 'origin').`,
+		Args: cobra.MaximumNArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			rootDir, _ := os.Getwd()
+			if len(args) > 0 {
+				rootDir = args[0]
+			}
+			rootDir = filepath.Clean(rootDir)
+			return repo.RunRestore(repo.RestoreConfig{
+				RootDir: rootDir,
+				Runner:  &repo.DefaultGitRunner{},
+				Output:  repo.NewLogger(os.Stderr),
+			})
+		},
+	}
 }
 
 func mustDetectProvider(rootDir string) string {
