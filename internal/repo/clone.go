@@ -161,9 +161,22 @@ func CloneMissing(missing []globalEntities.Repository, cfg CloneConfig) (int, in
 //
 //nolint:gochecknoglobals // read-only configuration lookup table
 var sshSuccessPatterns = []string{
-	"shell access is not supported",  // Azure DevOps
-	"successfully authenticated",     // GitHub
-	"welcome to gitlab",              // GitLab
+	"shell access is not supported", // Azure DevOps
+	"successfully authenticated",    // GitHub
+	"welcome to gitlab",             // GitLab
+}
+
+// IsSSHSuccess checks whether SSH stderr output contains a provider-specific
+// success pattern, indicating that connectivity and authentication succeeded
+// despite a non-zero exit code.
+func IsSSHSuccess(stderr string) bool {
+	lower := strings.ToLower(stderr)
+	for _, pattern := range sshSuccessPatterns {
+		if strings.Contains(lower, pattern) {
+			return true
+		}
+	}
+	return false
 }
 
 // SSHPreflight verifies SSH connectivity to the provider host via the SSH config alias.
@@ -181,7 +194,12 @@ func SSHPreflight(providerName, sshAlias string, output io.Writer) error {
 
 	var stderr bytes.Buffer
 	cmd := exec.CommandContext(
-		context.Background(), "ssh", "-T", "-o", "ConnectTimeout=10",
+		context.Background(),
+		"ssh",
+		"-T",
+		"-o", "ConnectTimeout=10",
+		"-o", "BatchMode=yes",
+		"-o", "StrictHostKeyChecking=accept-new",
 		fmt.Sprintf("git@%s", sshHost),
 	) // #nosec G204
 	cmd.Stdin = nil
@@ -194,12 +212,9 @@ func SSHPreflight(providerName, sshAlias string, output io.Writer) error {
 	}
 
 	stderrStr := stderr.String()
-	stderrLower := strings.ToLower(stderrStr)
-	for _, pattern := range sshSuccessPatterns {
-		if strings.Contains(stderrLower, pattern) {
-			Logf(output, "SSH connectivity OK")
-			return nil
-		}
+	if IsSSHSuccess(stderrStr) {
+		Logf(output, "SSH connectivity OK")
+		return nil
 	}
 
 	var exitErr *exec.ExitError

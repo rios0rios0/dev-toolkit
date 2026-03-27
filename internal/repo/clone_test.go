@@ -508,6 +508,82 @@ func TestPromptDeleteExtra(t *testing.T) {
 	})
 }
 
+func TestIsSSHSuccess(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return true for Azure DevOps success message", func(t *testing.T) {
+		t.Parallel()
+		// given
+		stderr := "remote: Shell access is not supported.\nshell request failed on channel 0"
+
+		// when
+		result := repo.IsSSHSuccess(stderr)
+
+		// then
+		assert.True(t, result)
+	})
+
+	t.Run("should return true for GitHub success message", func(t *testing.T) {
+		t.Parallel()
+		// given
+		stderr := "Hi user! You've successfully authenticated, but GitHub does not provide shell access."
+
+		// when
+		result := repo.IsSSHSuccess(stderr)
+
+		// then
+		assert.True(t, result)
+	})
+
+	t.Run("should return true for GitLab success message", func(t *testing.T) {
+		t.Parallel()
+		// given
+		stderr := "Welcome to GitLab, @user!"
+
+		// when
+		result := repo.IsSSHSuccess(stderr)
+
+		// then
+		assert.True(t, result)
+	})
+
+	t.Run("should return false for permission denied", func(t *testing.T) {
+		t.Parallel()
+		// given
+		stderr := "Permission denied (publickey)."
+
+		// when
+		result := repo.IsSSHSuccess(stderr)
+
+		// then
+		assert.False(t, result)
+	})
+
+	t.Run("should return false for connection refused", func(t *testing.T) {
+		t.Parallel()
+		// given
+		stderr := "ssh: connect to host github.com port 22: Connection refused"
+
+		// when
+		result := repo.IsSSHSuccess(stderr)
+
+		// then
+		assert.False(t, result)
+	})
+
+	t.Run("should return false for empty stderr", func(t *testing.T) {
+		t.Parallel()
+		// given
+		stderr := ""
+
+		// when
+		result := repo.IsSSHSuccess(stderr)
+
+		// then
+		assert.False(t, result)
+	})
+}
+
 func TestMaxCloneArgs(t *testing.T) {
 	t.Parallel()
 
