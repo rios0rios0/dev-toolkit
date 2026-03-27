@@ -71,10 +71,7 @@ func RunMirror(cfg MirrorConfig) error {
 		return nil
 	}
 
-	workers := runtime.NumCPU()
-	if workers > mirrorMaxWorkers {
-		workers = mirrorMaxWorkers
-	}
+	workers := min(runtime.NumCPU(), mirrorMaxWorkers)
 
 	sem := make(chan struct{}, workers)
 	results := make([]MirrorResult, len(repos))
@@ -94,31 +91,28 @@ func RunMirror(cfg MirrorConfig) error {
 	wg.Wait()
 
 	mirrorStatusCategory := map[string]string{
-		"mirrored":                  "mirrored",
+		"mirrored":                     "mirrored",
 		"mirrored (remote add failed)": "mirrored",
-		"skipped (remote exists)":   "skipped",
+		"skipped (remote exists)":      "skipped",
 	}
 
-	mirrored, skipped, failed := 0, 0, 0
+	counts := map[string]int{"mirrored": 0, "skipped": 0, "failed": 0}
 	for _, r := range results {
 		log.WithFields(logger.Fields{
 			"repo":   r.Name,
 			"status": r.Status,
 		}).Info(r.Status)
-		category, ok := mirrorStatusCategory[r.Status]
-		if !ok {
-			failed++
-		} else if category == "mirrored" {
-			mirrored++
-		} else {
-			skipped++
+		category, known := mirrorStatusCategory[r.Status]
+		if !known {
+			category = "failed"
 		}
+		counts[category]++
 	}
 
 	log.WithFields(logger.Fields{
-		"mirrored": mirrored,
-		"skipped":  skipped,
-		"failed":   failed,
+		"mirrored": counts["mirrored"],
+		"skipped":  counts["skipped"],
+		"failed":   counts["failed"],
 	}).Info("mirror completed")
 	return nil
 }

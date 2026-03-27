@@ -57,26 +57,23 @@ func RunFailover(cfg FailoverConfig) error {
 		"skipped (already failed over)": "skipped",
 	}
 
-	switched, skipped, failed := 0, 0, 0
+	counts := map[string]int{"switched": 0, "skipped": 0, "failed": 0}
 	for _, r := range results {
 		log.WithFields(logger.Fields{
 			"repo":   r.Name,
 			"status": r.Status,
 		}).Info(r.Status)
-		category, ok := failoverStatusCategory[r.Status]
-		if !ok {
-			failed++
-		} else if category == "switched" {
-			switched++
-		} else {
-			skipped++
+		category, known := failoverStatusCategory[r.Status]
+		if !known {
+			category = "failed"
 		}
+		counts[category]++
 	}
 
 	log.WithFields(logger.Fields{
-		"switched": switched,
-		"skipped":  skipped,
-		"failed":   failed,
+		"switched": counts["switched"],
+		"skipped":  counts["skipped"],
+		"failed":   counts["failed"],
 	}).Info("failover completed")
 	return nil
 }
