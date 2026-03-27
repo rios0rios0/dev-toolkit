@@ -110,4 +110,3 @@ func ResolveProvider(providerName string) (globalEntities.ForgeProvider, error) 
 	}
 	return provider, nil
 }
-
