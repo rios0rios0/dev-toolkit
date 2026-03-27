@@ -13,8 +13,10 @@ import (
 )
 
 const (
-	mirrorAPIDelay   = 1 * time.Second
-	mirrorMaxWorkers = 4
+	mirrorAPIDelay     = 1 * time.Second
+	mirrorMaxWorkers   = 4
+	maxMirrorArgs      = 2
+	mirrorStatusFailed = "failed"
 )
 
 // MirrorConfig holds all dependencies for a mirror operation.
@@ -96,7 +98,7 @@ func RunMirror(cfg MirrorConfig) error {
 		"skipped (remote exists)":      "skipped",
 	}
 
-	counts := map[string]int{"mirrored": 0, "skipped": 0, "failed": 0}
+	counts := map[string]int{"mirrored": 0, "skipped": 0, mirrorStatusFailed: 0}
 	for _, r := range results {
 		log.WithFields(logger.Fields{
 			"repo":   r.Name,
@@ -104,7 +106,7 @@ func RunMirror(cfg MirrorConfig) error {
 		}).Info(r.Status)
 		category, known := mirrorStatusCategory[r.Status]
 		if !known {
-			category = "failed"
+			category = mirrorStatusFailed
 		}
 		counts[category]++
 	}
@@ -112,7 +114,7 @@ func RunMirror(cfg MirrorConfig) error {
 	log.WithFields(logger.Fields{
 		"mirrored": counts["mirrored"],
 		"skipped":  counts["skipped"],
-		"failed":   counts["failed"],
+		mirrorStatusFailed:   counts[mirrorStatusFailed],
 	}).Info("mirror completed")
 	return nil
 }
@@ -162,4 +164,9 @@ func mirrorSingleRepo(
 func extractRepoName(repoPath, sourceDir string) string {
 	name, _ := filepath.Rel(sourceDir, repoPath)
 	return name
+}
+
+// MaxMirrorArgs returns the maximum number of positional arguments for the mirror command.
+func MaxMirrorArgs() int {
+	return maxMirrorArgs
 }

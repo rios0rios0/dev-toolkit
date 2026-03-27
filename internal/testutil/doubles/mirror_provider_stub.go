@@ -9,6 +9,7 @@ import (
 // MirrorProviderStub is a test double that implements both ForgeProvider and MirrorProvider.
 type MirrorProviderStub struct {
 	ForgeProviderStub
+
 	MigrateFunc func(ctx context.Context, input globalEntities.MirrorInput) error
 }
 

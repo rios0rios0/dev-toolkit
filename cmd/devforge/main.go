@@ -268,7 +268,7 @@ func newMirrorCmd() *cobra.Command {
 on Codeberg via the Forgejo migration API and adds a 'codeberg' remote locally.
 
 Requires CODEBERG_TOKEN environment variable.`,
-		Args: cobra.RangeArgs(1, 2),
+		Args: cobra.RangeArgs(1, repo.MaxMirrorArgs()),
 		RunE: func(_ *cobra.Command, args []string) error {
 			sshAlias := args[0]
 			sourceDir, _ := os.Getwd()
