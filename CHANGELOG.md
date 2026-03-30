@@ -32,6 +32,7 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 - changed `PreflightFunc` signature to accept `logger.FieldLogger` instead of `io.Writer`
 - changed `DiscoverRepos`, `ParallelClone`, `HandleExtraRepos`, and `PromptDeleteExtra` to use structured `logrus` logging
 - changed `main.go` `logrus` import alias from `log` to `logger`
+- changed the Go module dependencies to their latest versions
 
 ### Removed
 
