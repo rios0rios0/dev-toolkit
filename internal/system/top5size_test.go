@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -170,9 +171,9 @@ func TestRunTop5Size(t *testing.T) {
 
 func nonEmptyLines(s string) []string {
 	var lines []string
-	for _, line := range bytes.Split([]byte(s), []byte("\n")) {
-		if len(bytes.TrimSpace(line)) > 0 {
-			lines = append(lines, string(line))
+	for line := range strings.SplitSeq(s, "\n") {
+		if len(strings.TrimSpace(line)) > 0 {
+			lines = append(lines, line)
 		}
 	}
 	return lines

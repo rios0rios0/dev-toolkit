@@ -43,10 +43,7 @@ func RunTop5Size(runner Runner, fs FileSystem, dir string, useSudo bool, output 
 		return items[i].bytes > items[j].bytes
 	})
 
-	limit := 5
-	if len(items) < limit {
-		limit = len(items)
-	}
+	limit := min(5, len(items))
 
 	for _, item := range items[:limit] {
 		fmt.Fprintf(output, "%-10s %s\n", formatBytes(item.bytes), item.name)
@@ -60,6 +57,8 @@ type duEntry struct {
 	name  string
 }
 
+const duFieldCount = 2
+
 func parseDuOutput(raw string) ([]duEntry, error) {
 	var items []duEntry
 	for line := range strings.SplitSeq(raw, "\n") {
@@ -67,8 +66,8 @@ func parseDuOutput(raw string) ([]duEntry, error) {
 		if line == "" {
 			continue
 		}
-		parts := strings.SplitN(line, "\t", 2)
-		if len(parts) != 2 {
+		parts := strings.SplitN(line, "\t", duFieldCount)
+		if len(parts) != duFieldCount {
 			continue
 		}
 		b, err := strconv.ParseInt(strings.TrimSpace(parts[0]), 10, 64)

@@ -93,7 +93,7 @@ func (s *FileSystemStub) Glob(pattern string) ([]string, error)     { return s.G
 func (s *FileSystemStub) UserHomeDir() (string, error)              { return s.UserHomeDirFunc() }
 func (s *FileSystemStub) ReadDir(dir string) ([]os.DirEntry, error) { return s.ReadDirFunc(dir) }
 
-// FakeDirEntry implements os.DirEntry for testing.
+// FakeDirEntry implements [os.DirEntry] for testing.
 type FakeDirEntry struct {
 	EntryName  string
 	EntryIsDir bool
