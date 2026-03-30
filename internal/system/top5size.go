@@ -43,7 +43,7 @@ func RunTop5Size(runner Runner, fs FileSystem, dir string, useSudo bool, output 
 		return items[i].bytes > items[j].bytes
 	})
 
-	limit := min(5, len(items))
+	limit := min(topNItems, len(items))
 
 	for _, item := range items[:limit] {
 		fmt.Fprintf(output, "%-10s %s\n", formatBytes(item.bytes), item.name)
@@ -57,7 +57,10 @@ type duEntry struct {
 	name  string
 }
 
-const duFieldCount = 2
+const (
+	topNItems    = 5
+	duFieldCount = 2
+)
 
 func parseDuOutput(raw string) ([]duEntry, error) {
 	var items []duEntry
