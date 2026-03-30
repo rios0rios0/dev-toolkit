@@ -7,6 +7,7 @@ import (
 	"github.com/rios0rios0/devforge/internal/docker"
 	"github.com/rios0rios0/devforge/internal/project"
 	"github.com/rios0rios0/devforge/internal/repo"
+	"github.com/rios0rios0/devforge/internal/system"
 	logger "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -51,9 +52,20 @@ func main() {
 	dockerCmd.AddCommand(newDockerIPsCmd())
 	dockerCmd.AddCommand(newDockerResetCmd())
 
+	systemCmd := &cobra.Command{
+		Use:   "system",
+		Short: "System utility commands",
+	}
+	systemCmd.AddCommand(newSystemTop5SizeCmd())
+	systemCmd.AddCommand(newSystemClearHistoryCmd())
+	if system.IsLinux() {
+		systemCmd.AddCommand(newSystemClearLogsCmd())
+	}
+
 	rootCmd.AddCommand(repoCmd)
 	rootCmd.AddCommand(projectCmd)
 	rootCmd.AddCommand(dockerCmd)
+	rootCmd.AddCommand(systemCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		logger.Fatal(err)
@@ -348,6 +360,62 @@ Codeberg-only commits to GitHub, then renames remotes back to normal
 			})
 		},
 	}
+}
+
+func newSystemTop5SizeCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "top5size [dir]",
+		Short: "Show the top 5 largest items in a directory",
+		Args:  cobra.MaximumNArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			dir, _ := os.Getwd()
+			if len(args) > 0 {
+				dir = args[0]
+			}
+			dir = filepath.Clean(dir)
+			return system.RunTop5Size(
+				&system.DefaultRunner{},
+				&system.DefaultFileSystem{},
+				dir,
+				!system.IsAndroid(),
+				os.Stdout,
+			)
+		},
+	}
+}
+
+func newSystemClearHistoryCmd() *cobra.Command {
+	var dryRun bool
+
+	cmd := &cobra.Command{
+		Use:   "clear-history",
+		Short: "Clear shell history and leftover dotfiles",
+		Args:  cobra.NoArgs,
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return system.RunClearHistory(&system.DefaultFileSystem{}, dryRun, os.Stderr)
+		},
+	}
+
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "show what would be removed without removing")
+
+	return cmd
+}
+
+func newSystemClearLogsCmd() *cobra.Command {
+	var dryRun bool
+
+	cmd := &cobra.Command{
+		Use:   "clear-logs",
+		Short: "Remove log files older than 5 days from /var/log (requires sudo)",
+		Args:  cobra.NoArgs,
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return system.RunClearLogs(&system.DefaultRunner{}, dryRun, os.Stderr)
+		},
+	}
+
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "show what would be removed without removing")
+
+	return cmd
 }
 
 func mustDetectProvider(rootDir string) string {
