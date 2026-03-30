@@ -16,38 +16,39 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-30
+
 ### Added
 
-- added structured `logrus` logging to the `repo` package (`clone`, `sync`, `prune`) with per-repo real-time visibility during parallel operations
-- added `NewLogger` factory in `internal/repo/logger.go` for creating isolated `logrus` instances
-- added `dev repo mirror` command — creates Codeberg pull mirrors for all repositories via the Forgejo migration API
 - added `dev repo failover` command — switches all repos from GitHub to Codeberg as primary remote
+- added `dev repo mirror` command — creates Codeberg pull mirrors for all repositories via the Forgejo migration API
 - added `dev repo restore` command — restores GitHub as primary remote after a failover
+- added `NewLogger` factory in `internal/repo/logger.go` for creating isolated `logrus` instances
 - added Codeberg provider support (`codeberg.org` path detection, `CODEBERG_TOKEN`, SSH host mapping)
+- added structured `logrus` logging to the `repo` package (`clone`, `sync`, `prune`) with per-repo real-time visibility during parallel operations
 
 ### Changed
 
-- changed `gitforge` dependency to latest main branch commit with Codeberg provider support
-- changed clone workflow to log each repository's URL and target directory in real-time during parallel clone
-- changed `PreflightFunc` signature to accept `logger.FieldLogger` instead of `io.Writer`
 - changed `DiscoverRepos`, `ParallelClone`, `HandleExtraRepos`, and `PromptDeleteExtra` to use structured `logrus` logging
+- changed `gitforge` dependency to latest main branch commit with Codeberg provider support
 - changed `main.go` `logrus` import alias from `log` to `logger`
+- changed `PreflightFunc` signature to accept `logger.FieldLogger` instead of `io.Writer`
+- changed clone workflow to log each repository's URL and target directory in real-time during parallel clone
 - changed the Go module dependencies to their latest versions
-
-### Removed
-
-- removed `Logf` helper function from `provider.go` in favor of structured `logrus` logging
 
 ### Fixed
 
 - fixed SSH preflight to detect successful authentication from stderr output instead of relying on exit codes, resolving false failures with Azure DevOps (which returns exit code 255 on success)
+
+### Removed
+
+- removed `Logf` helper function from `provider.go` in favor of structured `logrus` logging
 - removed unused `SSHFailCode` constant
 
 ## [0.2.0] - 2026-03-25
 
 ### Added
 
-- added SSH alias clone URL support via gitforge
 - added `.dev.yaml` dependency orchestration — `dev project start` and `dev project stop` recursively resolve and start/stop project dependencies in topological order
 - added `dev docker ips` command — lists IP addresses of all running Docker containers
 - added `dev docker reset` command — stops all containers and prunes containers, volumes, networks, and build cache
@@ -63,13 +64,14 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 - added `gitforge` integration for multi-provider repository discovery (GitHub, Azure DevOps, GitLab)
 - added `langforge` integration for automatic language detection (Go, Node, Python, Java, C#, Terraform)
 - added comprehensive test suite with 81%+ coverage for all business logic
+- added SSH alias clone URL support via gitforge
 - added test infrastructure with `GitRunner` stub, `ForgeProvider` stub, `DockerRunner` stub, and `Repository` builder
 
 ### Changed
 
-- changed Go module path from `github.com/rios0rios0/versainit` to `github.com/rios0rios0/devforge`
 - changed `cmd/devforge/` to a thin CLI wiring layer delegating to `internal/repo/`
 - changed architecture to extract business logic into `internal/repo/` with dependency injection for testability
+- changed Go module path from `github.com/rios0rios0/versainit` to `github.com/rios0rios0/devforge`
 - changed project name from `versainit` to `devforge` (binary: `dev`)
 
 ### Removed
