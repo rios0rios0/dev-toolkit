@@ -55,10 +55,16 @@ func (r *DefaultRunner) Run(name string, args ...string) error {
 // DefaultFileSystem uses the real OS filesystem.
 type DefaultFileSystem struct{}
 
-func (f *DefaultFileSystem) Remove(path string) error                    { return os.RemoveAll(path) }
-func (f *DefaultFileSystem) Glob(pattern string) ([]string, error)       { return filepath.Glob(pattern) }
-func (f *DefaultFileSystem) UserHomeDir() (string, error)                { return os.UserHomeDir() }
-func (f *DefaultFileSystem) ReadDir(dir string) ([]os.DirEntry, error)   { return os.ReadDir(dir) }
+func (f *DefaultFileSystem) Remove(path string) error {
+	err := os.Remove(path)
+	if err != nil && errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	return err
+}
+func (f *DefaultFileSystem) Glob(pattern string) ([]string, error)     { return filepath.Glob(pattern) }
+func (f *DefaultFileSystem) UserHomeDir() (string, error)              { return os.UserHomeDir() }
+func (f *DefaultFileSystem) ReadDir(dir string) ([]os.DirEntry, error) { return os.ReadDir(dir) }
 
 func logf(w io.Writer, format string, args ...any) {
 	fmt.Fprintf(w, "[dev] "+format+"\n", args...)
@@ -66,7 +72,7 @@ func logf(w io.Writer, format string, args ...any) {
 
 func buildCommand(useSudo bool, name string, args ...string) (string, []string) {
 	if useSudo {
-		return "sudo", append([]string{name}, args...)
+		return "sudo", append([]string{"-n", name}, args...)
 	}
 	return name, args
 }

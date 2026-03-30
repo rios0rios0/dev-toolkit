@@ -88,10 +88,10 @@ func (s *FileSystemStub) WithReadDirError(dir string, err error) *FileSystemStub
 	return s
 }
 
-func (s *FileSystemStub) Remove(path string) error                    { return s.RemoveFunc(path) }
-func (s *FileSystemStub) Glob(pattern string) ([]string, error)       { return s.GlobFunc(pattern) }
-func (s *FileSystemStub) UserHomeDir() (string, error)                { return s.UserHomeDirFunc() }
-func (s *FileSystemStub) ReadDir(dir string) ([]os.DirEntry, error)   { return s.ReadDirFunc(dir) }
+func (s *FileSystemStub) Remove(path string) error                  { return s.RemoveFunc(path) }
+func (s *FileSystemStub) Glob(pattern string) ([]string, error)     { return s.GlobFunc(pattern) }
+func (s *FileSystemStub) UserHomeDir() (string, error)              { return s.UserHomeDirFunc() }
+func (s *FileSystemStub) ReadDir(dir string) ([]os.DirEntry, error) { return s.ReadDirFunc(dir) }
 
 // FakeDirEntry implements os.DirEntry for testing.
 type FakeDirEntry struct {
@@ -102,13 +102,13 @@ type FakeDirEntry struct {
 func (e *FakeDirEntry) Name() string               { return e.EntryName }
 func (e *FakeDirEntry) IsDir() bool                { return e.EntryIsDir }
 func (e *FakeDirEntry) Type() fs.FileMode          { return 0 }
-func (e *FakeDirEntry) Info() (fs.FileInfo, error)  { return &fakeFileInfo{name: e.EntryName}, nil }
+func (e *FakeDirEntry) Info() (fs.FileInfo, error) { return &fakeFileInfo{name: e.EntryName}, nil }
 
 type fakeFileInfo struct{ name string }
 
-func (f *fakeFileInfo) Name() string      { return f.name }
-func (f *fakeFileInfo) Size() int64       { return 0 }
-func (f *fakeFileInfo) Mode() fs.FileMode { return 0 }
+func (f *fakeFileInfo) Name() string       { return f.name }
+func (f *fakeFileInfo) Size() int64        { return 0 }
+func (f *fakeFileInfo) Mode() fs.FileMode  { return 0 }
 func (f *fakeFileInfo) ModTime() time.Time { return time.Time{} }
-func (f *fakeFileInfo) IsDir() bool       { return false }
-func (f *fakeFileInfo) Sys() any          { return nil }
+func (f *fakeFileInfo) IsDir() bool        { return false }
+func (f *fakeFileInfo) Sys() any           { return nil }

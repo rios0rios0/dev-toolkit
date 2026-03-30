@@ -34,7 +34,8 @@ func TestRunClearLogs(t *testing.T) {
 		// then
 		require.NoError(t, err)
 		assert.Equal(t, "sudo", capturedName)
-		assert.Equal(t, "find", capturedArgs[0])
+		assert.Equal(t, "-n", capturedArgs[0])
+		assert.Equal(t, "find", capturedArgs[1])
 		assert.Contains(t, capturedArgs, "/var/log")
 		assert.Contains(t, capturedArgs, "*.log")
 		assert.Contains(t, capturedArgs, "+5")

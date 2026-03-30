@@ -1,9 +1,13 @@
 package system
 
-import "os"
+import "runtime"
 
 // IsAndroid reports whether the current platform is Android (Termux).
 func IsAndroid() bool {
-	_, err := os.Stat("/system/build.prop")
-	return err == nil
+	return runtime.GOOS == "android"
+}
+
+// IsLinux reports whether the current platform is Linux (excludes Android).
+func IsLinux() bool {
+	return runtime.GOOS == "linux"
 }

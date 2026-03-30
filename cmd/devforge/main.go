@@ -58,7 +58,7 @@ func main() {
 	}
 	systemCmd.AddCommand(newSystemTop5SizeCmd())
 	systemCmd.AddCommand(newSystemClearHistoryCmd())
-	if !system.IsAndroid() {
+	if system.IsLinux() {
 		systemCmd.AddCommand(newSystemClearLogsCmd())
 	}
 
