@@ -24,6 +24,11 @@ var resolverFactoryMap = map[string]func(token string) ForkResolver{
 
 // ResolveForkResolver creates a ForkResolver for the given provider using the environment token.
 func ResolveForkResolver(providerName string) (ForkResolver, error) {
+	factory, ok := resolverFactoryMap[providerName]
+	if !ok {
+		return nil, fmt.Errorf("fork resolution not supported for provider: %s", providerName)
+	}
+
 	envVar := ProviderTokenEnv(providerName)
 	if envVar == "" {
 		return nil, fmt.Errorf("unknown provider: %s", providerName)
@@ -32,11 +37,6 @@ func ResolveForkResolver(providerName string) (ForkResolver, error) {
 	token := os.Getenv(envVar)
 	if token == "" {
 		return nil, fmt.Errorf("%s environment variable not set", envVar)
-	}
-
-	factory, ok := resolverFactoryMap[providerName]
-	if !ok {
-		return nil, fmt.Errorf("fork resolution not supported for provider: %s", providerName)
 	}
 
 	return factory(token), nil

@@ -86,7 +86,7 @@ func TestRunForkSync(t *testing.T) {
 		runner := doubles.NewGitRunnerStub().
 			WithOutput([]string{"branch", "--show-current"}, "main").
 			WithOutput([]string{"status", "--porcelain"}, "").
-			WithOutput([]string{"rev-parse", "--verify", "main"}, "abc123")
+			WithOutput([]string{"rev-parse", "--verify", "refs/heads/main"}, "abc123")
 		log := repo.NewLogger(&discardWriter{})
 
 		// when
@@ -167,7 +167,7 @@ func TestForkSyncSingleRepo(t *testing.T) {
 			WithOutput([]string{"branch", "--show-current"}, "main").
 			WithOutput([]string{"status", "--porcelain"}, "").
 			WithOutput([]string{"remote", "get-url", "upstream"}, "").
-			WithOutput([]string{"rev-parse", "--verify", "main"}, "abc123")
+			WithOutput([]string{"rev-parse", "--verify", "refs/heads/main"}, "abc123")
 		runner.RunFunc = func(_ string, args ...string) error {
 			if len(args) >= 4 && args[0] == "remote" && args[1] == "add" && args[2] == "upstream" {
 				addedRemoteURL = args[3]
@@ -195,7 +195,7 @@ func TestForkSyncSingleRepo(t *testing.T) {
 		}
 
 		// when
-		result := repo.ForkSyncSingleRepo("/root/forked-repo", "/root", fork, cfg)
+		result := repo.ForkSyncSingleRepo("/root/forked-repo", fork, cfg)
 
 		// then
 		assert.Equal(t, "forked-repo", result.Name)
@@ -215,7 +215,7 @@ func TestForkSyncSingleRepo(t *testing.T) {
 				[]string{"symbolic-ref", "refs/remotes/upstream/HEAD"},
 				"refs/remotes/upstream/main",
 			).
-			WithOutput([]string{"rev-parse", "--verify", "main"}, "abc123")
+			WithOutput([]string{"rev-parse", "--verify", "refs/heads/main"}, "abc123")
 		fork := builders.NewRepositoryBuilder().
 			WithName("forked-repo").
 			WithOrganization("owner").
@@ -239,7 +239,7 @@ func TestForkSyncSingleRepo(t *testing.T) {
 		}
 
 		// when
-		result := repo.ForkSyncSingleRepo("/root/forked-repo", "/root", fork, cfg)
+		result := repo.ForkSyncSingleRepo("/root/forked-repo", fork, cfg)
 
 		// then
 		assert.Equal(t, "synced", result.Status)
@@ -257,7 +257,7 @@ func TestForkSyncSingleRepo(t *testing.T) {
 				[]string{"symbolic-ref", "refs/remotes/upstream/HEAD"},
 				"refs/remotes/upstream/main",
 			).
-			WithOutput([]string{"rev-parse", "--verify", "main"}, "abc123")
+			WithOutput([]string{"rev-parse", "--verify", "refs/heads/main"}, "abc123")
 		fork := builders.NewRepositoryBuilder().
 			WithName("forked-repo").
 			WithOrganization("owner").
@@ -276,7 +276,7 @@ func TestForkSyncSingleRepo(t *testing.T) {
 		}
 
 		// when
-		result := repo.ForkSyncSingleRepo("/root/forked-repo", "/root", fork, cfg)
+		result := repo.ForkSyncSingleRepo("/root/forked-repo", fork, cfg)
 
 		// then
 		assert.Contains(t, result.Status, "synced (wip:")
@@ -294,7 +294,7 @@ func TestForkSyncSingleRepo(t *testing.T) {
 				[]string{"symbolic-ref", "refs/remotes/upstream/HEAD"},
 				"refs/remotes/upstream/main",
 			).
-			WithOutput([]string{"rev-parse", "--verify", "main"}, "abc123").
+			WithOutput([]string{"rev-parse", "--verify", "refs/heads/main"}, "abc123").
 			WithRunError([]string{"rebase", "upstream/main"}, errors.New("conflict"))
 		origRun := runner.RunFunc
 		runner.RunFunc = func(dir string, args ...string) error {
@@ -321,7 +321,7 @@ func TestForkSyncSingleRepo(t *testing.T) {
 		}
 
 		// when
-		result := repo.ForkSyncSingleRepo("/root/forked-repo", "/root", fork, cfg)
+		result := repo.ForkSyncSingleRepo("/root/forked-repo", fork, cfg)
 
 		// then
 		assert.Contains(t, result.Status, "conflict")
@@ -340,7 +340,7 @@ func TestForkSyncSingleRepo(t *testing.T) {
 				[]string{"symbolic-ref", "refs/remotes/upstream/HEAD"},
 				"refs/remotes/upstream/main",
 			).
-			WithOutput([]string{"rev-parse", "--verify", "main"}, "abc123").
+			WithOutput([]string{"rev-parse", "--verify", "refs/heads/main"}, "abc123").
 			WithRunError([]string{"fetch", "upstream"}, errors.New("network error"))
 		fork := builders.NewRepositoryBuilder().
 			WithName("forked-repo").
@@ -360,7 +360,7 @@ func TestForkSyncSingleRepo(t *testing.T) {
 		}
 
 		// when
-		result := repo.ForkSyncSingleRepo("/root/forked-repo", "/root", fork, cfg)
+		result := repo.ForkSyncSingleRepo("/root/forked-repo", fork, cfg)
 
 		// then
 		assert.Contains(t, result.Status, "FAIL")
@@ -392,7 +392,7 @@ func TestForkSyncSingleRepo(t *testing.T) {
 		}
 
 		// when
-		result := repo.ForkSyncSingleRepo("/root/forked-repo", "/root", fork, cfg)
+		result := repo.ForkSyncSingleRepo("/root/forked-repo", fork, cfg)
 
 		// then
 		assert.Contains(t, result.Status, "FAIL")

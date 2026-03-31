@@ -114,7 +114,7 @@ func parallelForkSync(forks []globalEntities.Repository, cfg ForkSyncConfig) []F
 			defer wg.Done()
 			defer func() { <-sem }()
 			repoPath := filepath.Join(cfg.RootDir, Key(fork))
-			results[idx] = ForkSyncSingleRepo(repoPath, cfg.RootDir, fork, cfg)
+			results[idx] = ForkSyncSingleRepo(repoPath, fork, cfg)
 		}(i, f)
 	}
 
@@ -123,12 +123,13 @@ func parallelForkSync(forks []globalEntities.Repository, cfg ForkSyncConfig) []F
 }
 
 func ForkSyncSingleRepo(
-	repoPath, rootDir string,
+	repoPath string,
 	remoteRepo globalEntities.Repository,
 	cfg ForkSyncConfig,
 ) ForkSyncResult {
 	name := Key(remoteRepo)
-	currentBranch := DetectCurrentBranch(repoPath, "main", cfg.Runner)
+	defaultBranch := DetectDefaultBranch(repoPath, cfg.Runner)
+	currentBranch := DetectCurrentBranch(repoPath, defaultBranch, cfg.Runner)
 	isDirty := cfg.Runner.Output(repoPath, "status", "--porcelain") != ""
 	wipBranch := fmt.Sprintf("wip/%s", currentBranch)
 
@@ -206,7 +207,9 @@ func syncWithUpstream(
 	}
 
 	// ensure local branch exists for upstream default
-	localBranchExists := runner.Output(repoPath, "rev-parse", "--verify", upstreamDefault) != ""
+	localBranchExists := runner.Output(
+		repoPath, "rev-parse", "--verify", "refs/heads/"+upstreamDefault,
+	) != ""
 	if !localBranchExists {
 		if err := runner.Run(
 			repoPath, "checkout", "-b", upstreamDefault,
@@ -245,7 +248,7 @@ func syncWithUpstream(
 		}
 	}
 
-	return restoreAfterForkSync(repoPath, name, currentBranch, wipBranch, isDirty, runner)
+	return restoreAfterForkSync(repoPath, name, upstreamDefault, currentBranch, wipBranch, isDirty, runner)
 }
 
 func handleRebaseConflict(
@@ -255,8 +258,21 @@ func handleRebaseConflict(
 	_ = runner.Run(repoPath, "rebase", "--abort")
 
 	// create a reference branch pointing to upstream HEAD
-	_ = runner.Run(repoPath, "branch", "-f", forkSyncBranch, "upstream/"+upstreamDefault)
-	_ = runner.Run(repoPath, "push", "-u", "origin", forkSyncBranch, "--force")
+	if err := runner.Run(repoPath, "branch", "-f", forkSyncBranch, "upstream/"+upstreamDefault); err != nil {
+		restoreForkBranch(repoPath, currentBranch, wipBranch, isDirty, runner)
+		return ForkSyncResult{
+			Name:   name,
+			Status: fmt.Sprintf("FAIL (create reference branch %s: %v)", forkSyncBranch, err),
+		}
+	}
+
+	if err := runner.Run(repoPath, "push", "-u", "origin", forkSyncBranch, "--force"); err != nil {
+		restoreForkBranch(repoPath, currentBranch, wipBranch, isDirty, runner)
+		return ForkSyncResult{
+			Name:   name,
+			Status: fmt.Sprintf("FAIL (push reference branch %s to origin: %v)", forkSyncBranch, err),
+		}
+	}
 
 	restoreForkBranch(repoPath, currentBranch, wipBranch, isDirty, runner)
 
@@ -271,12 +287,15 @@ func restoreForkBranch(repoPath, currentBranch, wipBranch string, isDirty bool, 
 }
 
 func restoreAfterForkSync(
-	repoPath, name, currentBranch, wipBranch string,
+	repoPath, name, upstreamDefault, currentBranch, wipBranch string,
 	isDirty bool, runner GitRunner,
 ) ForkSyncResult {
 	status := "synced"
 	if isDirty {
 		_ = runner.Run(repoPath, "checkout", wipBranch)
+		if err := runner.Run(repoPath, "rebase", upstreamDefault); err != nil {
+			_ = runner.Run(repoPath, "rebase", "--abort")
+		}
 		_ = runner.Run(repoPath, "checkout", currentBranch)
 		status = fmt.Sprintf("synced (wip: %s)", wipBranch)
 	} else {
