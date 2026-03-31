@@ -16,17 +16,19 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
-### Changed
-
-- changed the Go module dependencies to their latest versions
+## [0.4.0] - 2026-03-31
 
 ### Added
 
-- added `dev system top5size` command -- shows the top 5 largest items in a directory
 - added `dev system clear-history` command -- removes shell history files and leftover dotfiles
 - added `dev system clear-logs` command -- removes log files older than 5 days from `/var/log` (Linux only)
+- added `dev system top5size` command -- shows the top 5 largest items in a directory
 - added `Runner` and `FileSystem` interfaces in `internal/system/` with test doubles for testability
 - added platform detection (`IsAndroid`, `IsLinux`) via `runtime.GOOS` for conditional command registration
+
+### Changed
+
+- changed the Go module dependencies to their latest versions
 
 ## [0.3.0] - 2026-03-30
 
