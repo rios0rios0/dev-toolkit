@@ -26,6 +26,8 @@ The Makefile includes shared targets from `$(HOME)/Development/github.com/rios0r
 dev repo clone mine ~/Development/github.com/rios0rios0        # clone missing repos
 dev repo clone mine --dry-run                                   # preview without cloning
 dev repo sync ~/Development/github.com/rios0rios0               # sync all repos
+dev repo fork-sync ~/Development/github.com/rios0rios0          # sync forks with upstream
+dev repo fork-sync ~/Development/github.com/rios0rios0 --dry-run # preview fork sync
 dev repo prune ~/Development/github.com/rios0rios0              # delete merged branches
 dev repo prune ~/Development/github.com/rios0rios0 --dry-run    # preview without deleting
 dev project info .                                              # detect language and show info
@@ -51,6 +53,9 @@ internal/
     scanner.go               -- local repo scanning (flat/nested/recursive)
     clone.go                 -- clone orchestration with dependency injection
     sync.go                  -- sync orchestration with dependency injection
+    fork_resolver.go         -- ForkResolver interface + factory (mapper pattern)
+    fork_resolver_github.go  -- GitHub implementation using go-github API
+    fork_sync.go             -- fork-sync orchestration: detect forks, add upstream, rebase, handle conflicts
     prune.go                 -- prune merged branches with dry-run support
     *_test.go                -- BDD tests (81%+ coverage)
   project/
@@ -70,7 +75,7 @@ internal/
     reset.go                 -- RunReset: stop all containers, prune resources with dry-run support
     *_test.go                -- BDD tests
   testutil/
-    doubles/                 -- GitRunnerStub, ForgeProviderStub, CommandRunnerStub, LanguageDetectorStub, LanguageDetectorMultiStub, ConfigReaderStub, DockerRunnerStub
+    doubles/                 -- GitRunnerStub, ForgeProviderStub, ForkResolverStub, CommandRunnerStub, LanguageDetectorStub, LanguageDetectorMultiStub, ConfigReaderStub, DockerRunnerStub
     builders/                -- RepositoryBuilder
 ```
 
@@ -82,11 +87,13 @@ internal/
 - **SSH cloning**: Sets `GIT_SSH_COMMAND` with `StrictHostKeyChecking=accept-new` and `BatchMode=yes`
 - **Language detection**: Uses langforge's `LanguageRegistry` behind `LanguageDetector` interface for testability
 - **Docker operations**: Uses `exec.Command("docker", ...)` behind `docker.Runner` interface for testability
-- **Dependency injection**: Business logic accepts interfaces (`GitRunner`, `ForgeProvider`, `LanguageDetector`, `CommandRunner`, `ConfigReader`, `docker.Runner`, `io.Writer`) for testability
+- **Fork sync**: Uses `ForkResolver` interface to query provider APIs for parent repo info; auto-adds `upstream` remote
+- **Dependency injection**: Business logic accepts interfaces (`GitRunner`, `ForgeProvider`, `ForkResolver`, `LanguageDetector`, `CommandRunner`, `ConfigReader`, `docker.Runner`, `io.Writer`) for testability
 - **Project dependencies**: `.dev.yaml` declares relative paths to dependent projects; resolved via DFS topological sort with cycle detection
 - **No switch/case**: All dispatch uses mapper pattern (maps of string -> value/function)
 
 ### Dependencies
 
 - **gitforge** -- Multi-provider Git hosting abstractions (GitHub, Azure DevOps, GitLab)
+- **go-github** -- GitHub API client (used by `ForkResolver` to get fork parent info)
 - **langforge** -- Language detection, version management, and runtime information (Go, Node, Python, Java, C#, Terraform)

@@ -3,6 +3,7 @@ module github.com/rios0rios0/devforge
 go 1.26.1
 
 require (
+	github.com/google/go-github/v66 v66.0.0
 	github.com/rios0rios0/gitforge v0.9.0
 	github.com/rios0rios0/langforge v0.5.0
 	github.com/sirupsen/logrus v1.9.4
@@ -19,7 +20,6 @@ require (
 	github.com/go-git/go-billy/v5 v5.8.0 // indirect
 	github.com/go-git/go-git/v5 v5.17.1 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
-	github.com/google/go-github/v66 v66.0.0 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.8 // indirect
