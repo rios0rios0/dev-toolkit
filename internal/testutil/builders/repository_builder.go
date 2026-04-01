@@ -48,6 +48,11 @@ func (b *RepositoryBuilder) WithProvider(name string) *RepositoryBuilder {
 	return b
 }
 
+func (b *RepositoryBuilder) WithFork(isFork bool) *RepositoryBuilder {
+	b.repo.IsFork = isFork
+	return b
+}
+
 func (b *RepositoryBuilder) Build() globalEntities.Repository {
 	return b.repo
 }

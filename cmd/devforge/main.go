@@ -30,6 +30,7 @@ func main() {
 	}
 	repoCmd.AddCommand(newCloneCmd())
 	repoCmd.AddCommand(newSyncCmd())
+	repoCmd.AddCommand(newForkSyncCmd())
 	repoCmd.AddCommand(newPruneCmd())
 	repoCmd.AddCommand(newMirrorCmd())
 	repoCmd.AddCommand(newFailoverCmd())
@@ -130,6 +131,50 @@ rebases the default branch, and preserves any uncommitted work via WIP commits.`
 			return repo.RunSync(rootDir, &repo.DefaultGitRunner{}, os.Stderr)
 		},
 	}
+}
+
+func newForkSyncCmd() *cobra.Command {
+	var dryRun bool
+
+	cmd := &cobra.Command{
+		Use:   "fork-sync [root-dir]",
+		Short: "Sync forked repositories with their upstream parent",
+		Long: `For each forked repository under the root directory, fetches the upstream
+parent, rebases the tracking branch, and pushes to origin. If rebase conflicts
+occur, creates a fork-sync/upstream branch and pushes it for manual resolution.`,
+		Args: cobra.MaximumNArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			rootDir, _ := os.Getwd()
+			if len(args) > 0 {
+				rootDir = args[0]
+			}
+			rootDir = filepath.Clean(rootDir)
+
+			providerName := mustDetectProvider(rootDir)
+			provider, resolveErr := repo.ResolveProvider(providerName)
+			if resolveErr != nil {
+				return resolveErr
+			}
+
+			resolver, resolverErr := repo.ResolveForkResolver(providerName)
+			if resolverErr != nil {
+				return resolverErr
+			}
+
+			return repo.RunForkSync(repo.ForkSyncConfig{
+				RootDir:  rootDir,
+				DryRun:   dryRun,
+				Provider: provider,
+				Resolver: resolver,
+				Runner:   &repo.DefaultGitRunner{},
+				Output:   repo.NewLogger(os.Stderr),
+			})
+		},
+	}
+
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "show what would be done without making changes")
+
+	return cmd
 }
 
 func newPruneCmd() *cobra.Command {

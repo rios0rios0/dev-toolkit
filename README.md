@@ -16,6 +16,7 @@ DevForge is a developer workspace toolkit that manages Git repositories across m
 
 - **Repository Cloning**: discovers repos from GitHub, Azure DevOps, or GitLab and clones missing ones via SSH in parallel
 - **Repository Syncing**: fetches and rebases all repos under a directory, preserving uncommitted work via WIP branches
+- **Fork Syncing**: detects forked repos via provider API, syncs with upstream parent, and handles conflicts by creating reference branches
 - **Branch Pruning**: deletes local branches merged into the default branch across all repos
 - **Docker Management**: lists container IPs and resets the Docker environment (stop, prune)
 - **Multi-Provider Support**: automatic provider detection from directory path with per-provider auth tokens
@@ -46,6 +47,11 @@ dev repo clone mine --dry-run  # preview without cloning
 # Sync all repos under a directory
 dev repo sync [root-dir]
 dev repo sync ~/Development/github.com/rios0rios0
+
+# Sync forked repos with their upstream parent
+dev repo fork-sync [root-dir]
+dev repo fork-sync ~/Development/github.com/rios0rios0
+dev repo fork-sync --dry-run     # preview without syncing
 
 # Delete local merged branches
 dev repo prune [root-dir]
