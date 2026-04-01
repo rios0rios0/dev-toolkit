@@ -25,6 +25,7 @@ type LanguageInfo struct {
 	StartCommand    string
 	StopCommand     string
 	LintCommands    []string
+	TestCommands    []string
 	BuildCommands   []string
 }
 

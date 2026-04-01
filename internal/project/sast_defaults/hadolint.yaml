@@ -1,0 +1,9 @@
+# Default Hadolint configuration.
+# Projects can override this by placing their own .hadolint.yaml in the project root.
+# See: https://github.com/hadolint/hadolint#configure
+
+failure-threshold: warning
+
+ignored:
+  - DL3008 # Pin versions in apt-get install
+  - DL3018 # Pin versions in apk add

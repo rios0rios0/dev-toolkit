@@ -1,0 +1,5 @@
+# Default CodeQL false positives configuration.
+# Projects can override this by placing their own .codeql-false-positives in the project root.
+#
+# Format: Add SARIF partialFingerprints values (one per line) to suppress known false positives.
+# Lines starting with '#' are treated as comments and ignored.

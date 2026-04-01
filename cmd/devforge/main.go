@@ -42,6 +42,9 @@ func main() {
 	}
 	projectCmd.AddCommand(newProjectStartCmd())
 	projectCmd.AddCommand(newProjectBuildCmd())
+	projectCmd.AddCommand(newProjectLintCmd())
+	projectCmd.AddCommand(newProjectTestCmd())
+	projectCmd.AddCommand(newProjectSASTCmd())
 	projectCmd.AddCommand(newProjectStopCmd())
 	projectCmd.AddCommand(newProjectInfoCmd())
 	projectCmd.AddCommand(newProjectUseCmd())
@@ -237,6 +240,44 @@ func newProjectBuildCmd() *cobra.Command {
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			return project.RunBuild(newProjectConfig(args))
+		},
+	}
+}
+
+func newProjectLintCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "lint [path]",
+		Short: "Detect language and run the project lint commands",
+		Args:  cobra.MaximumNArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			return project.RunLint(newProjectConfig(args))
+		},
+	}
+}
+
+func newProjectTestCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "test [path]",
+		Short: "Detect language and run the project test commands",
+		Args:  cobra.MaximumNArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			return project.RunTest(newProjectConfig(args))
+		},
+	}
+}
+
+func newProjectSASTCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "sast [path]",
+		Short: "Detect language and run SAST security analysis tools",
+		Long: `Runs the full SAST (Static Application Security Testing) suite:
+CodeQL, Semgrep, Trivy, Hadolint, and Gitleaks.
+
+Each tool runs independently -- failures in one tool do not prevent others from running.
+Reports are written to build/reports/<tool>/.`,
+		Args: cobra.MaximumNArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			return project.RunSAST(newProjectConfig(args))
 		},
 	}
 }
