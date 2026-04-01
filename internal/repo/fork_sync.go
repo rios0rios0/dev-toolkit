@@ -142,7 +142,7 @@ func ForkSyncSingleRepo(
 	// save WIP state if dirty
 	if isDirty {
 		if result, ok := SaveWIPState(repoPath, name, currentBranch, wipBranch, cfg.Runner); !ok {
-			return ForkSyncResult{Name: result.Name, Status: result.Status}
+			return ForkSyncResult(result)
 		}
 	}
 

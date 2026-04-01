@@ -400,7 +400,7 @@ func TestForkSyncSingleRepo(t *testing.T) {
 	})
 }
 
-// discardWriter is an io.Writer that discards all output.
+// discardWriter is an [io.Writer] that discards all output.
 type discardWriter struct{}
 
 func (d *discardWriter) Write(p []byte) (int, error) { return len(p), nil }
