@@ -18,6 +18,8 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ### Added
 
+- added `dev version` command -- prints the current version to stdout for script/pipe compatibility
+- added `dev self-update` command -- downloads and installs the latest release from GitHub with `--dry-run` and `--force` flags
 - added `dev project lint` command -- detects language and runs lint commands via `langforge`
 - added `dev project test` command -- detects language and runs test commands via `langforge`
 - added `dev project sast` command -- runs the full SAST suite (CodeQL, Semgrep, Trivy, Hadolint, Gitleaks) with per-tool failure isolation and embedded default configs
