@@ -152,4 +152,3 @@ func TestRunTest(t *testing.T) {
 		assert.Equal(t, []string{"npm run lint", "npm test"}, runner.Calls)
 	})
 }
-

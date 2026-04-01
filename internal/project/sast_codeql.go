@@ -39,7 +39,8 @@ func (t *CodeQLTool) Run(dir string, runner CommandRunner, output io.Writer) err
 		"codeql database create --language=%s --source-root=%s %s",
 		t.Language, dir, dbPath,
 	)
-	if err := runner.RunInteractive(dir, createCmd); err != nil {
+	err = runner.RunInteractive(dir, createCmd)
+	if err != nil {
 		return fmt.Errorf("database creation failed: %w", err)
 	}
 
@@ -47,7 +48,8 @@ func (t *CodeQLTool) Run(dir string, runner CommandRunner, output io.Writer) err
 		"codeql database analyze --format=sarifv2.1.0 --output=%s %s %s-security-and-quality.qls",
 		reportFile, dbPath, t.Language,
 	)
-	if err := runner.RunInteractive(dir, analyzeCmd); err != nil {
+	err = runner.RunInteractive(dir, analyzeCmd)
+	if err != nil {
 		return fmt.Errorf("analysis failed: %w", err)
 	}
 

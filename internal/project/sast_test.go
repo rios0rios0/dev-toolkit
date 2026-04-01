@@ -3,7 +3,6 @@ package project_test
 import (
 	"bytes"
 	"errors"
-	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,17 +11,6 @@ import (
 	"github.com/rios0rios0/devforge/internal/project"
 	"github.com/rios0rios0/devforge/internal/testutil/doubles"
 )
-
-// sastToolStub is a test double for project.SASTTool.
-type sastToolStub struct {
-	name string
-	err  error
-}
-
-func (s *sastToolStub) Name() string { return s.name }
-func (s *sastToolStub) Run(_ string, _ project.CommandRunner, _ io.Writer) error {
-	return s.err
-}
 
 func TestRunSAST(t *testing.T) {
 	t.Parallel()

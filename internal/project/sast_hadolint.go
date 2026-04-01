@@ -52,7 +52,7 @@ func findDockerfiles(dir string) []string {
 	var results []string
 	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			return nil
+			return err
 		}
 		if info.IsDir() && skipDirs[info.Name()] {
 			return filepath.SkipDir

@@ -18,27 +18,25 @@ type SASTTool interface {
 	Run(dir string, runner CommandRunner, output io.Writer) error
 }
 
-// codeqlLanguageMap maps detected language identifiers to CodeQL language names.
-var codeqlLanguageMap = map[string]string{
-	"go":     "go",
-	"python": "python",
-	"java":   "java",
-	"node":   "javascript",
-	"csharp": "csharp",
-}
-
-// semgrepLanguageMap maps detected language identifiers to Semgrep config names.
-var semgrepLanguageMap = map[string]string{
-	"go":        "golang",
-	"python":    "python",
-	"java":      "java",
-	"node":      "javascript",
-	"csharp":    "csharp",
-	"terraform": "terraform",
-}
-
 // DefaultSASTTools returns the standard set of SAST tools for a given language.
 func DefaultSASTTools(language string) []SASTTool {
+	codeqlLanguageMap := map[string]string{
+		"go":     "go",
+		"python": "python",
+		"java":   "java",
+		"node":   "javascript",
+		"csharp": "csharp",
+	}
+
+	semgrepLanguageMap := map[string]string{
+		"go":        "golang",
+		"python":    "python",
+		"java":      "java",
+		"node":      "javascript",
+		"csharp":    "csharp",
+		"terraform": "terraform",
+	}
+
 	semgrepLang := semgrepLanguageMap[language]
 	codeqlLang := codeqlLanguageMap[language]
 
@@ -96,7 +94,7 @@ func RunSAST(cfg Config) error {
 // ensureReportDir creates the report directory for a tool under build/reports/<tool>.
 func ensureReportDir(repoPath, toolName string) (string, error) {
 	dir := filepath.Join(repoPath, "build", "reports", toolName)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return "", fmt.Errorf("failed to create report directory: %w", err)
 	}
 	return dir, nil
@@ -118,7 +116,8 @@ func writeDefaultConfig(repoPath, projectFileName, embeddedFileName string) (boo
 		return false, fmt.Errorf("failed to read embedded default %s: %w", embeddedFileName, err)
 	}
 
-	if err := os.WriteFile(target, data, 0o644); err != nil { // #nosec G306
+	err = os.WriteFile(target, data, 0o644) // #nosec G306
+	if err != nil {
 		return false, fmt.Errorf("failed to write default %s: %w", projectFileName, err)
 	}
 	return true, nil
@@ -126,5 +125,5 @@ func writeDefaultConfig(repoPath, projectFileName, embeddedFileName string) (boo
 
 // cleanupDefaultConfig removes a temporarily written config file.
 func cleanupDefaultConfig(repoPath, fileName string) {
-	os.Remove(filepath.Join(repoPath, fileName)) //nolint:errcheck
+	_ = os.Remove(filepath.Join(repoPath, fileName))
 }

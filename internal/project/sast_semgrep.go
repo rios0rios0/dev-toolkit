@@ -30,9 +30,7 @@ func (t *SemgrepTool) Run(dir string, runner CommandRunner, output io.Writer) er
 	containerPath := "/src"
 	reportFile := filepath.Join(containerPath, "build", "reports", "semgrep", "semgrep.json")
 
-	configs := fmt.Sprintf(
-		"--config p/docker --config p/dockerfile --config p/secrets --config p/owasp-top-ten --config p/r2c-best-practices",
-	)
+	configs := "--config p/docker --config p/dockerfile --config p/secrets --config p/owasp-top-ten --config p/r2c-best-practices"
 	if t.Language != "" {
 		configs = fmt.Sprintf("--config p/%s %s", t.Language, configs)
 	}
