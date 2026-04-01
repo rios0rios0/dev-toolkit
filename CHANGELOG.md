@@ -28,6 +28,7 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 ### Changed
 
 - changed `DefaultCommandRunner.RunInteractive` to use `sh -c` for proper shell operator support (redirection, pipes)
+- changed the Go module dependencies to their latest versions
 
 ## [0.4.0] - 2026-03-31
 
