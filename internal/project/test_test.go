@@ -15,13 +15,14 @@ import (
 func TestRunTest(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should run test commands from mapper when language detected successfully", func(t *testing.T) {
+	t.Run("should run test commands when language detected successfully", func(t *testing.T) {
 		t.Parallel()
 		// given
 		runner := doubles.NewCommandRunnerStub()
 		detector := doubles.NewLanguageDetectorStub(&project.LanguageInfo{
-			Language: "go",
-			SDKName:  "Go",
+			Language:     "go",
+			SDKName:      "Go",
+			TestCommands: []string{"go test -tags unit ./..."},
 		})
 		var buf bytes.Buffer
 		cfg := project.Config{
@@ -152,38 +153,3 @@ func TestRunTest(t *testing.T) {
 	})
 }
 
-func TestTestCommandsForLanguage(t *testing.T) {
-	t.Parallel()
-
-	t.Run("should return commands for known language", func(t *testing.T) {
-		t.Parallel()
-		// given / when
-		cmds := project.TestCommandsForLanguage("go")
-
-		// then
-		require.NotEmpty(t, cmds)
-		assert.Contains(t, cmds[0], "go test")
-	})
-
-	t.Run("should return nil for unknown language", func(t *testing.T) {
-		t.Parallel()
-		// given / when
-		cmds := project.TestCommandsForLanguage("brainfuck")
-
-		// then
-		assert.Nil(t, cmds)
-	})
-
-	t.Run("should return a copy not the original slice", func(t *testing.T) {
-		t.Parallel()
-		// given
-		cmds1 := project.TestCommandsForLanguage("go")
-
-		// when
-		cmds1[0] = "modified"
-		cmds2 := project.TestCommandsForLanguage("go")
-
-		// then
-		assert.NotEqual(t, cmds1[0], cmds2[0])
-	})
-}
