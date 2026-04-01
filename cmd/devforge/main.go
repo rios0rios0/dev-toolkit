@@ -13,7 +13,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var version = "dev"
+//nolint:gochecknoglobals // build-time variables set via ldflags
+var (
+	version    = "dev"
+	repoOwner  = "rios0rios0"
+	repoName   = "devforge"
+	binaryName = "dev"
+)
 
 func main() {
 	rootCmd := &cobra.Command{
@@ -512,8 +518,8 @@ func newVersionCmd() *cobra.Command {
 		Use:   "version",
 		Short: "Show devforge version",
 		Args:  cobra.NoArgs,
-		Run: func(_ *cobra.Command, _ []string) {
-			logger.Infof("devforge version: %s", version)
+		Run: func(cmd *cobra.Command, _ []string) {
+			cmd.Printf("%s\n", version)
 		},
 	}
 }
@@ -527,13 +533,13 @@ func newSelfUpdateCmd() *cobra.Command {
 		Long:  "Download and install the latest version of devforge from GitHub releases.",
 		Args:  cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			c := selfupdate.NewSelfUpdateCommand("rios0rios0", "devforge", "dev", version)
+			c := selfupdate.NewSelfUpdateCommand(repoOwner, repoName, binaryName, version)
 			return c.Execute(dryRun, force)
 		},
 	}
 
-	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show what would be updated without performing it")
-	cmd.Flags().BoolVar(&force, "force", false, "Skip confirmation prompts")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "show what would be updated without performing it")
+	cmd.Flags().BoolVar(&force, "force", false, "skip confirmation prompts")
 
 	return cmd
 }

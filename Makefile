@@ -3,7 +3,7 @@ SCRIPTS_DIR ?= $(HOME)/Development/github.com/rios0rios0/pipelines
 -include $(SCRIPTS_DIR)/makefiles/golang.mk
 
 VERSION ?= $(or $(shell git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//'),dev)
-LDFLAGS := -X main.version=$(VERSION)
+LDFLAGS := -X main.version=$(VERSION) -X main.repoOwner=rios0rios0 -X main.repoName=devforge -X main.binaryName=dev
 
 .PHONY: debug build build-musl install run
 
