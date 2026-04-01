@@ -14,7 +14,7 @@ type SemgrepTool struct {
 func (t *SemgrepTool) Name() string { return "semgrep" }
 
 func (t *SemgrepTool) Run(dir string, runner CommandRunner, output io.Writer) error {
-	reportDir, err := ensureReportDir(dir, "semgrep")
+	_, err := ensureReportDir(dir, "semgrep")
 	if err != nil {
 		return err
 	}
@@ -29,7 +29,6 @@ func (t *SemgrepTool) Run(dir string, runner CommandRunner, output io.Writer) er
 
 	containerPath := "/src"
 	reportFile := filepath.Join(containerPath, "build", "reports", "semgrep", "semgrep.json")
-	_ = reportDir
 
 	configs := fmt.Sprintf(
 		"--config p/docker --config p/dockerfile --config p/secrets --config p/owasp-top-ten --config p/r2c-best-practices",
@@ -39,7 +38,7 @@ func (t *SemgrepTool) Run(dir string, runner CommandRunner, output io.Writer) er
 	}
 
 	cmd := fmt.Sprintf(
-		"docker run --rm -v %s:%s --workdir %s returntocorp/semgrep:latest semgrep "+
+		"docker run --rm -v %s:%s --workdir %s returntocorp/semgrep:1.80.0 semgrep "+
 			"--metrics=off %s --enable-version-check --force-color --error --json --output %s",
 		dir, containerPath, containerPath, configs, reportFile,
 	)

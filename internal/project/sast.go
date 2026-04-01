@@ -109,6 +109,8 @@ func writeDefaultConfig(repoPath, projectFileName, embeddedFileName string) (boo
 	target := filepath.Join(repoPath, projectFileName)
 	if _, err := os.Stat(target); err == nil {
 		return false, nil
+	} else if !os.IsNotExist(err) {
+		return false, fmt.Errorf("failed to stat %s: %w", target, err)
 	}
 
 	data, err := sastDefaults.ReadFile("sast_defaults/" + embeddedFileName)

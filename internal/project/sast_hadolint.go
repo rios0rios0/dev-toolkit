@@ -36,7 +36,7 @@ func (t *HadolintTool) Run(dir string, runner CommandRunner, output io.Writer) e
 	reportFile := filepath.Join(reportDir, "hadolint.sarif")
 	fileArgs := strings.Join(dockerfiles, " ")
 
-	cmd := fmt.Sprintf("hadolint --format sarif %s > %s", fileArgs, reportFile)
+	cmd := fmt.Sprintf("hadolint --format sarif --output %s %s", reportFile, fileArgs)
 
 	logf(output, "linting %d Dockerfile(s)", len(dockerfiles))
 	logf(output, "report: %s", reportFile)

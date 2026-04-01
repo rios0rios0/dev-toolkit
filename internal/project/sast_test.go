@@ -37,7 +37,7 @@ func TestRunSAST(t *testing.T) {
 		})
 		var buf bytes.Buffer
 		cfg := project.Config{
-			RepoPath: "/tmp/my-project",
+			RepoPath: t.TempDir(),
 			Detector: detector,
 			Runner:   runner,
 			Output:   &buf,
@@ -47,10 +47,8 @@ func TestRunSAST(t *testing.T) {
 		err := project.RunSAST(cfg)
 
 		// then
-		// RunSAST will fail because docker/tools aren't installed, but it should attempt all tools.
-		// In unit tests with stubs, we verify the orchestration logic separately.
-		// Here we just verify it gets past detection and attempts to run.
-		_ = err
+		// With stubbed dependencies, RunSAST should succeed and log the detected language.
+		require.NoError(t, err)
 		assert.Contains(t, buf.String(), "detected Go project")
 	})
 

@@ -22,7 +22,7 @@ func (t *GitleaksTool) Run(dir string, runner CommandRunner, output io.Writer) e
 	containerReport := filepath.Join(containerPath, "build", "reports", "gitleaks", "gitleaks.json")
 
 	cmd := fmt.Sprintf(
-		"docker run --rm -v %s:%s zricethezav/gitleaks:latest detect "+
+		"docker run --rm -v %s:%s zricethezav/gitleaks:v8.18.4 detect "+
 			"--source %s --report-path %s",
 		dir, containerPath, containerPath, containerReport,
 	)

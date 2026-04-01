@@ -27,9 +27,14 @@ func (t *TrivyTool) Run(dir string, runner CommandRunner, output io.Writer) erro
 
 	reportFile := filepath.Join(reportDir, "trivy.sarif")
 
+	relReportFile, err := filepath.Rel(dir, reportFile)
+	if err != nil {
+		return err
+	}
+
 	cmd := fmt.Sprintf(
-		"trivy filesystem --scanners misconfig --format sarif --output %s --exit-code 1 %s",
-		reportFile, dir,
+		"trivy filesystem --scanners misconfig --format sarif --output %s --exit-code 1 .",
+		relReportFile,
 	)
 
 	logf(output, "report: %s", reportFile)
