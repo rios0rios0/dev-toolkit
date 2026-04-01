@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"os/exec"
-	"strings"
 )
 
 // CommandRunner executes shell commands with passthrough I/O for interactive usage.
@@ -21,11 +20,10 @@ type DefaultCommandRunner struct {
 }
 
 func (r *DefaultCommandRunner) RunInteractive(dir, command string) error {
-	parts := strings.Fields(command)
-	if len(parts) == 0 {
+	if command == "" {
 		return errors.New("empty command")
 	}
-	cmd := exec.CommandContext(context.Background(), parts[0], parts[1:]...) // #nosec G204
+	cmd := exec.CommandContext(context.Background(), "sh", "-c", command) // #nosec G204
 	cmd.Dir = dir
 	cmd.Stdin = r.Stdin
 	cmd.Stdout = r.Stdout

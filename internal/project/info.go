@@ -28,6 +28,7 @@ func RunInfo(cfg Config) error {
 	logf(cfg.Output, "start command:   %s", valueOrNone(info.StartCommand))
 	logf(cfg.Output, "stop command:    %s", valueOrNone(info.StopCommand))
 	logf(cfg.Output, "lint commands:   %s", commandsOrNone(info.LintCommands))
+	logf(cfg.Output, "test commands:   %s", commandsOrNone(info.TestCommands))
 	logf(cfg.Output, "build commands:  %s", commandsOrNone(info.BuildCommands))
 
 	if cfg.ConfigReader != nil {
