@@ -151,7 +151,7 @@ func SyncAndRestore(
 		return SyncResult{Name: name, Status: fmt.Sprintf("FAIL (pull --rebase: %v)", err)}
 	}
 
-	return RestoreAfterSync(repoPath, name, defaultBranch, currentBranch, wipBranch, isDirty, runner)
+	return FinalizeSync(repoPath, name, defaultBranch, wipBranch, isDirty, runner)
 }
 
 // RestoreBranch restores the appropriate branch after a failure.
@@ -163,9 +163,9 @@ func RestoreBranch(repoPath, currentBranch, wipBranch string, isDirty bool, runn
 	}
 }
 
-// RestoreAfterSync restores the original branch state after a successful sync.
-func RestoreAfterSync(
-	repoPath, name, defaultBranch, currentBranch, wipBranch string, isDirty bool, runner GitRunner,
+// FinalizeSync rebases the WIP branch (if dirty) and ensures the repo ends on the default branch.
+func FinalizeSync(
+	repoPath, name, defaultBranch, wipBranch string, isDirty bool, runner GitRunner,
 ) SyncResult {
 	status := "synced"
 	if isDirty {
@@ -173,10 +173,10 @@ func RestoreAfterSync(
 		if err := runner.Run(repoPath, "rebase", defaultBranch); err != nil {
 			_ = runner.Run(repoPath, "rebase", "--abort")
 		}
-		_ = runner.Run(repoPath, "checkout", currentBranch)
+		if err := runner.Run(repoPath, "checkout", defaultBranch); err != nil {
+			return SyncResult{Name: name, Status: fmt.Sprintf("FAIL (checkout %s: %v)", defaultBranch, err)}
+		}
 		status = fmt.Sprintf("synced (wip: %s)", wipBranch)
-	} else if currentBranch != defaultBranch {
-		_ = runner.Run(repoPath, "checkout", currentBranch)
 	}
 	return SyncResult{Name: name, Status: status}
 }
