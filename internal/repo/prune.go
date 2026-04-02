@@ -18,6 +18,11 @@ type PruneResult struct {
 	Status  string
 }
 
+// isPruneFailure returns true if the given status string indicates a failure.
+func isPruneFailure(status string) bool {
+	return strings.HasPrefix(status, "FAIL") || strings.Contains(strings.ToLower(status), "failed")
+}
+
 // RunPrune deletes merged branches in all repositories under rootDir in parallel.
 func RunPrune(rootDir string, runner GitRunner, dryRun bool, output io.Writer) error {
 	log := NewLogger(output)
@@ -46,7 +51,14 @@ func RunPrune(rootDir string, runner GitRunner, dryRun bool, output io.Writer) e
 			defer wg.Done()
 			defer func() { <-sem }()
 			repoPath := filepath.Join(rootDir, name)
-			results[idx] = PruneSingleRepo(repoPath, rootDir, runner, dryRun)
+			result := PruneSingleRepo(repoPath, rootDir, runner, dryRun)
+			if len(result.Deleted) > 0 || isPruneFailure(result.Status) {
+				log.WithFields(logger.Fields{
+					"repo":   result.Name,
+					"status": result.Status,
+				}).Info("prune result")
+			}
+			results[idx] = result
 		}(i, repoName)
 	}
 
@@ -54,18 +66,8 @@ func RunPrune(rootDir string, runner GitRunner, dryRun bool, output io.Writer) e
 
 	pruned, skipped, failed := 0, 0, 0
 	for _, r := range results {
-		statusLower := strings.ToLower(r.Status)
-		hasFailure := strings.HasPrefix(r.Status, "FAIL") || strings.Contains(statusLower, "failed")
-
-		if len(r.Deleted) > 0 || hasFailure {
-			log.WithFields(logger.Fields{
-				"repo":   r.Name,
-				"status": r.Status,
-			}).Info("prune result")
-		}
-
 		switch {
-		case hasFailure:
+		case isPruneFailure(r.Status):
 			failed++
 		case len(r.Deleted) > 0:
 			pruned += len(r.Deleted)

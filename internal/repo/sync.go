@@ -41,7 +41,12 @@ func RunSync(rootDir string, runner GitRunner, output io.Writer) error {
 		go func(idx int, path string) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			results[idx] = SyncSingleRepo(path, rootDir, runner)
+			result := SyncSingleRepo(path, rootDir, runner)
+			log.WithFields(logger.Fields{
+				"repo":   result.Name,
+				"status": result.Status,
+			}).Info("sync result")
+			results[idx] = result
 		}(i, repoPath)
 	}
 
@@ -49,10 +54,6 @@ func RunSync(rootDir string, runner GitRunner, output io.Writer) error {
 
 	synced, wip, failed := 0, 0, 0
 	for _, r := range results {
-		log.WithFields(logger.Fields{
-			"repo":   r.Name,
-			"status": r.Status,
-		}).Info("sync result")
 		switch {
 		case strings.HasPrefix(r.Status, "synced"):
 			synced++

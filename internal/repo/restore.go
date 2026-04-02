@@ -45,7 +45,12 @@ func RunRestore(cfg RestoreConfig) error {
 		go func(idx int, path string) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			results[idx] = restoreSingleRepo(path, cfg.RootDir, cfg.Runner)
+			result := restoreSingleRepo(path, cfg.RootDir, cfg.Runner)
+			log.WithFields(logger.Fields{
+				"repo":   result.Name,
+				"status": result.Status,
+			}).Info(result.Status)
+			results[idx] = result
 		}(i, repoPath)
 	}
 
@@ -58,10 +63,6 @@ func RunRestore(cfg RestoreConfig) error {
 
 	counts := map[string]int{"restored": 0, "skipped": 0, "failed": 0}
 	for _, r := range results {
-		log.WithFields(logger.Fields{
-			"repo":   r.Name,
-			"status": r.Status,
-		}).Info(r.Status)
 		category, known := restoreStatusCategory[r.Status]
 		if !known {
 			category = "failed"
