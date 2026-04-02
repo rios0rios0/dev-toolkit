@@ -45,7 +45,12 @@ func RunFailover(cfg FailoverConfig) error {
 		go func(idx int, path string) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			results[idx] = failoverSingleRepo(path, cfg.RootDir, cfg.Runner)
+			result := failoverSingleRepo(path, cfg.RootDir, cfg.Runner)
+			log.WithFields(logger.Fields{
+				"repo":   result.Name,
+				"status": result.Status,
+			}).Info(result.Status)
+			results[idx] = result
 		}(i, repoPath)
 	}
 
@@ -59,10 +64,6 @@ func RunFailover(cfg FailoverConfig) error {
 
 	counts := map[string]int{"switched": 0, "skipped": 0, "failed": 0}
 	for _, r := range results {
-		log.WithFields(logger.Fields{
-			"repo":   r.Name,
-			"status": r.Status,
-		}).Info(r.Status)
 		category, known := failoverStatusCategory[r.Status]
 		if !known {
 			category = "failed"

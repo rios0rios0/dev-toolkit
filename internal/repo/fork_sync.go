@@ -114,7 +114,12 @@ func parallelForkSync(forks []globalEntities.Repository, cfg ForkSyncConfig) []F
 			defer wg.Done()
 			defer func() { <-sem }()
 			repoPath := filepath.Join(cfg.RootDir, Key(fork))
-			results[idx] = ForkSyncSingleRepo(repoPath, fork, cfg)
+			result := ForkSyncSingleRepo(repoPath, fork, cfg)
+			cfg.Output.WithFields(logger.Fields{
+				"repo":   result.Name,
+				"status": result.Status,
+			}).Info("fork-sync result")
+			results[idx] = result
 		}(i, f)
 	}
 
@@ -307,11 +312,6 @@ func restoreAfterForkSync(
 func logForkSyncSummary(results []ForkSyncResult, log logger.FieldLogger) {
 	synced, conflicts, failed := 0, 0, 0
 	for _, r := range results {
-		log.WithFields(logger.Fields{
-			"repo":   r.Name,
-			"status": r.Status,
-		}).Info("fork-sync result")
-
 		switch {
 		case strings.HasPrefix(r.Status, "synced"):
 			synced++

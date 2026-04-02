@@ -86,7 +86,12 @@ func RunMirror(cfg MirrorConfig) error {
 			defer wg.Done()
 			defer func() { <-sem }()
 			time.Sleep(time.Duration(idx) * mirrorAPIDelay / time.Duration(workers))
-			results[idx] = mirrorSingleRepo(path, cfg, providerName, owner, mirrorProvider)
+			result := mirrorSingleRepo(path, cfg, providerName, owner, mirrorProvider)
+			log.WithFields(logger.Fields{
+				"repo":   result.Name,
+				"status": result.Status,
+			}).Info(result.Status)
+			results[idx] = result
 		}(i, repoPath)
 	}
 
@@ -100,10 +105,6 @@ func RunMirror(cfg MirrorConfig) error {
 
 	counts := map[string]int{"mirrored": 0, "skipped": 0, mirrorStatusFailed: 0}
 	for _, r := range results {
-		log.WithFields(logger.Fields{
-			"repo":   r.Name,
-			"status": r.Status,
-		}).Info(r.Status)
 		category, known := mirrorStatusCategory[r.Status]
 		if !known {
 			category = mirrorStatusFailed

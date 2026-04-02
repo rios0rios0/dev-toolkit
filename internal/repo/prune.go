@@ -46,7 +46,16 @@ func RunPrune(rootDir string, runner GitRunner, dryRun bool, output io.Writer) e
 			defer wg.Done()
 			defer func() { <-sem }()
 			repoPath := filepath.Join(rootDir, name)
-			results[idx] = PruneSingleRepo(repoPath, rootDir, runner, dryRun)
+			result := PruneSingleRepo(repoPath, rootDir, runner, dryRun)
+			statusLower := strings.ToLower(result.Status)
+			hasFailure := strings.HasPrefix(result.Status, "FAIL") || strings.Contains(statusLower, "failed")
+			if len(result.Deleted) > 0 || hasFailure {
+				log.WithFields(logger.Fields{
+					"repo":   result.Name,
+					"status": result.Status,
+				}).Info("prune result")
+			}
+			results[idx] = result
 		}(i, repoName)
 	}
 
@@ -56,14 +65,6 @@ func RunPrune(rootDir string, runner GitRunner, dryRun bool, output io.Writer) e
 	for _, r := range results {
 		statusLower := strings.ToLower(r.Status)
 		hasFailure := strings.HasPrefix(r.Status, "FAIL") || strings.Contains(statusLower, "failed")
-
-		if len(r.Deleted) > 0 || hasFailure {
-			log.WithFields(logger.Fields{
-				"repo":   r.Name,
-				"status": r.Status,
-			}).Info("prune result")
-		}
-
 		switch {
 		case hasFailure:
 			failed++
