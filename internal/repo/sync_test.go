@@ -251,7 +251,7 @@ func TestRestoreAfterSync(t *testing.T) {
 		runner := doubles.NewGitRunnerStub()
 
 		// when
-		result := repo.RestoreAfterSync("/repo", "my-repo", "main", "main", "wip/main", false, runner)
+		result := repo.RestoreAfterSync("/repo", "my-repo", "main", "wip/main", false, runner)
 
 		// then
 		assert.Equal(t, "synced", result.Status)
@@ -270,7 +270,7 @@ func TestRestoreAfterSync(t *testing.T) {
 		}
 
 		// when
-		result := repo.RestoreAfterSync("/repo", "my-repo", "main", "feat/x", "wip/feat/x", false, runner)
+		result := repo.RestoreAfterSync("/repo", "my-repo", "main", "wip/feat/x", false, runner)
 
 		// then
 		assert.Equal(t, "synced", result.Status)
@@ -290,7 +290,7 @@ func TestRestoreAfterSync(t *testing.T) {
 		}
 
 		// when
-		result := repo.RestoreAfterSync("/repo", "my-repo", "main", "feat/x", "wip/feat/x", true, runner)
+		result := repo.RestoreAfterSync("/repo", "my-repo", "main", "wip/feat/x", true, runner)
 
 		// then
 		assert.Contains(t, result.Status, "synced (wip: wip/feat/x)")

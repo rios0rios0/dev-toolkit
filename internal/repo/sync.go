@@ -151,7 +151,7 @@ func SyncAndRestore(
 		return SyncResult{Name: name, Status: fmt.Sprintf("FAIL (pull --rebase: %v)", err)}
 	}
 
-	return RestoreAfterSync(repoPath, name, defaultBranch, currentBranch, wipBranch, isDirty, runner)
+	return RestoreAfterSync(repoPath, name, defaultBranch, wipBranch, isDirty, runner)
 }
 
 // RestoreBranch restores the appropriate branch after a failure.
@@ -165,7 +165,7 @@ func RestoreBranch(repoPath, currentBranch, wipBranch string, isDirty bool, runn
 
 // RestoreAfterSync restores the original branch state after a successful sync.
 func RestoreAfterSync(
-	repoPath, name, defaultBranch, currentBranch, wipBranch string, isDirty bool, runner GitRunner,
+	repoPath, name, defaultBranch, wipBranch string, isDirty bool, runner GitRunner,
 ) SyncResult {
 	status := "synced"
 	if isDirty {
