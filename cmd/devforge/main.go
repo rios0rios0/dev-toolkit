@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/rios0rios0/cliforge/selfupdate"
+	"github.com/rios0rios0/cliforge/pkg/selfupdate"
 	"github.com/rios0rios0/devforge/internal/docker"
 	"github.com/rios0rios0/devforge/internal/project"
 	"github.com/rios0rios0/devforge/internal/repo"
@@ -533,7 +533,7 @@ func newSelfUpdateCmd() *cobra.Command {
 		Long:  "Download and install the latest version of devforge from GitHub releases.",
 		Args:  cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			c := selfupdate.NewSelfUpdateCommand(repoOwner, repoName, binaryName, version)
+			c := selfupdate.NewCommand(repoOwner, repoName, binaryName, version)
 			return c.Execute(dryRun, force)
 		},
 	}
