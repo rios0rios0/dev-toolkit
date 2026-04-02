@@ -29,6 +29,7 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ### Changed
 
+- changed `cliforge` import paths from `cliforge/selfupdate` to `cliforge/pkg/selfupdate` after upstream package restructuring
 - changed `DefaultCommandRunner.RunInteractive` to use `sh -c` for proper shell operator support (redirection, pipes)
 - changed the Go module dependencies to their latest versions
 - changed the Go module dependencies to their latest versions
