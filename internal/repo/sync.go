@@ -173,10 +173,8 @@ func RestoreAfterSync(
 		if err := runner.Run(repoPath, "rebase", defaultBranch); err != nil {
 			_ = runner.Run(repoPath, "rebase", "--abort")
 		}
-		_ = runner.Run(repoPath, "checkout", currentBranch)
+		_ = runner.Run(repoPath, "checkout", defaultBranch)
 		status = fmt.Sprintf("synced (wip: %s)", wipBranch)
-	} else if currentBranch != defaultBranch {
-		_ = runner.Run(repoPath, "checkout", currentBranch)
 	}
 	return SyncResult{Name: name, Status: status}
 }

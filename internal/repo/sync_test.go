@@ -257,7 +257,7 @@ func TestRestoreAfterSync(t *testing.T) {
 		assert.Equal(t, "synced", result.Status)
 	})
 
-	t.Run("should checkout original branch when not on default", func(t *testing.T) {
+	t.Run("should stay on default branch when clean repo was on non-default branch", func(t *testing.T) {
 		t.Parallel()
 		// given
 		var checkedOut string
@@ -274,19 +274,27 @@ func TestRestoreAfterSync(t *testing.T) {
 
 		// then
 		assert.Equal(t, "synced", result.Status)
-		assert.Equal(t, "feat/x", checkedOut)
+		assert.Empty(t, checkedOut)
 	})
 
-	t.Run("should rebase WIP branch and return wip status for dirty repo", func(t *testing.T) {
+	t.Run("should rebase WIP branch and checkout default branch for dirty repo", func(t *testing.T) {
 		t.Parallel()
 		// given
+		var lastCheckedOut string
 		runner := doubles.NewGitRunnerStub()
+		runner.RunFunc = func(_ string, args ...string) error {
+			if len(args) > 0 && args[0] == "checkout" {
+				lastCheckedOut = args[1]
+			}
+			return nil
+		}
 
 		// when
 		result := repo.RestoreAfterSync("/repo", "my-repo", "main", "feat/x", "wip/feat/x", true, runner)
 
 		// then
 		assert.Contains(t, result.Status, "synced (wip: wip/feat/x)")
+		assert.Equal(t, "main", lastCheckedOut)
 	})
 }
 
