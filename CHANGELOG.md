@@ -32,6 +32,7 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 - changed `DefaultCommandRunner.RunInteractive` to use `sh -c` for proper shell operator support (redirection, pipes)
 - changed the Go module dependencies to their latest versions
 - changed the Go module dependencies to their latest versions
+- changed per-repo logging in parallel operations to run inside goroutines for progressive feedback
 
 ## [0.4.0] - 2026-03-31
 
