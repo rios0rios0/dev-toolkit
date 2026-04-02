@@ -198,6 +198,26 @@ func TestSyncAndRestore(t *testing.T) {
 		// then
 		assert.Contains(t, result.Status, "FAIL (pull --rebase")
 	})
+
+	t.Run("should stay on default branch when starting from non-default branch", func(t *testing.T) {
+		t.Parallel()
+		// given
+		var checkouts []string
+		runner := doubles.NewGitRunnerStub()
+		runner.RunFunc = func(_ string, args ...string) error {
+			if len(args) > 0 && args[0] == "checkout" {
+				checkouts = append(checkouts, args[1])
+			}
+			return nil
+		}
+
+		// when
+		result := repo.SyncAndRestore("/repo", "my-repo", "main", "feat/x", "wip/feat/x", false, runner)
+
+		// then
+		assert.Equal(t, "synced", result.Status)
+		assert.Equal(t, []string{"main"}, checkouts)
+	})
 }
 
 func TestRestoreBranch(t *testing.T) {
@@ -242,7 +262,7 @@ func TestRestoreBranch(t *testing.T) {
 	})
 }
 
-func TestRestoreAfterSync(t *testing.T) {
+func TestFinalizeSync(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should return synced for clean repo on default branch", func(t *testing.T) {
@@ -251,7 +271,7 @@ func TestRestoreAfterSync(t *testing.T) {
 		runner := doubles.NewGitRunnerStub()
 
 		// when
-		result := repo.RestoreAfterSync("/repo", "my-repo", "main", "wip/main", false, runner)
+		result := repo.FinalizeSync("/repo", "my-repo", "main", "wip/main", false, runner)
 
 		// then
 		assert.Equal(t, "synced", result.Status)
@@ -270,7 +290,7 @@ func TestRestoreAfterSync(t *testing.T) {
 		}
 
 		// when
-		result := repo.RestoreAfterSync("/repo", "my-repo", "main", "wip/feat/x", false, runner)
+		result := repo.FinalizeSync("/repo", "my-repo", "main", "wip/feat/x", false, runner)
 
 		// then
 		assert.Equal(t, "synced", result.Status)
@@ -290,11 +310,30 @@ func TestRestoreAfterSync(t *testing.T) {
 		}
 
 		// when
-		result := repo.RestoreAfterSync("/repo", "my-repo", "main", "wip/feat/x", true, runner)
+		result := repo.FinalizeSync("/repo", "my-repo", "main", "wip/feat/x", true, runner)
 
 		// then
 		assert.Contains(t, result.Status, "synced (wip: wip/feat/x)")
 		assert.Equal(t, "main", lastCheckedOut)
+	})
+
+	t.Run("should return FAIL when checkout to default branch fails for dirty repo", func(t *testing.T) {
+		t.Parallel()
+		// given
+		runner := doubles.NewGitRunnerStub()
+		runner.RunFunc = func(_ string, args ...string) error {
+			if len(args) >= 2 && args[0] == "checkout" && args[1] == "main" {
+				return errors.New("checkout failed")
+			}
+			return nil
+		}
+
+		// when
+		result := repo.FinalizeSync("/repo", "my-repo", "main", "wip/feat/x", true, runner)
+
+		// then
+		assert.Contains(t, result.Status, "FAIL")
+		assert.Contains(t, result.Status, "checkout main")
 	})
 }
 

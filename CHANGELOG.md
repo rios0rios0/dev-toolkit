@@ -33,7 +33,10 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 - changed the Go module dependencies to their latest versions
 - changed the Go module dependencies to their latest versions
 - changed per-repo logging in parallel operations to run inside goroutines for progressive feedback
-- changed `RestoreAfterSync` to stay on the default branch after a successful sync
+
+### Fixed
+
+- fixed `RestoreAfterSync` to stay on the default branch after a successful sync
 
 ## [0.4.0] - 2026-03-31
 
