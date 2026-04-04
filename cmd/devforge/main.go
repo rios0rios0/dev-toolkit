@@ -80,6 +80,8 @@ func main() {
 	rootCmd.AddCommand(newVersionCmd())
 	rootCmd.AddCommand(newSelfUpdateCmd())
 
+	selfupdate.NewCommand(repoOwner, repoName, binaryName, version).CheckForUpdates()
+
 	if err := rootCmd.Execute(); err != nil {
 		logger.Fatal(err)
 	}
