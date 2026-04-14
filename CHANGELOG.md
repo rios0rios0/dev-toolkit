@@ -16,6 +16,11 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
+### Added
+
+- added `dev system cleanup` command -- reclaims disk space by clearing Go, Node, Python, Gradle, JetBrains, Terra, and SDKMAN caches, pruning obsolete Claude Code and cursor-agent binary versions, and wiping transient Claude Code state, while preserving credentials, shell history, and installed SDK runtimes
+- added `RemoveAll` to the `FileSystem` interface with a `DefaultFileSystem` implementation and matching support in `FileSystemStub`
+
 ## [0.6.0] - 2026-04-14
 
 ### Added

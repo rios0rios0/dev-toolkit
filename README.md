@@ -19,6 +19,7 @@ DevForge is a developer workspace toolkit that manages Git repositories across m
 - **Fork Syncing**: detects forked repos via provider API, syncs with upstream parent, and handles conflicts by creating reference branches
 - **Branch Pruning**: deletes local branches merged into the default branch across all repos
 - **Docker Management**: lists container IPs and resets the Docker environment (stop, prune)
+- **System Cleanup**: reclaims disk space by clearing caches across Go, Node, Python, Gradle, JetBrains, Terra, and SDKMAN, pruning obsolete CLI-agent binary versions, and wiping transient state -- credentials, SDKs, and shell history are preserved
 - **Multi-Provider Support**: automatic provider detection from directory path with per-provider auth tokens
 
 ## Installation
