@@ -53,10 +53,22 @@ func newCleanupHarness() *cleanupHarness {
 	return harness
 }
 
-// withPath marks a path as present with the given size.
+// withPath marks a path as present with the given size. The presence is
+// wired into the FS stub's Lstat so the cleanup code treats the path as
+// existing; the size is served back through the `du` stub.
 func (h *cleanupHarness) withPath(path string, size int64) *cleanupHarness {
 	h.sizes[path] = size
 	h.present[path] = true
+	h.fs = h.fs.WithPresentPath(path)
+	return h
+}
+
+// markPresent registers a path as existing without configuring a size.
+// Used to verify that zero-byte files (or paths where `du` is unavailable)
+// are still removed.
+func (h *cleanupHarness) markPresent(path string) *cleanupHarness {
+	h.present[path] = true
+	h.fs = h.fs.WithPresentPath(path)
 	return h
 }
 
@@ -352,6 +364,66 @@ func TestRunCleanup(t *testing.T) {
 		assert.Contains(t, h.fs.RemovedAll, hstsPath)
 		assert.Contains(t, h.fs.RemovedAll, zcdA)
 		assert.Contains(t, h.fs.RemovedAll, zcdB)
+	})
+
+	t.Run("should remove zero-byte files that exist on disk", func(t *testing.T) {
+		t.Parallel()
+		// given
+		home := testHome
+		// `.wget-hsts` is often created empty; the cleanup code must still
+		// remove it rather than treating zero size as "absent".
+		hstsPath := filepath.Join(home, ".wget-hsts")
+		h := newCleanupHarness().markPresent(hstsPath)
+
+		// when
+		err := system.RunCleanup(h.config(false, noBinaries))
+
+		// then
+		require.NoError(t, err)
+		assert.Contains(t, h.fs.RemovedAll, hstsPath,
+			"zero-byte files must still be removed (du size == 0 is not absence)")
+	})
+
+	t.Run("should log a warning when version directory is unreadable", func(t *testing.T) {
+		t.Parallel()
+		// given — a permission error from ReadDir must not be reported as "absent".
+		home := testHome
+		versionsDir := filepath.Join(home, ".local/share/claude/versions")
+		h := newCleanupHarness()
+		h.fs = h.fs.WithReadDirError(versionsDir, errors.New("permission denied"))
+
+		// when
+		err := system.RunCleanup(h.config(false, noBinaries))
+
+		// then
+		require.NoError(t, err)
+		assert.Contains(t, h.buf.String(),
+			"warning: reading claude agent versions: permission denied",
+			"unreadable directories should surface the real error, not a misleading skip")
+		assert.NotContains(t, h.buf.String(), "[skip] claude agent versions (absent)")
+	})
+
+	t.Run("should log a warning when du fails on a present path", func(t *testing.T) {
+		t.Parallel()
+		// given — the path exists but `du` cannot be executed (e.g. missing binary).
+		home := testHome
+		hstsPath := filepath.Join(home, ".wget-hsts")
+		h := newCleanupHarness().markPresent(hstsPath)
+		h.runner.OutputFunc = func(name string, args ...string) (string, error) {
+			if name == "du" && len(args) >= 2 && args[1] == hstsPath {
+				return "", errors.New("du: command not found")
+			}
+			return "", nil
+		}
+
+		// when
+		err := system.RunCleanup(h.config(false, noBinaries))
+
+		// then
+		require.NoError(t, err)
+		assert.Contains(t, h.buf.String(), "warning: du "+hstsPath+": du: command not found")
+		assert.Contains(t, h.fs.RemovedAll, hstsPath,
+			"the file should still be removed even when size reporting fails")
 	})
 
 	t.Run("should skip JetBrains per-product loop when readdir returns no entries", func(t *testing.T) {

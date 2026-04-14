@@ -1,8 +1,10 @@
 package system
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"sort"
@@ -122,12 +124,12 @@ func cleanupGo(cfg CleanupConfig, homeDir string) int64 {
 	if cfg.hasBinary("go") {
 		goCachePath := filepath.Join(homeDir, ".cache/go-build")
 		goModCachePath := filepath.Join(homeDir, "go/pkg/mod")
-		before := pathSize(cfg, goCachePath) + pathSize(cfg, goModCachePath)
+		before := safeSize(cfg, goCachePath) + safeSize(cfg, goModCachePath)
 		runTool(cfg, "go clean -cache", "go", "clean", "-cache")
 		runTool(cfg, "go clean -modcache", "go", "clean", "-modcache")
 		runTool(cfg, "go clean -testcache", "go", "clean", "-testcache")
 		if !cfg.DryRun {
-			reclaimed += before - pathSize(cfg, goCachePath) - pathSize(cfg, goModCachePath)
+			reclaimed += before - safeSize(cfg, goCachePath) - safeSize(cfg, goModCachePath)
 		} else {
 			reclaimed += before
 		}
@@ -146,12 +148,12 @@ func cleanupGo(cfg CleanupConfig, homeDir string) int64 {
 func cleanupTerra(cfg CleanupConfig, homeDir string) int64 {
 	if cfg.hasBinary("terra") {
 		terraCachePath := filepath.Join(homeDir, ".cache/terra")
-		before := pathSize(cfg, terraCachePath)
+		before := safeSize(cfg, terraCachePath)
 		runTool(cfg, "terra clear --global", "terra", "clear", "--global")
 		if cfg.DryRun {
 			return before
 		}
-		return before - pathSize(cfg, terraCachePath)
+		return before - safeSize(cfg, terraCachePath)
 	}
 	return removePath(cfg, filepath.Join(homeDir, ".cache/terra"), ".cache/terra")
 }
@@ -183,12 +185,12 @@ func cleanupNode(cfg CleanupConfig, homeDir string) int64 {
 	var reclaimed int64
 	if cfg.hasBinary("npm") {
 		cachePath := filepath.Join(homeDir, ".npm/_cacache")
-		before := pathSize(cfg, cachePath)
+		before := safeSize(cfg, cachePath)
 		runTool(cfg, "npm cache clean --force", "npm", "cache", "clean", "--force")
 		if cfg.DryRun {
 			reclaimed += before
 		} else {
-			reclaimed += before - pathSize(cfg, cachePath)
+			reclaimed += before - safeSize(cfg, cachePath)
 		}
 	} else {
 		reclaimed += removePath(cfg, filepath.Join(homeDir, ".npm/_cacache"), ".npm/_cacache")
@@ -206,12 +208,12 @@ func cleanupPython(cfg CleanupConfig, homeDir string) int64 {
 	var reclaimed int64
 	if cfg.hasBinary("pip") {
 		pipCachePath := filepath.Join(homeDir, ".cache/pip")
-		before := pathSize(cfg, pipCachePath)
+		before := safeSize(cfg, pipCachePath)
 		runTool(cfg, "pip cache purge", "pip", "cache", "purge")
 		if cfg.DryRun {
 			reclaimed += before
 		} else {
-			reclaimed += before - pathSize(cfg, pipCachePath)
+			reclaimed += before - safeSize(cfg, pipCachePath)
 		}
 	} else {
 		reclaimed += removePath(cfg, filepath.Join(homeDir, ".cache/pip"), ".cache/pip")
@@ -286,25 +288,55 @@ func cleanupMiscStale(cfg CleanupConfig, homeDir string) int64 {
 
 // -- Helpers -----------------------------------------------------------------
 
-// removePath removes a file or directory recursively. In dry-run mode it
-// only reports what would be removed. Returns the number of bytes that were
-// (or would have been) freed.
-func removePath(cfg CleanupConfig, path, label string) int64 {
-	size := pathSize(cfg, path)
-	if size == 0 {
-		logf(cfg.Output, "[skip] %s (absent or empty)", label)
+// pathExists reports whether the path is present on the filesystem. Uses
+// Lstat so broken symlinks (which still occupy space) are treated as present.
+func pathExists(cfg CleanupConfig, path string) bool {
+	_, err := cfg.FS.Lstat(path)
+	return err == nil
+}
+
+// safeSize returns the size of a path if it exists, else 0. Used by category
+// functions that compute "before/after" totals around tool-native cleaners,
+// where some target paths may legitimately be absent.
+func safeSize(cfg CleanupConfig, path string) int64 {
+	if !pathExists(cfg, path) {
 		return 0
 	}
+	return pathSize(cfg, path)
+}
+
+// formatSizeSuffix renders a parenthesised size suffix for log lines, or an
+// empty string when the size is unknown (0).
+func formatSizeSuffix(size int64, verb string) string {
+	if size <= 0 {
+		return ""
+	}
+	if verb == "" {
+		return " (" + formatBytes(size) + ")"
+	}
+	return " (" + formatBytes(size) + " " + verb + ")"
+}
+
+// removePath removes a file or directory recursively. Existence is
+// determined by Lstat (not by size), so legitimately empty files such as
+// `.wget-hsts` are still removed. Size reporting is best-effort: when `du`
+// cannot determine the size the path is still removed, the per-entry total
+// contributes 0 to the summary, and the log line omits the size suffix.
+func removePath(cfg CleanupConfig, path, label string) int64 {
+	if !pathExists(cfg, path) {
+		logf(cfg.Output, "[skip] %s (absent)", label)
+		return 0
+	}
+	size := pathSize(cfg, path)
+	logf(cfg.Output, "[plan] %s%s", label, formatSizeSuffix(size, ""))
 	if cfg.DryRun {
-		logf(cfg.Output, "[plan] %s (%s)", label, formatBytes(size))
 		return size
 	}
-	logf(cfg.Output, "[plan] %s (%s)", label, formatBytes(size))
 	if err := cfg.FS.RemoveAll(path); err != nil {
 		logf(cfg.Output, "warning: %v", err)
 		return 0
 	}
-	logf(cfg.Output, "[done] %s (%s reclaimed)", label, formatBytes(size))
+	logf(cfg.Output, "[done] %s%s", label, formatSizeSuffix(size, "reclaimed"))
 	return size
 }
 
@@ -332,7 +364,13 @@ func removeGlob(cfg CleanupConfig, pattern, label string) int64 {
 func keepLatestVersion(cfg CleanupConfig, dir, label string) int64 {
 	entries, err := cfg.FS.ReadDir(dir)
 	if err != nil {
-		logf(cfg.Output, "[skip] %s (absent)", label)
+		if errors.Is(err, os.ErrNotExist) {
+			logf(cfg.Output, "[skip] %s (absent)", label)
+			return 0
+		}
+		// Permission errors, transient IO failures, etc. deserve visibility
+		// rather than being silently reported as "(absent)".
+		logf(cfg.Output, "warning: reading %s: %v", label, err)
 		return 0
 	}
 	names := make([]string, 0, len(entries))
@@ -380,11 +418,15 @@ func runTool(cfg CleanupConfig, label, bin string, args ...string) {
 	logf(cfg.Output, "[done] %s", label)
 }
 
-// pathSize returns the total size of a path in bytes via `du -sb`. Returns 0
-// if the path does not exist or du fails.
+// pathSize returns the total size of a path in bytes via `du -sb`. Callers
+// must have verified that the path exists (e.g. via [pathExists]) before
+// calling -- any error from `du` is therefore treated as a tool-level
+// failure (missing binary, permission denied, etc.), logged as a warning,
+// and reported as size 0 so the caller can still proceed with removal.
 func pathSize(cfg CleanupConfig, path string) int64 {
 	raw, err := cfg.Runner.Output("du", "-sb", path)
 	if err != nil {
+		logf(cfg.Output, "warning: du %s: %v", path, err)
 		return 0
 	}
 	parts := strings.SplitN(strings.TrimSpace(raw), "\t", duFieldCount)

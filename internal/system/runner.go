@@ -21,6 +21,7 @@ type Runner interface {
 type FileSystem interface {
 	Remove(path string) error
 	RemoveAll(path string) error
+	Lstat(path string) (os.FileInfo, error)
 	Glob(pattern string) ([]string, error)
 	UserHomeDir() (string, error)
 	ReadDir(dir string) ([]os.DirEntry, error)
@@ -65,12 +66,11 @@ func (f *DefaultFileSystem) Remove(path string) error {
 }
 
 func (f *DefaultFileSystem) RemoveAll(path string) error {
-	err := os.RemoveAll(path)
-	if err != nil && errors.Is(err, os.ErrNotExist) {
-		return nil
-	}
-	return err
+	// os.RemoveAll already returns nil when the path does not exist, so no
+	// extra ErrNotExist guard is needed (see doc on [os.RemoveAll]).
+	return os.RemoveAll(path)
 }
+func (f *DefaultFileSystem) Lstat(path string) (os.FileInfo, error)    { return os.Lstat(path) }
 func (f *DefaultFileSystem) Glob(pattern string) ([]string, error)     { return filepath.Glob(pattern) }
 func (f *DefaultFileSystem) UserHomeDir() (string, error)              { return os.UserHomeDir() }
 func (f *DefaultFileSystem) ReadDir(dir string) ([]os.DirEntry, error) { return os.ReadDir(dir) }
