@@ -20,6 +20,7 @@ type Runner interface {
 // FileSystem abstracts filesystem operations for testability.
 type FileSystem interface {
 	Remove(path string) error
+	RemoveAll(path string) error
 	Glob(pattern string) ([]string, error)
 	UserHomeDir() (string, error)
 	ReadDir(dir string) ([]os.DirEntry, error)
@@ -57,6 +58,14 @@ type DefaultFileSystem struct{}
 
 func (f *DefaultFileSystem) Remove(path string) error {
 	err := os.Remove(path)
+	if err != nil && errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	return err
+}
+
+func (f *DefaultFileSystem) RemoveAll(path string) error {
+	err := os.RemoveAll(path)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
 		return nil
 	}

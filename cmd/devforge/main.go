@@ -86,6 +86,7 @@ func main() {
 	}
 	systemCmd.AddCommand(newSystemTop5SizeCmd())
 	systemCmd.AddCommand(newSystemClearHistoryCmd())
+	systemCmd.AddCommand(newSystemCleanupCmd())
 	if system.IsLinux() {
 		systemCmd.AddCommand(newSystemClearLogsCmd())
 	}
@@ -505,6 +506,31 @@ func newSystemClearHistoryCmd() *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			return system.RunClearHistory(&system.DefaultFileSystem{}, dryRun, os.Stderr)
+		},
+	}
+
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "show what would be removed without removing")
+
+	return cmd
+}
+
+func newSystemCleanupCmd() *cobra.Command {
+	var dryRun bool
+
+	cmd := &cobra.Command{
+		Use:   "cleanup",
+		Short: "Reclaim disk space by clearing caches and obsolete tool downloads",
+		Long: `Cleans up caches, transient downloads, and obsolete tool-version
+artifacts under $HOME. Credentials, configs, shell history, and installed
+SDK runtimes are never touched.`,
+		Args: cobra.NoArgs,
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return system.RunCleanup(system.CleanupConfig{
+				Runner: &system.DefaultRunner{},
+				FS:     &system.DefaultFileSystem{},
+				DryRun: dryRun,
+				Output: os.Stderr,
+			})
 		},
 	}
 
