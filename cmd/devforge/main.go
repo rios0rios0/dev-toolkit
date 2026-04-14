@@ -21,11 +21,28 @@ var (
 	binaryName = "dev"
 )
 
+// runUpdateCheck performs the cliforge update check, skipping local dev builds and
+// the self-update / version subcommands to avoid redundant GitHub API calls and to
+// keep `dev version` as stdout-only for script/pipe compatibility.
+func runUpdateCheck(command *cobra.Command) {
+	if version == "dev" {
+		return
+	}
+	switch command.Name() {
+	case "self-update", "version":
+		return
+	}
+	selfupdate.NewCommand(repoOwner, repoName, binaryName, version).CheckForUpdates()
+}
+
 func main() {
 	rootCmd := &cobra.Command{
 		Use:     "dev",
 		Version: version,
 		Short:   "Developer workspace toolkit",
+		PersistentPreRun: func(cmd *cobra.Command, _ []string) {
+			runUpdateCheck(cmd)
+		},
 		Run: func(cmd *cobra.Command, _ []string) {
 			_ = cmd.Help()
 		},
@@ -79,8 +96,6 @@ func main() {
 	rootCmd.AddCommand(systemCmd)
 	rootCmd.AddCommand(newVersionCmd())
 	rootCmd.AddCommand(newSelfUpdateCmd())
-
-	selfupdate.NewCommand(repoOwner, repoName, binaryName, version).CheckForUpdates()
 
 	if err := rootCmd.Execute(); err != nil {
 		logger.Fatal(err)
