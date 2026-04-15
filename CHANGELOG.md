@@ -16,6 +16,10 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
+### Changed
+
+- changed the Go version to `1.26.2` and updated all module dependencies
+
 ### Added
 
 - added `dev system cleanup` command -- reclaims disk space by clearing Go, Node, Python, Gradle, JetBrains, Terra, and SDKMAN caches, pruning obsolete Claude Code and cursor-agent binary versions, and wiping transient Claude Code state, while preserving credentials, shell history, and installed SDK runtimes
