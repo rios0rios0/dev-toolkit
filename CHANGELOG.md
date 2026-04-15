@@ -16,14 +16,16 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
-### Changed
-
-- changed the Go version to `1.26.2` and updated all module dependencies
+## [0.7.0] - 2026-04-15
 
 ### Added
 
 - added `dev system cleanup` command -- reclaims disk space by clearing Go, Node, Python, Gradle, JetBrains, Terra, and SDKMAN caches, pruning obsolete Claude Code and cursor-agent binary versions, and wiping transient Claude Code state, while preserving credentials, shell history, and installed SDK runtimes
 - added `RemoveAll` to the `FileSystem` interface with a `DefaultFileSystem` implementation and matching support in `FileSystemStub`
+
+### Changed
+
+- changed the Go version to `1.26.2` and updated all module dependencies
 
 ## [0.6.0] - 2026-04-14
 
