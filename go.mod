@@ -1,12 +1,12 @@
 module github.com/rios0rios0/devforge
 
-go 1.26.1
+go 1.26.2
 
 require (
 	github.com/google/go-github/v66 v66.0.0
-	github.com/rios0rios0/cliforge v0.2.1-0.20260404230949-b9683f7eded2
+	github.com/rios0rios0/cliforge v0.3.0
 	github.com/rios0rios0/gitforge v0.9.1
-	github.com/rios0rios0/langforge v0.5.0
+	github.com/rios0rios0/langforge v0.6.0
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
@@ -32,10 +32,10 @@ require (
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	gitlab.com/gitlab-org/api/client-go v1.46.0 // indirect
-	golang.org/x/mod v0.34.0 // indirect
-	golang.org/x/net v0.52.0 // indirect
+	golang.org/x/mod v0.35.0 // indirect
+	golang.org/x/net v0.53.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
-	golang.org/x/sys v0.42.0 // indirect
+	golang.org/x/sys v0.43.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )
