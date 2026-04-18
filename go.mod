@@ -5,7 +5,7 @@ go 1.26.2
 require (
 	github.com/google/go-github/v66 v66.0.0
 	github.com/rios0rios0/cliforge v0.3.2
-	github.com/rios0rios0/gitforge v0.9.3
+	github.com/rios0rios0/gitforge v0.9.4
 	github.com/rios0rios0/langforge v0.6.2
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
