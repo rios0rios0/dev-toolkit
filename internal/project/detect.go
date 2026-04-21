@@ -136,22 +136,49 @@ func extractPythonSDKVersion(content string) string {
 
 // buildUseCommand returns the shell command to switch to a specific SDK version.
 func buildUseCommand(versionManager, language, version string) string {
-	type cmdTemplate struct {
-		format string
-	}
-	templates := map[string]cmdTemplate{
-		"gvm":    {"gvm use go%s"},
-		"nvm":    {"nvm use %s"},
-		"pyenv":  {"pyenv local %s"},
-		"sdkman": {"sdk use java %s"},
+	builders := map[string]func(string) string{
+		"gvm":    buildGvmUseCommand,
+		"nvm":    func(v string) string { return fmt.Sprintf("nvm use %s", v) },
+		"pyenv":  func(v string) string { return fmt.Sprintf("pyenv local %s", v) },
+		"sdkman": func(v string) string { return fmt.Sprintf("sdk use java %s", v) },
 	}
 
-	tmpl, ok := templates[versionManager]
+	build, ok := builders[versionManager]
 	if !ok {
 		return ""
 	}
 	_ = language // reserved for future use
-	return fmt.Sprintf(tmpl.format, version)
+	return build(version)
+}
+
+var twoSegmentGoVersionRe = regexp.MustCompile(`^\d+\.\d+$`)
+
+// buildGvmUseCommand emits eval-ready shell that safely switches Go via gvm.
+// gvm only accepts exact installed tags (e.g. "go1.26.3"), which fails in two
+// common scenarios:
+//   - go.mod uses a 2-segment directive like "go 1.26" — no matching tag exists
+//   - the exact patch in go.mod is not installed
+//
+// Both cases produce the misleading "It doesn't look like Go has been installed"
+// message from gvm. We resolve installed tags via `gvm list` at eval time: for
+// 2-segment versions we pick the highest matching patch; for 3-segment we check
+// exact presence. When no match is found, we print a "[dev]" install hint and
+// skip the `gvm use` call entirely so gvm's error cannot surface.
+func buildGvmUseCommand(version string) string {
+	if twoSegmentGoVersionRe.MatchString(version) {
+		pattern := fmt.Sprintf(`^go%s(\.[0-9]+)?$`, regexp.QuoteMeta(version))
+		return fmt.Sprintf(
+			`_dev_go=$(gvm list 2>/dev/null | awk '{print $NF}' | grep -E '%s' | sort -V | tail -n1); `+
+				`if [ -n "$_dev_go" ]; then gvm use "$_dev_go"; `+
+				`else echo "[dev] no installed Go matching %s -- run: gvm install go%s.<patch>" >&2; fi`,
+			pattern, version, version,
+		)
+	}
+	return fmt.Sprintf(
+		`if gvm list 2>/dev/null | awk '{print $NF}' | grep -qxF go%s; then gvm use go%s; `+
+			`else echo "[dev] go%s is not installed -- run: gvm install go%s" >&2; fi`,
+		version, version, version, version,
+	)
 }
 
 func resolveRepoPath(path string) (string, error) {
