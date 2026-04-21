@@ -23,7 +23,8 @@ func TestBuildGvmUseCommand(t *testing.T) {
 		assert.Contains(t, cmd, `sort -V | tail -n1`)
 		assert.Contains(t, cmd, `gvm use "$_dev_go"`)
 		assert.Contains(t, cmd, `[dev] no installed Go matching 1.26`)
-		assert.Contains(t, cmd, `gvm install go1.26.<patch>`)
+		assert.Contains(t, cmd, `gvm listall | grep '^go1.26\\.'`)
+		assert.Contains(t, cmd, `unset _dev_go`)
 	})
 
 	t.Run("should guard exact tag when version is 3-segment", func(t *testing.T) {

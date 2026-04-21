@@ -170,7 +170,8 @@ func buildGvmUseCommand(version string) string {
 		return fmt.Sprintf(
 			`_dev_go=$(gvm list 2>/dev/null | awk '{print $NF}' | grep -E '%s' | sort -V | tail -n1); `+
 				`if [ -n "$_dev_go" ]; then gvm use "$_dev_go"; `+
-				`else echo "[dev] no installed Go matching %s -- run: gvm install go%s.<patch>" >&2; fi`,
+				`else echo "[dev] no installed Go matching %s -- run: gvm listall | grep '^go%s\\.'" >&2; fi; `+
+				`unset _dev_go`,
 			pattern, version, version,
 		)
 	}
