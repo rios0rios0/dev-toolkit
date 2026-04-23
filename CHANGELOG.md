@@ -16,6 +16,8 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
+## [0.7.5] - 2026-04-23
+
 ### Fixed
 
 - fixed `dev repo prune` only scanning the top-level directory (e.g. missing nested repos like `org/project/repo`) -- it now walks the directory tree recursively using `FindAllRepos`, matching the behavior of `dev repo sync`
