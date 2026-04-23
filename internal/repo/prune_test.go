@@ -209,4 +209,26 @@ func TestRunPrune(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, buf.String(), "clean=1")
 	})
+
+	t.Run("should discover and prune nested repositories recursively", func(t *testing.T) {
+		t.Parallel()
+		// given
+		root := t.TempDir()
+		createGitRepo(t, root+"/project-a/repo-one")
+		createGitRepo(t, root+"/project-b/repo-two")
+		runner := doubles.NewGitRunnerStub().
+			WithOutput([]string{"symbolic-ref", "refs/remotes/origin/HEAD"}, "refs/remotes/origin/main").
+			WithOutput([]string{"branch", "--merged", "main"}, "  feat/old\n* main")
+		var buf bytes.Buffer
+
+		// when
+		err := repo.RunPrune(root, runner, false, &buf)
+
+		// then
+		require.NoError(t, err)
+		output := buf.String()
+		assert.NotContains(t, output, "no git repositories found")
+		assert.Contains(t, output, "count=2")
+		assert.Contains(t, output, "pruned=2")
+	})
 }
