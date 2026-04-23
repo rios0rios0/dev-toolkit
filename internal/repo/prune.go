@@ -27,7 +27,7 @@ func isPruneFailure(status string) bool {
 func RunPrune(rootDir string, runner GitRunner, dryRun bool, output io.Writer) error {
 	log := NewLogger(output)
 
-	repos := ScanFlatRepos(rootDir)
+	repos := FindAllRepos(rootDir)
 	total := len(repos)
 	if total == 0 {
 		log.WithField("dir", rootDir).Warn("no git repositories found")
@@ -44,14 +44,13 @@ func RunPrune(rootDir string, runner GitRunner, dryRun bool, output io.Writer) e
 	results := make([]PruneResult, total)
 	var wg sync.WaitGroup
 
-	for i, repoName := range repos {
+	for i, repoPath := range repos {
 		wg.Add(1)
 		sem <- struct{}{}
-		go func(idx int, name string) {
+		go func(idx int, path string) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			repoPath := filepath.Join(rootDir, name)
-			result := PruneSingleRepo(repoPath, rootDir, runner, dryRun)
+			result := PruneSingleRepo(path, rootDir, runner, dryRun)
 			if len(result.Deleted) > 0 || isPruneFailure(result.Status) {
 				log.WithFields(logger.Fields{
 					"repo":   result.Name,
@@ -59,7 +58,7 @@ func RunPrune(rootDir string, runner GitRunner, dryRun bool, output io.Writer) e
 				}).Info("prune result")
 			}
 			results[idx] = result
-		}(i, repoName)
+		}(i, repoPath)
 	}
 
 	wg.Wait()
