@@ -16,12 +16,14 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
+## [0.7.4] - 2026-04-22
+
 ### Fixed
 
 - fixed `dev project use` emitting `gvm use go<X.Y>` for 2-segment `go.mod` directives (e.g. `go 1.26`), which gvm rejects with a misleading "It doesn't look like Go has been installed" error -- the command now resolves the highest installed patch via `gvm list` and falls back to a clean `[dev]` install hint when no match exists
-- fixed `dev project use` producing the same misleading gvm error when the exact 3-segment Go version from `go.mod` is not yet installed -- the command now guards the `gvm use` call with a presence check and prints a `[dev] gvm install go<version>` hint instead
 - fixed `dev project use` emitting an install hint containing unescaped `<patch>` placeholder that would break when copy-pasted into a shell due to `<`/`>` redirection parsing -- the hint now points users to `gvm listall | grep '^go<X.Y>\.'` so they can pick a valid patch version
 - fixed `dev project use` leaking the internal `_dev_go` helper variable into the caller's shell after `eval` -- the emitted command now `unset`s it once the switch or hint has run
+- fixed `dev project use` producing the same misleading gvm error when the exact 3-segment Go version from `go.mod` is not yet installed -- the command now guards the `gvm use` call with a presence check and prints a `[dev] gvm install go<version>` hint instead
 
 ## [0.7.3] - 2026-04-19
 
