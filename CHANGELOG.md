@@ -16,6 +16,10 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
+### Changed
+
+- refreshed `CLAUDE.md` and `.github/copilot-instructions.md` to document commands, packages, and design patterns added in v0.3.0–v0.7.0 (system utilities, Codeberg support, SAST orchestration, mirror/failover/restore, cliforge self-update)
+
 ## [0.7.6] - 2026-04-24
 
 ### Changed
