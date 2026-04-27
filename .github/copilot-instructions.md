@@ -28,32 +28,43 @@ Always reference these instructions first and fallback to search or bash command
 - Basic usage: `./bin/dev --help`
 - Clone repos: `./bin/dev repo clone mine ~/Development/github.com/rios0rios0`
 - Sync repos: `./bin/dev repo sync ~/Development/github.com/rios0rios0`
+- Fork sync: `./bin/dev repo fork-sync ~/Development/github.com/rios0rios0`
+- Mirror to Codeberg: `./bin/dev repo mirror mine ~/Development/github.com/rios0rios0`
+- Project commands: `./bin/dev project {info,use,start,build,lint,test,sast,stop} .`
+- Docker: `./bin/dev docker {ips,reset}`
+- System: `./bin/dev system {cleanup,clear-history,clear-logs,top5size}`
+- Self-update: `./bin/dev self-update`
 
 ## Validation
 
 ### ALWAYS Test These Scenarios After Changes
 1. **Build validation**: `make build` should complete in ~1 second without errors.
-2. **Help commands**: Test `./bin/dev --help`, `./bin/dev repo clone --help`, `./bin/dev repo sync --help`.
+2. **Help commands**: Test `./bin/dev --help` and help for any modified subcommand.
 3. **Clone dry-run**: `./bin/dev repo clone mine --dry-run ~/Development/github.com/rios0rios0`
 4. **Sync**: `./bin/dev repo sync ~/Development/github.com/rios0rios0`
+5. **Project info**: `./bin/dev project info .` (verifies language detection)
 
 ## Project Structure
 
 ### Key Files and Directories
-- `cmd/devforge/` -- Main application code
-  - `main.go` -- CLI command setup with `repo` command group
-  - `clone.go` -- Repository cloning with gitforge integration and parallel SSH workers
-  - `sync.go` -- Repository syncing with fetch/rebase and WIP branch preservation
+- `cmd/devforge/main.go` -- All CLI wiring (Cobra commands, dependency construction, update check)
+- `internal/repo/` -- Repository operations: clone, sync, fork-sync, prune, mirror, failover, restore
+- `internal/project/` -- Language-aware commands: start, build, lint, test, sast, stop, use, info
+- `internal/docker/` -- Docker management: container IPs, environment reset
+- `internal/system/` -- System utilities: cleanup, clear-history, clear-logs, top5size
+- `internal/testutil/` -- Test doubles (stubs) and builders for all interfaces
 - `install.sh` -- Generic installer for GitHub releases
-- `CONTRIBUTING.md` -- Development workflow and prerequisites
 - `Makefile` -- Build targets and development commands
-- `.github/workflows/default.yaml` -- CI pipeline (uses external rios0rios0/pipelines)
 
 ### Key Design Patterns
-- **Mapper pattern**: All provider detection uses maps (no switch/case)
+- **Mapper pattern**: All provider detection uses maps (no switch/case), including Codeberg
 - **Parallel execution**: Goroutines with semaphore channel for controlled concurrency
 - **SSH preflight**: Verifies SSH connectivity before batch cloning
 - **WIP branches**: Preserves dirty state during sync via temporary commits
+- **Dependency injection**: All business logic accepts interfaces for testability
+- **SAST orchestration**: Per-tool failure isolation with embedded default configs
+- **Platform gating**: System commands conditionally registered via `runtime.GOOS`
+- **Automatic update check**: On startup via cliforge (skipped for `version`, `self-update`, dev builds)
 
 ### Authentication
 | Provider | Environment Variable |
@@ -79,4 +90,10 @@ go vet ./...
 
 # Test sync
 ./bin/dev repo sync ~/Development/github.com/rios0rios0
+
+# Test project detection
+./bin/dev project info .
+
+# Test SAST suite
+./bin/dev project sast .
 ```
