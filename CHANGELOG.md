@@ -16,6 +16,14 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
+### Added
+
+- added `dev gist clone` command -- discovers GitHub gists for a user and clones missing ones via SSH in parallel, where the user-supplied root directory is the owner directory (`gist.github.com/<owner>`) and each gist lands at `<root-dir>/<slug>`. The slug is derived from the gist description (or the gist ID when blank); colliding slugs are disambiguated with a short ID suffix
+- added `dev gist sync` command -- fetches and rebases all gist repositories one level under the root directory, preserving uncommitted work via WIP branches (same workflow as `dev repo sync`)
+- added `internal/gist` package with `Provider` interface, `GitHubProvider` implementation backed by `go-github`, slug derivation, `AssignKeys` collision handling, scanner, and clone/sync orchestration
+- added `repo.SSHPreflightHost` for verifying SSH access to a host that is not registered in the provider registry (used by gist commands to preflight `gist.github.com`)
+- added `GistProviderStub` test double for unit testing the gist workflow
+
 ## [0.7.7] - 2026-04-28
 
 ### Changed

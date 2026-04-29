@@ -213,7 +213,13 @@ func SSHPreflight(providerName, sshAlias string, log logger.FieldLogger) error {
 	if host == "" {
 		return fmt.Errorf("unknown provider for SSH preflight: %s", providerName)
 	}
+	return SSHPreflightHost(host, sshAlias, log)
+}
 
+// SSHPreflightHost verifies SSH connectivity to an explicit host via the SSH
+// config alias. Use this when the host is not registered in the provider
+// registry (e.g., gist.github.com).
+func SSHPreflightHost(host, sshAlias string, log logger.FieldLogger) error {
 	sshHost := host
 	if sshAlias != "" {
 		sshHost = fmt.Sprintf("%s-%s", host, sshAlias)

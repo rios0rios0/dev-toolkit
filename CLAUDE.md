@@ -34,6 +34,9 @@ dev repo prune ~/Development/github.com/rios0rios0 --dry-run    # preview withou
 dev repo mirror mine ~/Development/github.com/rios0rios0        # create Codeberg pull mirrors
 dev repo failover ~/Development/github.com/rios0rios0           # switch repos to Codeberg primary
 dev repo restore ~/Development/github.com/rios0rios0            # restore GitHub as primary remote
+dev gist clone mine ~/Development/gist.github.com/rios0rios0    # clone missing GitHub gists (slug from description)
+dev gist clone mine ~/Development/gist.github.com/rios0rios0 --dry-run # preview without cloning
+dev gist sync ~/Development/gist.github.com/rios0rios0          # sync all gists
 dev project info .                                              # detect language and show info
 dev project use .                                               # print version switch commands (eval it)
 dev project start .                                             # run project start command (with .dev.yaml deps)
@@ -99,6 +102,13 @@ internal/
     ips.go                   -- RunIPs: list container IP addresses
     reset.go                 -- RunReset: stop all containers, prune resources with dry-run support
     *_test.go                -- BDD tests
+  gist/
+    gist.go                  -- Gist entity, slug derivation, owner detection, SSH URL builder
+    provider.go              -- Provider interface + GitHubProvider (go-github gist API)
+    scanner.go               -- ScanLocalGists: walk <root>/<owner>/<slug> for .git directories
+    clone.go                 -- RunClone: discover, diff, parallel clone (reuses repo.GitRunner/SSHPreflight)
+    sync.go                  -- RunSync: delegates to repo.SyncSingleRepo for each gist
+    *_test.go                -- BDD tests
   system/
     runner.go                -- Runner interface (exec.Command wrapper for system commands)
     platform.go              -- platform detection (IsAndroid, IsLinux) via runtime.GOOS
@@ -108,7 +118,7 @@ internal/
     top5size.go              -- show top 5 largest items in a directory
     *_test.go                -- BDD tests
   testutil/
-    doubles/                 -- GitRunnerStub, ForgeProviderStub, ForkResolverStub, CommandRunnerStub, LanguageDetectorStub, LanguageDetectorMultiStub, ConfigReaderStub, DockerRunnerStub, FileSystemStub, MirrorProviderStub, SystemRunnerStub
+    doubles/                 -- GitRunnerStub, ForgeProviderStub, ForkResolverStub, GistProviderStub, CommandRunnerStub, LanguageDetectorStub, LanguageDetectorMultiStub, ConfigReaderStub, DockerRunnerStub, FileSystemStub, MirrorProviderStub, SystemRunnerStub
     builders/                -- RepositoryBuilder
 ```
 

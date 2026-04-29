@@ -6,6 +6,7 @@ import (
 
 	"github.com/rios0rios0/cliforge/pkg/selfupdate"
 	"github.com/rios0rios0/devforge/internal/docker"
+	"github.com/rios0rios0/devforge/internal/gist"
 	"github.com/rios0rios0/devforge/internal/project"
 	"github.com/rios0rios0/devforge/internal/repo"
 	"github.com/rios0rios0/devforge/internal/system"
@@ -73,6 +74,13 @@ func main() {
 	projectCmd.AddCommand(newProjectInfoCmd())
 	projectCmd.AddCommand(newProjectUseCmd())
 
+	gistCmd := &cobra.Command{
+		Use:   "gist",
+		Short: "GitHub gist management commands",
+	}
+	gistCmd.AddCommand(newGistCloneCmd())
+	gistCmd.AddCommand(newGistSyncCmd())
+
 	dockerCmd := &cobra.Command{
 		Use:   "docker",
 		Short: "Docker environment management commands",
@@ -92,6 +100,7 @@ func main() {
 	}
 
 	rootCmd.AddCommand(repoCmd)
+	rootCmd.AddCommand(gistCmd)
 	rootCmd.AddCommand(projectCmd)
 	rootCmd.AddCommand(dockerCmd)
 	rootCmd.AddCommand(systemCmd)
@@ -229,6 +238,72 @@ lists local branches merged into the default branch and deletes them.`,
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "show which branches would be deleted without deleting them")
 
 	return cmd
+}
+
+func newGistCloneCmd() *cobra.Command {
+	var dryRun bool
+
+	cmd := &cobra.Command{
+		Use:   "clone <ssh-alias> [root-dir]",
+		Short: "Clone missing GitHub gists for a user",
+		Long: `Discovers gists from GitHub for the owner inferred from the root path
+(.../gist.github.com/<owner>), compares with local directories, and clones
+missing gists via SSH. Each gist lands directly under that directory at
+<root-dir>/<slug>, where the slug is derived from the gist description
+(or the gist ID when blank).`,
+		Args: cobra.RangeArgs(1, gist.MaxCloneArgs()),
+		RunE: func(_ *cobra.Command, args []string) error {
+			sshAlias := args[0]
+			rootDir, _ := os.Getwd()
+			if len(args) > 1 {
+				rootDir = args[1]
+			}
+			rootDir = filepath.Clean(rootDir)
+
+			owner, ownerErr := gist.DetectOwner(rootDir)
+			if ownerErr != nil {
+				return ownerErr
+			}
+
+			provider, providerErr := gist.ResolveProvider()
+			if providerErr != nil {
+				return providerErr
+			}
+
+			return gist.RunClone(gist.CloneConfig{
+				RootDir:  rootDir,
+				Owner:    owner,
+				SSHAlias: sshAlias,
+				DryRun:   dryRun,
+				Provider: provider,
+				Runner:   &repo.DefaultGitRunner{},
+				Output:   os.Stderr,
+			})
+		},
+	}
+
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "show what would be done without making changes")
+
+	return cmd
+}
+
+func newGistSyncCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "sync [root-dir]",
+		Short: "Sync all GitHub gists under a directory",
+		Long: `For each gist repository found under the root directory, fetches all
+remotes, rebases the default branch, and preserves uncommitted work via
+WIP commits (same workflow as 'dev repo sync').`,
+		Args: cobra.MaximumNArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			rootDir, _ := os.Getwd()
+			if len(args) > 0 {
+				rootDir = args[0]
+			}
+			rootDir = filepath.Clean(rootDir)
+			return gist.RunSync(rootDir, &repo.DefaultGitRunner{}, os.Stderr)
+		},
+	}
 }
 
 func newProjectConfig(args []string) project.Config {
