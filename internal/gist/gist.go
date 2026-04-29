@@ -33,7 +33,6 @@ func Slug(g Gist) string {
 	return g.ID
 }
 
-//nolint:gochecknoglobals // compiled-once regex used for slug sanitization
 var slugSeparators = regexp.MustCompile(`[^a-z0-9]+`)
 
 // slugify converts a free-form description into a kebab-case slug.
@@ -55,7 +54,7 @@ func slugify(description string) string {
 }
 
 func firstNonEmptyLine(text string) string {
-	for _, line := range strings.Split(text, "\n") {
+	for line := range strings.SplitSeq(text, "\n") {
 		if t := strings.TrimSpace(line); t != "" {
 			return t
 		}
@@ -82,14 +81,13 @@ func Host() string {
 // ".../gist.github.com/<owner>" (with or without a trailing slug).
 func DetectOwner(rootDir string) (string, error) {
 	const segment = "/" + gistHost + "/"
-	idx := strings.Index(rootDir, segment)
-	if idx < 0 {
+	_, after, found := strings.Cut(rootDir, segment)
+	if !found {
 		return "", fmt.Errorf("could not detect gist owner from path: %s", rootDir)
 	}
-	after := rootDir[idx+len(segment):]
-	parts := strings.SplitN(after, "/", 2)
-	if parts[0] == "" {
+	owner, _, _ := strings.Cut(after, "/")
+	if owner == "" {
 		return "", fmt.Errorf("could not extract owner from path: %s", rootDir)
 	}
-	return parts[0], nil
+	return owner, nil
 }

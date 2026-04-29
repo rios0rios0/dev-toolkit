@@ -2,6 +2,7 @@ package gist
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -53,7 +54,7 @@ func (p *GitHubProvider) ListGists(ctx context.Context, owner string) ([]Gist, e
 func ResolveProvider() (Provider, error) {
 	token := os.Getenv("GH_TOKEN")
 	if token == "" {
-		return nil, fmt.Errorf("GH_TOKEN environment variable not set")
+		return nil, errors.New("GH_TOKEN environment variable not set")
 	}
 	return NewGitHubProvider(token), nil
 }

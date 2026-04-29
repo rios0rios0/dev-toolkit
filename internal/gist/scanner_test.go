@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/rios0rios0/devforge/internal/gist"
 )
@@ -44,7 +45,7 @@ func TestScanLocalGists(t *testing.T) {
 		root := t.TempDir()
 		createGistRepo(t, filepath.Join(root, "alice", "real-gist"))
 		err := os.MkdirAll(filepath.Join(root, "alice", "not-a-gist"), 0o750)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// when
 		gists := gist.ScanLocalGists(root)

@@ -2,6 +2,7 @@ package gist
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -47,7 +48,7 @@ func RunClone(cfg CloneConfig) error {
 	log := cfg.log()
 
 	if cfg.Owner == "" {
-		return fmt.Errorf("owner must be provided to clone gists")
+		return errors.New("owner must be provided to clone gists")
 	}
 
 	log.WithField("owner", cfg.Owner).Info("gist clone workflow started")

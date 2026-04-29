@@ -83,7 +83,7 @@ func TestSlug(t *testing.T) {
 
 		// then
 		assert.LessOrEqual(t, len(slug), 60)
-		assert.False(t, slug[len(slug)-1] == '-', "should not end with a hyphen")
+		assert.NotEqual(t, byte('-'), slug[len(slug)-1], "should not end with a hyphen")
 	})
 }
 
