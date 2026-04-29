@@ -33,8 +33,8 @@ func TestRunSync(t *testing.T) {
 		t.Parallel()
 		// given
 		root := t.TempDir()
-		createGistRepo(t, root+"/alice/snippet-one")
-		createGistRepo(t, root+"/alice/snippet-two")
+		createGistRepo(t, root+"/snippet-one")
+		createGistRepo(t, root+"/snippet-two")
 		runner := doubles.NewGitRunnerStub().
 			WithOutput(
 				[]string{"symbolic-ref", "refs/remotes/origin/HEAD"},

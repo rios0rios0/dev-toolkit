@@ -24,7 +24,7 @@ func TestComputeDiff(t *testing.T) {
 			{ID: "1", Owner: "alice", Description: "First"},
 			{ID: "2", Owner: "alice", Description: "Second"},
 		}
-		local := []string{"alice/first"}
+		local := []string{"first"}
 
 		// when
 		missing, extra := gist.ComputeDiff(remote, local)
@@ -39,27 +39,45 @@ func TestComputeDiff(t *testing.T) {
 		t.Parallel()
 		// given
 		remote := []gist.Gist{{ID: "1", Owner: "alice", Description: "First"}}
-		local := []string{"alice/first", "alice/orphan"}
+		local := []string{"first", "orphan"}
 
 		// when
 		missing, extra := gist.ComputeDiff(remote, local)
 
 		// then
 		assert.Empty(t, missing)
-		assert.Equal(t, []string{"alice/orphan"}, extra)
+		assert.Equal(t, []string{"orphan"}, extra)
 	})
 
 	t.Run("should report nothing when remote and local match", func(t *testing.T) {
 		t.Parallel()
 		// given
 		remote := []gist.Gist{{ID: "1", Owner: "alice", Description: "Same"}}
-		local := []string{"alice/same"}
+		local := []string{"same"}
 
 		// when
 		missing, extra := gist.ComputeDiff(remote, local)
 
 		// then
 		assert.Empty(t, missing)
+		assert.Empty(t, extra)
+	})
+
+	t.Run("should disambiguate colliding slugs and not drop entries", func(t *testing.T) {
+		t.Parallel()
+		// given two remote gists with the same description (and so the same
+		// natural slug) — both must appear as missing instead of one
+		// overwriting the other in the remote map.
+		remote := []gist.Gist{
+			{ID: "aaaaaaa1", Owner: "alice", Description: "Duplicate"},
+			{ID: "bbbbbbb2", Owner: "alice", Description: "Duplicate"},
+		}
+
+		// when
+		missing, extra := gist.ComputeDiff(remote, nil)
+
+		// then
+		assert.Len(t, missing, 2)
 		assert.Empty(t, extra)
 	})
 }
@@ -170,7 +188,7 @@ func TestRunClone(t *testing.T) {
 		// given
 		var buf bytes.Buffer
 		root := t.TempDir()
-		createGistRepo(t, root+"/alice/snippet")
+		createGistRepo(t, root+"/snippet")
 		provider := doubles.NewGistProviderStub().WithGists([]gist.Gist{
 			{ID: "abc", Owner: "alice", Description: "Snippet"},
 		})

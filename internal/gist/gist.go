@@ -18,9 +18,12 @@ type Gist struct {
 	Description string
 }
 
-// Key returns the local directory key for a gist: "<owner>/<slug>".
+// Key returns the natural on-disk key for a gist (just the slug). The owner
+// is implied by the root directory the command is operating on, so it is not
+// repeated in the key. When two gists share the same slug, callers should use
+// AssignKeys to disambiguate them.
 func Key(g Gist) string {
-	return g.Owner + "/" + Slug(g)
+	return Slug(g)
 }
 
 // Slug derives a URL/path-safe slug from the gist description, falling back
@@ -31,6 +34,32 @@ func Slug(g Gist) string {
 		return s
 	}
 	return g.ID
+}
+
+// AssignKeys returns a deterministic mapping from gist ID to a unique on-disk
+// key. Most gists keep their natural slug. When two or more gists share the
+// same slug (e.g., identical first-line descriptions), each colliding entry
+// gets a "<slug>-<short-id>" suffix to keep the path unique.
+func AssignKeys(gists []Gist) map[string]string {
+	const shortIDLen = 7
+	counts := make(map[string]int, len(gists))
+	for _, g := range gists {
+		counts[Slug(g)]++
+	}
+	keys := make(map[string]string, len(gists))
+	for _, g := range gists {
+		slug := Slug(g)
+		if counts[slug] > 1 {
+			id := g.ID
+			if len(id) > shortIDLen {
+				id = id[:shortIDLen]
+			}
+			keys[g.ID] = slug + "-" + id
+		} else {
+			keys[g.ID] = slug
+		}
+	}
+	return keys
 }
 
 var slugSeparators = regexp.MustCompile(`[^a-z0-9]+`)

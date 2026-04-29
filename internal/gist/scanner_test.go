@@ -20,22 +20,22 @@ func createGistRepo(t *testing.T, path string) {
 func TestScanLocalGists(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should return owner/slug entries for nested gists", func(t *testing.T) {
+	t.Run("should return slug entries one level under the root", func(t *testing.T) {
 		t.Parallel()
 		// given
 		root := t.TempDir()
-		createGistRepo(t, filepath.Join(root, "alice", "snippet-one"))
-		createGistRepo(t, filepath.Join(root, "alice", "snippet-two"))
-		createGistRepo(t, filepath.Join(root, "bob", "config"))
+		createGistRepo(t, filepath.Join(root, "snippet-one"))
+		createGistRepo(t, filepath.Join(root, "snippet-two"))
+		createGistRepo(t, filepath.Join(root, "config"))
 
 		// when
 		gists := gist.ScanLocalGists(root)
 
 		// then
 		assert.ElementsMatch(t, []string{
-			"alice/snippet-one",
-			"alice/snippet-two",
-			"bob/config",
+			"snippet-one",
+			"snippet-two",
+			"config",
 		}, gists)
 	})
 
@@ -43,15 +43,15 @@ func TestScanLocalGists(t *testing.T) {
 		t.Parallel()
 		// given
 		root := t.TempDir()
-		createGistRepo(t, filepath.Join(root, "alice", "real-gist"))
-		err := os.MkdirAll(filepath.Join(root, "alice", "not-a-gist"), 0o750)
+		createGistRepo(t, filepath.Join(root, "real-gist"))
+		err := os.MkdirAll(filepath.Join(root, "not-a-gist"), 0o750)
 		require.NoError(t, err)
 
 		// when
 		gists := gist.ScanLocalGists(root)
 
 		// then
-		assert.Equal(t, []string{"alice/real-gist"}, gists)
+		assert.Equal(t, []string{"real-gist"}, gists)
 	})
 
 	t.Run("should return an empty slice when the root does not exist", func(t *testing.T) {

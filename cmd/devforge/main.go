@@ -248,8 +248,9 @@ func newGistCloneCmd() *cobra.Command {
 		Short: "Clone missing GitHub gists for a user",
 		Long: `Discovers gists from GitHub for the owner inferred from the root path
 (.../gist.github.com/<owner>), compares with local directories, and clones
-missing gists via SSH. Each gist lands at <root-dir>/<owner>/<slug>, where
-the slug is derived from the gist description (or the gist ID when blank).`,
+missing gists via SSH. Each gist lands directly under that directory at
+<root-dir>/<slug>, where the slug is derived from the gist description
+(or the gist ID when blank).`,
 		Args: cobra.RangeArgs(1, gist.MaxCloneArgs()),
 		RunE: func(_ *cobra.Command, args []string) error {
 			sshAlias := args[0]

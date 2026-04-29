@@ -2,6 +2,7 @@ package gist
 
 import (
 	"io"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -12,11 +13,13 @@ import (
 
 // RunSync syncs all gists under rootDir in parallel, delegating per-gist work
 // to repo.SyncSingleRepo so it benefits from the same fetch/rebase/WIP logic.
+// Only the gist layout (rootDir/<slug>/.git) is scanned, so unrelated git
+// repositories nested deeper under rootDir are not synced.
 func RunSync(rootDir string, runner repo.GitRunner, output io.Writer) error {
 	log := repo.NewLogger(output)
 
-	gists := repo.FindAllRepos(rootDir)
-	total := len(gists)
+	slugs := ScanLocalGists(rootDir)
+	total := len(slugs)
 	if total == 0 {
 		log.WithField("dir", rootDir).Warn("no gist repositories found")
 		return nil
@@ -29,19 +32,20 @@ func RunSync(rootDir string, runner repo.GitRunner, output io.Writer) error {
 	results := make([]repo.SyncResult, total)
 	var wg sync.WaitGroup
 
-	for i, path := range gists {
+	for i, slug := range slugs {
 		wg.Add(1)
 		sem <- struct{}{}
-		go func(idx int, p string) {
+		go func(idx int, slug string) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			result := repo.SyncSingleRepo(p, rootDir, runner)
+			path := filepath.Join(rootDir, slug)
+			result := repo.SyncSingleRepo(path, rootDir, runner)
 			log.WithFields(logger.Fields{
 				"gist":   result.Name,
 				"status": result.Status,
 			}).Info("sync result")
 			results[idx] = result
-		}(i, path)
+		}(i, slug)
 	}
 
 	wg.Wait()

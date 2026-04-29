@@ -8,9 +8,9 @@ import (
 
 // GistProviderStub is a configurable test double for gist.Provider.
 type GistProviderStub struct {
-	Gists    []gist.Gist
-	ListErr  error
-	LastUser string
+	Gists     []gist.Gist
+	ListErr   error
+	LastOwner string
 }
 
 // NewGistProviderStub creates a stub with no gists and no error.
@@ -29,7 +29,7 @@ func (s *GistProviderStub) WithListError(err error) *GistProviderStub {
 }
 
 func (s *GistProviderStub) ListGists(_ context.Context, owner string) ([]gist.Gist, error) {
-	s.LastUser = owner
+	s.LastOwner = owner
 	if s.ListErr != nil {
 		return nil, s.ListErr
 	}

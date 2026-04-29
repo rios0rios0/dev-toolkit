@@ -90,7 +90,7 @@ func TestSlug(t *testing.T) {
 func TestKey(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should join the owner and slug with a slash", func(t *testing.T) {
+	t.Run("should return the slug derived from the description", func(t *testing.T) {
 		t.Parallel()
 		// given
 		g := gist.Gist{ID: "abc", Owner: "alice", Description: "Snippet"}
@@ -99,7 +99,7 @@ func TestKey(t *testing.T) {
 		key := gist.Key(g)
 
 		// then
-		assert.Equal(t, "alice/snippet", key)
+		assert.Equal(t, "snippet", key)
 	})
 
 	t.Run("should fall back to the ID when there is no description", func(t *testing.T) {
@@ -111,7 +111,59 @@ func TestKey(t *testing.T) {
 		key := gist.Key(g)
 
 		// then
-		assert.Equal(t, "alice/abc", key)
+		assert.Equal(t, "abc", key)
+	})
+}
+
+func TestAssignKeys(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should keep natural slugs when there are no collisions", func(t *testing.T) {
+		t.Parallel()
+		// given
+		gists := []gist.Gist{
+			{ID: "1", Description: "First"},
+			{ID: "2", Description: "Second"},
+		}
+
+		// when
+		keys := gist.AssignKeys(gists)
+
+		// then
+		assert.Equal(t, "first", keys["1"])
+		assert.Equal(t, "second", keys["2"])
+	})
+
+	t.Run("should disambiguate duplicate slugs with a short ID suffix", func(t *testing.T) {
+		t.Parallel()
+		// given
+		gists := []gist.Gist{
+			{ID: "1234567abcdef", Description: "Same Title"},
+			{ID: "abcdef1234567", Description: "Same Title"},
+		}
+
+		// when
+		keys := gist.AssignKeys(gists)
+
+		// then
+		assert.Equal(t, "same-title-1234567", keys["1234567abcdef"])
+		assert.Equal(t, "same-title-abcdef1", keys["abcdef1234567"])
+	})
+
+	t.Run("should pad short IDs without panicking", func(t *testing.T) {
+		t.Parallel()
+		// given
+		gists := []gist.Gist{
+			{ID: "ab", Description: "Same"},
+			{ID: "cd", Description: "Same"},
+		}
+
+		// when
+		keys := gist.AssignKeys(gists)
+
+		// then
+		assert.Equal(t, "same-ab", keys["ab"])
+		assert.Equal(t, "same-cd", keys["cd"])
 	})
 }
 

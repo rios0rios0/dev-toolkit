@@ -90,11 +90,14 @@ func RunClone(cfg CloneConfig) error {
 }
 
 // ComputeDiff computes which remote gists are missing locally and which local
-// directories are not present on the remote.
+// directories are not present on the remote. Keys are assigned via AssignKeys
+// so two gists with colliding slugs each get a unique on-disk path.
 func ComputeDiff(remote []Gist, local []string) ([]Gist, []string) {
+	keys := AssignKeys(remote)
+
 	remoteSet := make(map[string]Gist, len(remote))
 	for _, g := range remote {
-		remoteSet[Key(g)] = g
+		remoteSet[keys[g.ID]] = g
 	}
 
 	localSet := make(map[string]struct{}, len(local))
@@ -127,12 +130,15 @@ func CloneMissing(missing []Gist, cfg CloneConfig) (int, int) {
 		return 0, 0
 	}
 
+	keys := AssignKeys(missing)
+
 	if cfg.DryRun {
 		for _, g := range missing {
 			url := SSHCloneURL(g, cfg.SSHAlias)
-			target := filepath.Join(cfg.RootDir, Key(g))
+			key := keys[g.ID]
+			target := filepath.Join(cfg.RootDir, key)
 			log.WithFields(logger.Fields{
-				"gist":   Key(g),
+				"gist":   key,
 				"url":    url,
 				"target": target,
 			}).Info("would clone gist")
@@ -149,13 +155,14 @@ func CloneMissing(missing []Gist, cfg CloneConfig) (int, int) {
 		return 0, len(missing)
 	}
 
-	return ParallelClone(missing, cfg.SSHAlias, cfg.RootDir, cfg.Runner, log)
+	return parallelCloneWithKeys(missing, keys, cfg.SSHAlias, cfg.RootDir, cfg.Runner, log)
 }
 
-// SSHPreflight verifies SSH access to gist.github.com via the same mechanism
-// used for repository cloning.
+// SSHPreflight verifies SSH access to gist.github.com via the SSH config alias.
+// It must check gist.github.com (not github.com) because gists are served from
+// a separate SSH host that may have its own SSH config alias.
 func SSHPreflight(sshAlias string, log logger.FieldLogger) error {
-	return repo.SSHPreflight("github", sshAlias, log)
+	return repo.SSHPreflightHost(gistHost, sshAlias, log)
 }
 
 type cloneResult struct {
@@ -166,6 +173,16 @@ type cloneResult struct {
 // ParallelClone clones the given gists concurrently using a worker pool.
 func ParallelClone(
 	gists []Gist, sshAlias, rootDir string, runner repo.GitRunner, log logger.FieldLogger,
+) (int, int) {
+	return parallelCloneWithKeys(gists, AssignKeys(gists), sshAlias, rootDir, runner, log)
+}
+
+func parallelCloneWithKeys(
+	gists []Gist,
+	keys map[string]string,
+	sshAlias, rootDir string,
+	runner repo.GitRunner,
+	log logger.FieldLogger,
 ) (int, int) {
 	workers := runtime.NumCPU()
 	sem := make(chan struct{}, workers)
@@ -180,10 +197,10 @@ func ParallelClone(
 	for i, g := range gists {
 		wg.Add(1)
 		sem <- struct{}{}
-		go func(idx int, gist Gist) {
+		go func(idx int, g Gist) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			results[idx] = cloneSingle(gist, sshAlias, rootDir, runner, log)
+			results[idx] = cloneSingle(g, keys[g.ID], sshAlias, rootDir, runner, log)
 		}(i, g)
 	}
 	wg.Wait()
@@ -204,11 +221,10 @@ func ParallelClone(
 }
 
 func cloneSingle(
-	g Gist, sshAlias, rootDir string, runner repo.GitRunner, log logger.FieldLogger,
+	g Gist, key, sshAlias, rootDir string, runner repo.GitRunner, log logger.FieldLogger,
 ) cloneResult {
 	url := SSHCloneURL(g, sshAlias)
-	target := filepath.Join(rootDir, Key(g))
-	key := Key(g)
+	target := filepath.Join(rootDir, key)
 
 	log.WithFields(logger.Fields{
 		"gist":   key,

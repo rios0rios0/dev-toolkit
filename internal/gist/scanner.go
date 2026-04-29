@@ -5,26 +5,12 @@ import (
 	"path/filepath"
 )
 
-// ScanLocalGists scans rootDir/<owner>/<slug> two levels deep for directories
-// containing a .git directory and returns "<owner>/<slug>" keys.
+// ScanLocalGists scans rootDir one level deep for directories containing a
+// .git directory and returns their basenames as keys. The owner is implied
+// by rootDir, so the keys match what Key (and AssignKeys) produce.
 func ScanLocalGists(rootDir string) []string {
 	var gists []string
-	owners, err := os.ReadDir(rootDir)
-	if err != nil {
-		return gists
-	}
-	for _, o := range owners {
-		if !o.IsDir() {
-			continue
-		}
-		gists = append(gists, scanOwnerGists(rootDir, o.Name())...)
-	}
-	return gists
-}
-
-func scanOwnerGists(rootDir, ownerName string) []string {
-	var gists []string
-	entries, err := os.ReadDir(filepath.Join(rootDir, ownerName))
+	entries, err := os.ReadDir(rootDir)
 	if err != nil {
 		return gists
 	}
@@ -32,9 +18,9 @@ func scanOwnerGists(rootDir, ownerName string) []string {
 		if !e.IsDir() {
 			continue
 		}
-		gitDir := filepath.Join(rootDir, ownerName, e.Name(), ".git")
+		gitDir := filepath.Join(rootDir, e.Name(), ".git")
 		if info, statErr := os.Stat(gitDir); statErr == nil && info.IsDir() {
-			gists = append(gists, ownerName+"/"+e.Name())
+			gists = append(gists, e.Name())
 		}
 	}
 	return gists
