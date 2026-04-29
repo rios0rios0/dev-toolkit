@@ -16,6 +16,10 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
+### Changed
+
+- changed the Go module dependencies to their latest versions
+
 ### Added
 
 - added `dev gist clone` command -- discovers GitHub gists for a user and clones missing ones via SSH in parallel, where the user-supplied root directory is the owner directory (`gist.github.com/<owner>`) and each gist lands at `<root-dir>/<slug>`. The slug is derived from the gist description (or the gist ID when blank); colliding slugs are disambiguated with a short ID suffix
