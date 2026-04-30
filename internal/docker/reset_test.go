@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/rios0rios0/devforge/internal/docker"
-	"github.com/rios0rios0/devforge/internal/testutil/doubles"
+	"github.com/rios0rios0/dev-toolkit/internal/docker"
+	"github.com/rios0rios0/dev-toolkit/internal/testutil/doubles"
 )
 
 func TestRunReset(t *testing.T) {

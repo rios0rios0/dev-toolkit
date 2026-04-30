@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/rios0rios0/devforge/internal/repo"
-	"github.com/rios0rios0/devforge/internal/testutil/builders"
-	"github.com/rios0rios0/devforge/internal/testutil/doubles"
+	"github.com/rios0rios0/dev-toolkit/internal/repo"
+	"github.com/rios0rios0/dev-toolkit/internal/testutil/builders"
+	"github.com/rios0rios0/dev-toolkit/internal/testutil/doubles"
 )
 
 func TestRunForkSync(t *testing.T) {

@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-DevForge is a Go CLI tool (binary: `dev`) that manages Git repositories across multiple providers, provides language-aware project commands, and includes system housekeeping utilities. Built with Cobra (CLI), logrus (logging), gitforge (multi-provider Git operations), langforge (language detection), and cliforge (self-update).
+Dev-Toolkit is a Go CLI tool (binary: `dev`) that manages Git repositories across multiple providers, provides language-aware project commands, and includes system housekeeping utilities. Built with Cobra (CLI), logrus (logging), gitforge (multi-provider Git operations), langforge (language detection), and cliforge (self-update).
 
 ## Build and Development Commands
 
 ```bash
 make build          # Build binary to bin/dev (~1 second), always run after changes
-make run            # go run ./cmd/devforge (shows help)
+make run            # go run ./cmd/dev-toolkit (shows help)
 make debug          # Build with debug symbols (-N -l)
 make build-musl     # Fully static binary via musl-gcc (requires musl toolchain)
 make install        # Build and copy to ~/.local/bin/dev
@@ -59,7 +59,7 @@ dev version                                                     # print current 
 ## Architecture
 
 ```
-cmd/devforge/
+cmd/dev-toolkit/
   main.go                    -- all CLI wiring (Cobra commands, dependency construction, update check)
 internal/
   repo/

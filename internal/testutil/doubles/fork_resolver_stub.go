@@ -3,7 +3,7 @@ package doubles
 import (
 	"context"
 
-	"github.com/rios0rios0/devforge/internal/repo"
+	"github.com/rios0rios0/dev-toolkit/internal/repo"
 )
 
 // ForkResolverStub is a test double for repo.ForkResolver.

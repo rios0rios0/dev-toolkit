@@ -3,7 +3,7 @@ package doubles
 import (
 	"fmt"
 
-	"github.com/rios0rios0/devforge/internal/project"
+	"github.com/rios0rios0/dev-toolkit/internal/project"
 )
 
 // LanguageDetectorMultiStub is a path-aware test double for project.LanguageDetector.

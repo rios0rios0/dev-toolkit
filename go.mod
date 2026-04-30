@@ -1,4 +1,4 @@
-module github.com/rios0rios0/devforge
+module github.com/rios0rios0/dev-toolkit
 
 go 1.26.2
 

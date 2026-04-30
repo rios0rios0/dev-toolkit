@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/rios0rios0/devforge/internal/repo"
+	"github.com/rios0rios0/dev-toolkit/internal/repo"
 )
 
 func TestDetectProviderAndOwner(t *testing.T) {
@@ -88,13 +88,13 @@ func TestKey(t *testing.T) {
 	t.Run("should return name when project is empty", func(t *testing.T) {
 		t.Parallel()
 		// given
-		r := globalEntities.Repository{Name: "devforge"}
+		r := globalEntities.Repository{Name: "dev-toolkit"}
 
 		// when
 		key := repo.Key(r)
 
 		// then
-		assert.Equal(t, "devforge", key)
+		assert.Equal(t, "dev-toolkit", key)
 	})
 
 	t.Run("should return project/name when project is set", func(t *testing.T) {

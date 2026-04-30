@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/rios0rios0/devforge/internal/repo"
+	"github.com/rios0rios0/dev-toolkit/internal/repo"
 )
 
 func createGitRepo(t *testing.T, path string) {

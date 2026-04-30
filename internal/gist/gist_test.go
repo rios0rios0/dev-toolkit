@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/rios0rios0/devforge/internal/gist"
+	"github.com/rios0rios0/dev-toolkit/internal/gist"
 )
 
 func TestSlug(t *testing.T) {

@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/rios0rios0/devforge/internal/system"
-	"github.com/rios0rios0/devforge/internal/testutil/doubles"
+	"github.com/rios0rios0/dev-toolkit/internal/system"
+	"github.com/rios0rios0/dev-toolkit/internal/testutil/doubles"
 )
 
 // testHome is the synthetic home directory used by every cleanup harness.
