@@ -16,13 +16,15 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-04-30
+
 ### Changed
 
-- changed the Go module dependencies to their latest versions
-- changed Go module path from `github.com/rios0rios0/devforge` to `github.com/rios0rios0/dev-toolkit` to align with the convention that reserves the `forge` suffix for libraries (`gitforge`, `langforge`, `cliforge`)
-- changed project name from `devforge` to `dev-toolkit` (binary remains `dev`)
 - changed `cmd/devforge/` directory to `cmd/dev-toolkit/`
+- changed Go module path from `github.com/rios0rios0/devforge` to `github.com/rios0rios0/dev-toolkit` to align with the convention that reserves the `forge` suffix for libraries (`gitforge`, `langforge`, `cliforge`)
 - changed install script environment variable prefix from `DEVFORGE_*` to `DEV_TOOLKIT_*`
+- changed project name from `devforge` to `dev-toolkit` (binary remains `dev`)
+- changed the Go module dependencies to their latest versions
 
 ## [0.8.0] - 2026-04-29
 
