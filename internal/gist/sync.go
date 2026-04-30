@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/rios0rios0/devforge/internal/repo"
+	"github.com/rios0rios0/dev-toolkit/internal/repo"
 	logger "github.com/sirupsen/logrus"
 )
 

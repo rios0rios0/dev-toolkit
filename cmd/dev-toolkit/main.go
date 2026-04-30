@@ -5,11 +5,11 @@ import (
 	"path/filepath"
 
 	"github.com/rios0rios0/cliforge/pkg/selfupdate"
-	"github.com/rios0rios0/devforge/internal/docker"
-	"github.com/rios0rios0/devforge/internal/gist"
-	"github.com/rios0rios0/devforge/internal/project"
-	"github.com/rios0rios0/devforge/internal/repo"
-	"github.com/rios0rios0/devforge/internal/system"
+	"github.com/rios0rios0/dev-toolkit/internal/docker"
+	"github.com/rios0rios0/dev-toolkit/internal/gist"
+	"github.com/rios0rios0/dev-toolkit/internal/project"
+	"github.com/rios0rios0/dev-toolkit/internal/repo"
+	"github.com/rios0rios0/dev-toolkit/internal/system"
 	logger "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -18,7 +18,7 @@ import (
 var (
 	version    = "dev"
 	repoOwner  = "rios0rios0"
-	repoName   = "devforge"
+	repoName   = "dev-toolkit"
 	binaryName = "dev"
 )
 
@@ -634,7 +634,7 @@ func newSystemClearLogsCmd() *cobra.Command {
 func newVersionCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",
-		Short: "Show devforge version",
+		Short: "Show dev-toolkit version",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, _ []string) {
 			cmd.Printf("%s\n", version)
@@ -647,8 +647,8 @@ func newSelfUpdateCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "self-update",
-		Short: "Update devforge to the latest version",
-		Long:  "Download and install the latest version of devforge from GitHub releases.",
+		Short: "Update dev-toolkit to the latest version",
+		Long:  "Download and install the latest version of dev-toolkit from GitHub releases.",
 		Args:  cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			c := selfupdate.NewCommand(repoOwner, repoName, binaryName, version)

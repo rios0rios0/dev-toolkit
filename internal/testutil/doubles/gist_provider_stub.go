@@ -3,7 +3,7 @@ package doubles
 import (
 	"context"
 
-	"github.com/rios0rios0/devforge/internal/gist"
+	"github.com/rios0rios0/dev-toolkit/internal/gist"
 )
 
 // GistProviderStub is a configurable test double for gist.Provider.

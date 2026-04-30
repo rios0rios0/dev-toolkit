@@ -1,6 +1,6 @@
 package doubles
 
-import "github.com/rios0rios0/devforge/internal/project"
+import "github.com/rios0rios0/dev-toolkit/internal/project"
 
 // ConfigReaderStub is a test double for project.ConfigReader.
 type ConfigReaderStub struct {

@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/rios0rios0/devforge/internal/project"
+	"github.com/rios0rios0/dev-toolkit/internal/project"
 )
 
 func TestReadRequiredSDKVersion(t *testing.T) {

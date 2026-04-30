@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/rios0rios0/devforge/internal/project"
-	"github.com/rios0rios0/devforge/internal/testutil/doubles"
+	"github.com/rios0rios0/dev-toolkit/internal/project"
+	"github.com/rios0rios0/dev-toolkit/internal/testutil/doubles"
 )
 
 func TestRunTest(t *testing.T) {

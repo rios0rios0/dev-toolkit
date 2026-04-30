@@ -1,6 +1,6 @@
-# DevForge
+# Dev-Toolkit
 
-DevForge is a Go-based CLI tool (binary: `dev`) that manages Git repositories across multiple providers and bootstraps projects by detecting their language. It consolidates gitforge (Git hosting abstractions) and langforge (language detection) into a single workspace toolkit.
+Dev-Toolkit is a Go-based CLI tool (binary: `dev`) that manages Git repositories across multiple providers and bootstraps projects by detecting their language. It consolidates gitforge (Git hosting abstractions) and langforge (language detection) into a single workspace toolkit.
 
 Always reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.
 
@@ -47,7 +47,7 @@ Always reference these instructions first and fallback to search or bash command
 ## Project Structure
 
 ### Key Files and Directories
-- `cmd/devforge/main.go` -- All CLI wiring (Cobra commands, dependency construction, update check)
+- `cmd/dev-toolkit/main.go` -- All CLI wiring (Cobra commands, dependency construction, update check)
 - `internal/repo/` -- Repository operations: clone, sync, fork-sync, prune, mirror, failover, restore
 - `internal/project/` -- Language-aware commands: start, build, lint, test, sast, stop, use, info
 - `internal/docker/` -- Docker management: container IPs, environment reset

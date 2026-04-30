@@ -1,16 +1,16 @@
-<h1 align="center">DevForge</h1>
+<h1 align="center">Dev-Toolkit</h1>
 <p align="center">
-    <a href="https://github.com/rios0rios0/devforge/releases/latest">
-        <img src="https://img.shields.io/github/release/rios0rios0/devforge.svg?style=for-the-badge&logo=github" alt="Latest Release"/></a>
-    <a href="https://github.com/rios0rios0/devforge/blob/main/LICENSE">
-        <img src="https://img.shields.io/github/license/rios0rios0/devforge.svg?style=for-the-badge&logo=github" alt="License"/></a>
-    <a href="https://github.com/rios0rios0/devforge/actions/workflows/default.yaml">
-        <img src="https://img.shields.io/github/actions/workflow/status/rios0rios0/devforge/default.yaml?branch=main&style=for-the-badge&logo=github" alt="Build Status"/></a>
+    <a href="https://github.com/rios0rios0/dev-toolkit/releases/latest">
+        <img src="https://img.shields.io/github/release/rios0rios0/dev-toolkit.svg?style=for-the-badge&logo=github" alt="Latest Release"/></a>
+    <a href="https://github.com/rios0rios0/dev-toolkit/blob/main/LICENSE">
+        <img src="https://img.shields.io/github/license/rios0rios0/dev-toolkit.svg?style=for-the-badge&logo=github" alt="License"/></a>
+    <a href="https://github.com/rios0rios0/dev-toolkit/actions/workflows/default.yaml">
+        <img src="https://img.shields.io/github/actions/workflow/status/rios0rios0/dev-toolkit/default.yaml?branch=main&style=for-the-badge&logo=github" alt="Build Status"/></a>
     <a href="https://www.bestpractices.dev/projects/12033">
         <img src="https://img.shields.io/cii/level/12033?style=for-the-badge&logo=opensourceinitiative" alt="OpenSSF Best Practices"/></a>
 </p>
 
-DevForge is a developer workspace toolkit that manages Git repositories across multiple providers and bootstraps projects by detecting their language. It consolidates [gitforge](https://github.com/rios0rios0/gitforge) and [langforge](https://github.com/rios0rios0/langforge) into a single CLI.
+Dev-Toolkit is a developer workspace toolkit that manages Git repositories across multiple providers and bootstraps projects by detecting their language. It consolidates [gitforge](https://github.com/rios0rios0/gitforge) and [langforge](https://github.com/rios0rios0/langforge) into a single CLI.
 
 ## Features
 
@@ -26,16 +26,16 @@ DevForge is a developer workspace toolkit that manages Git repositories across m
 ## Installation
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/rios0rios0/devforge/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/rios0rios0/dev-toolkit/main/install.sh | sh
 ```
 
 Or build from source:
 
 ```bash
-go install github.com/rios0rios0/devforge/cmd/devforge@latest
+go install github.com/rios0rios0/dev-toolkit/cmd/dev-toolkit@latest
 ```
 
-Download pre-built binaries from the [releases page](https://github.com/rios0rios0/devforge/releases).
+Download pre-built binaries from the [releases page](https://github.com/rios0rios0/dev-toolkit/releases).
 
 ## Usage
 

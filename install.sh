@@ -1,13 +1,13 @@
 #!/bin/sh
 #
-# DevForge Installation Script
+# Dev-Toolkit Installation Script
 #
-# Downloads and installs devforge from GitHub releases.
+# Downloads and installs dev-toolkit from GitHub releases.
 # Automatically detects your operating system and architecture.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/rios0rios0/devforge/main/install.sh | sh
-#   wget -qO- https://raw.githubusercontent.com/rios0rios0/devforge/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/rios0rios0/dev-toolkit/main/install.sh | sh
+#   wget -qO- https://raw.githubusercontent.com/rios0rios0/dev-toolkit/main/install.sh | sh
 #
 # Options:
 #   --help              Show this help message
@@ -17,25 +17,25 @@
 #   --dry-run           Show what would be done without installing
 #
 # Environment variables:
-#   DEVFORGE_INSTALL_DIR   Installation directory (default: ~/.local/bin)
-#   DEVFORGE_VERSION       Specific version to install (default: latest)
-#   DEVFORGE_FORCE         Force installation (true/false, default: false)
-#   DEVFORGE_DRY_RUN       Dry run mode (true/false, default: false)
+#   DEV_TOOLKIT_INSTALL_DIR   Installation directory (default: ~/.local/bin)
+#   DEV_TOOLKIT_VERSION       Specific version to install (default: latest)
+#   DEV_TOOLKIT_FORCE         Force installation (true/false, default: false)
+#   DEV_TOOLKIT_DRY_RUN       Dry run mode (true/false, default: false)
 #
 
 set -e
 
 # Project configuration
 REPO_OWNER="rios0rios0"
-REPO_NAME="devforge"
+REPO_NAME="dev-toolkit"
 BINARY_NAME="dev"
 
 # Defaults
 DEFAULT_INSTALL_DIR="$HOME/.local/bin"
-INSTALL_DIR="${DEVFORGE_INSTALL_DIR:-$DEFAULT_INSTALL_DIR}"
-VERSION="${DEVFORGE_VERSION:-latest}"
-FORCE="${DEVFORGE_FORCE:-false}"
-DRY_RUN="${DEVFORGE_DRY_RUN:-false}"
+INSTALL_DIR="${DEV_TOOLKIT_INSTALL_DIR:-$DEFAULT_INSTALL_DIR}"
+VERSION="${DEV_TOOLKIT_VERSION:-latest}"
+FORCE="${DEV_TOOLKIT_FORCE:-false}"
+DRY_RUN="${DEV_TOOLKIT_DRY_RUN:-false}"
 
 # GitHub API
 GITHUB_API_BASE="https://api.github.com"
@@ -70,10 +70,10 @@ OPTIONS:
     --dry-run           Show what would be done without installing
 
 ENVIRONMENT VARIABLES:
-    DEVFORGE_INSTALL_DIR   Installation directory
-    DEVFORGE_VERSION       Specific version to install (default: latest)
-    DEVFORGE_FORCE         Force installation (true/false)
-    DEVFORGE_DRY_RUN       Dry run mode (true/false)
+    DEV_TOOLKIT_INSTALL_DIR   Installation directory
+    DEV_TOOLKIT_VERSION       Specific version to install (default: latest)
+    DEV_TOOLKIT_FORCE         Force installation (true/false)
+    DEV_TOOLKIT_DRY_RUN       Dry run mode (true/false)
 
 EXAMPLES:
     $0
