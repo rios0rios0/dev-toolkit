@@ -132,6 +132,7 @@ func ListMergedBranches(repoPath, baseBranch string, runner GitRunner) []string 
 	for line := range strings.SplitSeq(output, "\n") {
 		branch := strings.TrimSpace(line)
 		branch = strings.TrimPrefix(branch, "* ")
+		branch = strings.TrimPrefix(branch, "+ ")
 		// skip empty lines, the base branch itself, and HEAD pointer/detached HEAD lines
 		if branch == "" || branch == baseBranch || strings.HasPrefix(branch, "HEAD") {
 			continue
