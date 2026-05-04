@@ -65,6 +65,19 @@ func TestListMergedBranches(t *testing.T) {
 		// then
 		assert.Equal(t, []string{"feat/old"}, branches)
 	})
+
+	t.Run("should strip the worktree '+ ' prefix from merged branches", func(t *testing.T) {
+		t.Parallel()
+		// given
+		runner := doubles.NewGitRunnerStub().
+			WithOutput([]string{"branch", "--merged", "main"}, "  feat/old\n+ feat/in-worktree\n* main")
+
+		// when
+		branches := repo.ListMergedBranches("/repo", "main", runner)
+
+		// then
+		assert.Equal(t, []string{"feat/old", "feat/in-worktree"}, branches)
+	})
 }
 
 func TestPruneSingleRepo(t *testing.T) {

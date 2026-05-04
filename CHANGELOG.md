@@ -20,6 +20,10 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 - changed the Go module dependencies to their latest versions
 
+### Fixed
+
+- fixed `ListMergedBranches` to strip the worktree `+ ` prefix from `git branch --merged` output, so branches checked out in another worktree are no longer skipped during prune
+
 ## [0.8.3] - 2026-05-03
 
 ### Changed
