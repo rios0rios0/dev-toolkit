@@ -41,8 +41,8 @@ func RunSync(rootDir string, runner repo.GitRunner, output io.Writer) error {
 			path := filepath.Join(rootDir, slug)
 			result := repo.SyncSingleRepo(path, rootDir, runner)
 			log.WithFields(logger.Fields{
-				"gist":   result.Name,
-				"status": result.Status,
+				logFieldGist: result.Name,
+				"status":     result.Status,
 			}).Info("sync result")
 			results[idx] = result
 		}(i, slug)
@@ -64,9 +64,9 @@ func RunSync(rootDir string, runner repo.GitRunner, output io.Writer) error {
 	}
 
 	log.WithFields(logger.Fields{
-		"synced": synced,
-		"wip":    wip,
-		"failed": failed,
+		"synced":       synced,
+		"wip":          wip,
+		logFieldFailed: failed,
 	}).Info("summary")
 	return nil
 }

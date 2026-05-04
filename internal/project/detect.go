@@ -91,9 +91,9 @@ func ReadRequiredSDKVersion(repoPath, language string) string {
 		fn   func(string) string
 	}
 	extractors := map[string]extractor{
-		"go":     {"go.mod", extractGoSDKVersion},
-		"node":   {".nvmrc", extractNodeSDKVersion},
-		"python": {"pyproject.toml", extractPythonSDKVersion},
+		"go":           {"go.mod", extractGoSDKVersion},
+		languageNode:   {".nvmrc", extractNodeSDKVersion},
+		languagePython: {"pyproject.toml", extractPythonSDKVersion},
 	}
 
 	ext, ok := extractors[language]

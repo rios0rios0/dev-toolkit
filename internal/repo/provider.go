@@ -21,34 +21,34 @@ const (
 
 //nolint:gochecknoglobals // read-only configuration lookup table
 var providerPathMap = map[string]string{
-	"github.com":    "github",
-	"dev.azure.com": "azuredevops",
-	"gitlab.com":    "gitlab",
-	"codeberg.org":  "codeberg",
+	"github.com":    ProviderGitHub,
+	"dev.azure.com": ProviderAzureDevOps,
+	"gitlab.com":    ProviderGitLab,
+	"codeberg.org":  ProviderCodeberg,
 }
 
 //nolint:gochecknoglobals // read-only configuration lookup table
 var providerScanDepth = map[string]int{
-	"github":      1,
-	"azuredevops": ScanDepthNested,
-	"gitlab":      1,
-	"codeberg":    1,
+	ProviderGitHub:      1,
+	ProviderAzureDevOps: ScanDepthNested,
+	ProviderGitLab:      1,
+	ProviderCodeberg:    1,
 }
 
 //nolint:gochecknoglobals // read-only configuration lookup table
 var providerTokenEnv = map[string]string{
-	"github":      "GH_TOKEN",
-	"azuredevops": "AZURE_DEVOPS_EXT_PAT",
-	"gitlab":      "GITLAB_TOKEN",
-	"codeberg":    "CODEBERG_TOKEN",
+	ProviderGitHub:      "GH_TOKEN",
+	ProviderAzureDevOps: "AZURE_DEVOPS_EXT_PAT",
+	ProviderGitLab:      "GITLAB_TOKEN",
+	ProviderCodeberg:    "CODEBERG_TOKEN",
 }
 
 //nolint:gochecknoglobals // read-only configuration lookup table
 var providerHostMap = map[string]string{
-	"github":      "github.com",
-	"azuredevops": "dev.azure.com",
-	"gitlab":      "gitlab.com",
-	"codeberg":    "codeberg.org",
+	ProviderGitHub:      "github.com",
+	ProviderAzureDevOps: "dev.azure.com",
+	ProviderGitLab:      "gitlab.com",
+	ProviderCodeberg:    "codeberg.org",
 }
 
 // DetectProviderAndOwner parses a root directory path to determine the Git provider and owner.
@@ -94,10 +94,10 @@ func Key(r globalEntities.Repository) string {
 // NewProviderRegistry creates a registry with all supported provider factories.
 func NewProviderRegistry() *gitRegistry.ProviderRegistry {
 	r := gitRegistry.NewProviderRegistry()
-	r.RegisterFactory("github", ghProvider.NewProvider)
-	r.RegisterFactory("azuredevops", adoProvider.NewProvider)
-	r.RegisterFactory("gitlab", glProvider.NewProvider)
-	r.RegisterFactory("codeberg", cbProvider.NewProvider)
+	r.RegisterFactory(ProviderGitHub, ghProvider.NewProvider)
+	r.RegisterFactory(ProviderAzureDevOps, adoProvider.NewProvider)
+	r.RegisterFactory(ProviderGitLab, glProvider.NewProvider)
+	r.RegisterFactory(ProviderCodeberg, cbProvider.NewProvider)
 	return r
 }
 

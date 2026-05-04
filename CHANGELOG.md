@@ -23,6 +23,8 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 ### Fixed
 
 - fixed `ListMergedBranches` to strip the worktree `+ ` prefix from `git branch --merged` output, so branches checked out in another worktree are no longer skipped during prune
+- fixed all `golangci-lint` `goconst` findings by extracting repeated string literals (provider names, log field keys, status categories, Docker `prune`/`--force` flags, language identifiers) into package-level constants
+- fixed `golangci-lint` `modernize` finding in `RunStopWithDeps` by replacing the manual reverse loop with `slices.Backward`
 
 ## [0.8.3] - 2026-05-03
 

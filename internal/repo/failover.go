@@ -47,8 +47,8 @@ func RunFailover(cfg FailoverConfig) error {
 			defer func() { <-sem }()
 			result := failoverSingleRepo(path, cfg.RootDir, cfg.Runner)
 			log.WithFields(logger.Fields{
-				"repo":   result.Name,
-				"status": result.Status,
+				logFieldRepo:   result.Name,
+				logFieldStatus: result.Status,
 			}).Info(result.Status)
 			results[idx] = result
 		}(i, repoPath)
@@ -57,24 +57,24 @@ func RunFailover(cfg FailoverConfig) error {
 	wg.Wait()
 
 	failoverStatusCategory := map[string]string{
-		"switched":                      "switched",
-		"skipped (no codeberg remote)":  "skipped",
-		"skipped (already failed over)": "skipped",
+		statusSwitched:                  statusSwitched,
+		"skipped (no codeberg remote)":  statusSkipped,
+		"skipped (already failed over)": statusSkipped,
 	}
 
-	counts := map[string]int{"switched": 0, "skipped": 0, "failed": 0}
+	counts := map[string]int{statusSwitched: 0, statusSkipped: 0, mirrorStatusFailed: 0}
 	for _, r := range results {
 		category, known := failoverStatusCategory[r.Status]
 		if !known {
-			category = "failed"
+			category = mirrorStatusFailed
 		}
 		counts[category]++
 	}
 
 	log.WithFields(logger.Fields{
-		"switched": counts["switched"],
-		"skipped":  counts["skipped"],
-		"failed":   counts["failed"],
+		statusSwitched:     counts[statusSwitched],
+		statusSkipped:      counts[statusSkipped],
+		mirrorStatusFailed: counts[mirrorStatusFailed],
 	}).Info("failover completed")
 	return nil
 }
@@ -83,28 +83,28 @@ func failoverSingleRepo(repoPath, rootDir string, runner GitRunner) FailoverResu
 	name, _ := filepath.Rel(rootDir, repoPath)
 
 	// check if already failed over (github remote exists)
-	githubURL := runner.Output(repoPath, "remote", "get-url", "github")
+	githubURL := runner.Output(repoPath, "remote", "get-url", ProviderGitHub)
 	if githubURL != "" {
 		return FailoverResult{Name: name, Status: "skipped (already failed over)"}
 	}
 
 	// check if codeberg remote exists
-	codebergURL := runner.Output(repoPath, "remote", "get-url", "codeberg")
+	codebergURL := runner.Output(repoPath, "remote", "get-url", ProviderCodeberg)
 	if codebergURL == "" {
 		return FailoverResult{Name: name, Status: "skipped (no codeberg remote)"}
 	}
 
 	// rename origin -> github
-	if err := runner.Run(repoPath, "remote", "rename", "origin", "github"); err != nil {
+	if err := runner.Run(repoPath, "remote", "rename", "origin", ProviderGitHub); err != nil {
 		return FailoverResult{Name: name, Status: fmt.Sprintf("FAIL (rename origin: %v)", err)}
 	}
 
 	// rename codeberg -> origin
-	if err := runner.Run(repoPath, "remote", "rename", "codeberg", "origin"); err != nil {
+	if err := runner.Run(repoPath, "remote", "rename", ProviderCodeberg, "origin"); err != nil {
 		// rollback
-		_ = runner.Run(repoPath, "remote", "rename", "github", "origin")
+		_ = runner.Run(repoPath, "remote", "rename", ProviderGitHub, "origin")
 		return FailoverResult{Name: name, Status: fmt.Sprintf("FAIL (rename codeberg: %v)", err)}
 	}
 
-	return FailoverResult{Name: name, Status: "switched"}
+	return FailoverResult{Name: name, Status: statusSwitched}
 }

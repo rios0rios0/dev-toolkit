@@ -19,7 +19,7 @@ type ForkResolver interface {
 
 //nolint:gochecknoglobals // read-only configuration lookup table
 var resolverFactoryMap = map[string]func(token string) ForkResolver{
-	"github": func(token string) ForkResolver { return NewGitHubForkResolver(token) },
+	ProviderGitHub: func(token string) ForkResolver { return NewGitHubForkResolver(token) },
 }
 
 // ResolveForkResolver creates a ForkResolver for the given provider using the environment token.
