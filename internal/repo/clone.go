@@ -54,8 +54,8 @@ func RunClone(cfg CloneConfig) error {
 	}
 
 	log.WithFields(logger.Fields{
-		"provider": providerName,
-		"owner":    owner,
+		"provider":    providerName,
+		logFieldOwner: owner,
 	}).Info("clone workflow started")
 	if cfg.DryRun {
 		log.Info("dry-run mode enabled")
@@ -85,9 +85,9 @@ func RunClone(cfg CloneConfig) error {
 	HandleExtraRepos(extra, cfg.RootDir, cfg.DryRun, cfg.Input, cfg.Output, log)
 
 	log.WithFields(logger.Fields{
-		"cloned": cloned,
-		"failed": failed,
-		"extra":  len(extra),
+		"cloned":           cloned,
+		mirrorStatusFailed: failed,
+		"extra":            len(extra),
 	}).Info("clone workflow completed")
 	return nil
 }
@@ -160,9 +160,9 @@ func CloneMissing(missing []globalEntities.Repository, cfg CloneConfig) (int, in
 			url := cfg.Provider.SSHCloneURL(r, cfg.SSHAlias)
 			target := filepath.Join(cfg.RootDir, Key(r))
 			log.WithFields(logger.Fields{
-				"repo":   Key(r),
-				"url":    url,
-				"target": target,
+				logFieldRepo:   Key(r),
+				"url":          url,
+				logFieldTarget: target,
 			}).Info("would clone repository")
 		}
 		return 0, 0
@@ -306,8 +306,8 @@ func ParallelClone(
 	}
 
 	log.WithFields(logger.Fields{
-		"cloned": cloned,
-		"failed": failed,
+		"cloned":           cloned,
+		mirrorStatusFailed: failed,
 	}).Info("parallel clone completed")
 	return cloned, failed
 }
@@ -324,21 +324,21 @@ func cloneSingleRepo(
 	repoKey := Key(repo)
 
 	log.WithFields(logger.Fields{
-		"repo":   repoKey,
-		"url":    url,
-		"target": target,
+		logFieldRepo:   repoKey,
+		"url":          url,
+		logFieldTarget: target,
 	}).Info("cloning repository")
 
 	if cloneErr := runner.Clone(url, target); cloneErr != nil {
 		log.WithFields(logger.Fields{
-			"repo": repoKey,
+			logFieldRepo: repoKey,
 		}).WithError(cloneErr).Error("clone failed")
 		return cloneResult{name: repoKey, err: cloneErr.Error()}
 	}
 
 	log.WithFields(logger.Fields{
-		"repo":   repoKey,
-		"target": target,
+		logFieldRepo:   repoKey,
+		logFieldTarget: target,
 	}).Info("repository cloned")
 	return cloneResult{name: repoKey, success: true}
 }
@@ -356,9 +356,9 @@ func HandleExtraRepos(
 	for _, name := range extra {
 		switch {
 		case dryRun:
-			log.WithField("repo", name).Warn("extra repository")
+			log.WithField(logFieldRepo, name).Warn("extra repository")
 		case !isInteractive:
-			log.WithField("repo", name).Warn("extra repository (kept, non-interactive)")
+			log.WithField(logFieldRepo, name).Warn("extra repository (kept, non-interactive)")
 		default:
 			PromptDeleteExtra(name, rootDir, input, output, log)
 		}
@@ -384,13 +384,13 @@ func PromptDeleteExtra(name, rootDir string, input io.Reader, output io.Writer, 
 	if scanner.Scan() && strings.EqualFold(strings.TrimSpace(scanner.Text()), "y") {
 		if removeErr := os.RemoveAll(filepath.Join(rootDir, name)); removeErr != nil {
 			log.WithFields(logger.Fields{
-				"repo": name,
+				logFieldRepo: name,
 			}).WithError(removeErr).Error("could not delete repository")
 		} else {
-			log.WithField("repo", name).Info("deleted extra repository")
+			log.WithField(logFieldRepo, name).Info("deleted extra repository")
 		}
 	} else {
-		log.WithField("repo", name).Info("kept extra repository")
+		log.WithField(logFieldRepo, name).Info("kept extra repository")
 	}
 }
 

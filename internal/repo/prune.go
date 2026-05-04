@@ -53,8 +53,8 @@ func RunPrune(rootDir string, runner GitRunner, dryRun bool, output io.Writer) e
 			result := PruneSingleRepo(path, rootDir, runner, dryRun)
 			if len(result.Deleted) > 0 || isPruneFailure(result.Status) {
 				log.WithFields(logger.Fields{
-					"repo":   result.Name,
-					"status": result.Status,
+					logFieldRepo:   result.Name,
+					logFieldStatus: result.Status,
 				}).Info("prune result")
 			}
 			results[idx] = result
@@ -76,9 +76,9 @@ func RunPrune(rootDir string, runner GitRunner, dryRun bool, output io.Writer) e
 	}
 
 	log.WithFields(logger.Fields{
-		"pruned": pruned,
-		"clean":  skipped,
-		"failed": failed,
+		"pruned":           pruned,
+		"clean":            skipped,
+		mirrorStatusFailed: failed,
 	}).Info("summary")
 	return nil
 }
@@ -132,6 +132,7 @@ func ListMergedBranches(repoPath, baseBranch string, runner GitRunner) []string 
 	for line := range strings.SplitSeq(output, "\n") {
 		branch := strings.TrimSpace(line)
 		branch = strings.TrimPrefix(branch, "* ")
+		branch = strings.TrimPrefix(branch, "+ ")
 		// skip empty lines, the base branch itself, and HEAD pointer/detached HEAD lines
 		if branch == "" || branch == baseBranch || strings.HasPrefix(branch, "HEAD") {
 			continue

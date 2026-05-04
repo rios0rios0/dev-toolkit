@@ -21,20 +21,20 @@ type SASTTool interface {
 // DefaultSASTTools returns the standard set of SAST tools for a given language.
 func DefaultSASTTools(language string) []SASTTool {
 	codeqlLanguageMap := map[string]string{
-		"go":     "go",
-		"python": "python",
-		"java":   "java",
-		"node":   "javascript",
-		"csharp": "csharp",
+		"go":           "go",
+		languagePython: languagePython,
+		languageJava:   languageJava,
+		languageNode:   "javascript",
+		languageCSharp: languageCSharp,
 	}
 
 	semgrepLanguageMap := map[string]string{
-		"go":        "golang",
-		"python":    "python",
-		"java":      "java",
-		"node":      "javascript",
-		"csharp":    "csharp",
-		"terraform": "terraform",
+		"go":           "golang",
+		languagePython: languagePython,
+		languageJava:   languageJava,
+		languageNode:   "javascript",
+		languageCSharp: languageCSharp,
+		"terraform":    "terraform",
 	}
 
 	semgrepLang := semgrepLanguageMap[language]

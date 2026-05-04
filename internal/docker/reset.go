@@ -6,6 +6,11 @@ import (
 	"strings"
 )
 
+const (
+	forceFlag    = "--force"
+	pruneCommand = "prune"
+)
+
 // RunReset stops all running containers and prunes all Docker resources.
 func RunReset(runner Runner, dryRun bool, output io.Writer) error {
 	type pruneStep struct {
@@ -13,10 +18,10 @@ func RunReset(runner Runner, dryRun bool, output io.Writer) error {
 		args  []string
 	}
 	steps := []pruneStep{
-		{"containers", []string{"container", "prune", "--force"}},
-		{"volumes", []string{"volume", "prune", "--force"}},
-		{"networks", []string{"network", "prune", "--force"}},
-		{"build cache", []string{"builder", "prune", "-f"}},
+		{"containers", []string{"container", pruneCommand, forceFlag}},
+		{"volumes", []string{"volume", pruneCommand, forceFlag}},
+		{"networks", []string{"network", pruneCommand, forceFlag}},
+		{"build cache", []string{"builder", pruneCommand, "-f"}},
 	}
 	ids, err := runner.Output("container", "ls", "-aq")
 	if err != nil {

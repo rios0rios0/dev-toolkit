@@ -40,8 +40,8 @@ func RunForkSync(cfg ForkSyncConfig) error {
 	}
 
 	log.WithFields(logger.Fields{
-		"provider": providerName,
-		"owner":    owner,
+		"provider":    providerName,
+		logFieldOwner: owner,
 	}).Info("fork-sync workflow started")
 
 	remoteRepos, discoverErr := DiscoverRepos(cfg.Provider, owner, false, log)
@@ -80,7 +80,7 @@ func RunForkSync(cfg ForkSyncConfig) error {
 
 	if cfg.DryRun {
 		for _, f := range localForks {
-			log.WithField("repo", Key(f)).Info("would sync fork with upstream")
+			log.WithField(logFieldRepo, Key(f)).Info("would sync fork with upstream")
 		}
 		return nil
 	}
@@ -116,8 +116,8 @@ func parallelForkSync(forks []globalEntities.Repository, cfg ForkSyncConfig) []F
 			repoPath := filepath.Join(cfg.RootDir, Key(fork))
 			result := ForkSyncSingleRepo(repoPath, fork, cfg)
 			cfg.Output.WithFields(logger.Fields{
-				"repo":   result.Name,
-				"status": result.Status,
+				logFieldRepo:   result.Name,
+				logFieldStatus: result.Status,
 			}).Info("fork-sync result")
 			results[idx] = result
 		}(i, f)
@@ -295,7 +295,7 @@ func restoreAfterForkSync(
 	repoPath, name, upstreamDefault, currentBranch, wipBranch string,
 	isDirty bool, runner GitRunner,
 ) ForkSyncResult {
-	status := "synced"
+	status := statusSynced
 	if isDirty {
 		_ = runner.Run(repoPath, "checkout", wipBranch)
 		if err := runner.Run(repoPath, "rebase", upstreamDefault); err != nil {
@@ -323,8 +323,8 @@ func logForkSyncSummary(results []ForkSyncResult, log logger.FieldLogger) {
 	}
 
 	log.WithFields(logger.Fields{
-		"synced":    synced,
-		"conflicts": conflicts,
-		"failed":    failed,
+		statusSynced:       synced,
+		"conflicts":        conflicts,
+		mirrorStatusFailed: failed,
 	}).Info("fork-sync summary")
 }

@@ -78,13 +78,13 @@ func RunClone(cfg CloneConfig) error {
 
 	cloned, failed := CloneMissing(missing, cfg)
 	for _, name := range extra {
-		log.WithField("gist", name).Warn("extra local gist (not on remote)")
+		log.WithField(logFieldGist, name).Warn("extra local gist (not on remote)")
 	}
 
 	log.WithFields(logger.Fields{
-		"cloned": cloned,
-		"failed": failed,
-		"extra":  len(extra),
+		"cloned":       cloned,
+		logFieldFailed: failed,
+		"extra":        len(extra),
 	}).Info("gist clone workflow completed")
 	return nil
 }
@@ -138,9 +138,9 @@ func CloneMissing(missing []Gist, cfg CloneConfig) (int, int) {
 			key := keys[g.ID]
 			target := filepath.Join(cfg.RootDir, key)
 			log.WithFields(logger.Fields{
-				"gist":   key,
-				"url":    url,
-				"target": target,
+				logFieldGist:   key,
+				"url":          url,
+				logFieldTarget: target,
 			}).Info("would clone gist")
 		}
 		return 0, 0
@@ -214,8 +214,8 @@ func parallelCloneWithKeys(
 		}
 	}
 	log.WithFields(logger.Fields{
-		"cloned": cloned,
-		"failed": failed,
+		"cloned":       cloned,
+		logFieldFailed: failed,
 	}).Info("parallel gist clone completed")
 	return cloned, failed
 }
@@ -227,19 +227,19 @@ func cloneSingle(
 	target := filepath.Join(rootDir, key)
 
 	log.WithFields(logger.Fields{
-		"gist":   key,
-		"url":    url,
-		"target": target,
+		logFieldGist:   key,
+		"url":          url,
+		logFieldTarget: target,
 	}).Info("cloning gist")
 
 	if err := runner.Clone(url, target); err != nil {
-		log.WithField("gist", key).WithError(err).Error("clone failed")
+		log.WithField(logFieldGist, key).WithError(err).Error("clone failed")
 		return cloneResult{name: key}
 	}
 
 	log.WithFields(logger.Fields{
-		"gist":   key,
-		"target": target,
+		logFieldGist:   key,
+		logFieldTarget: target,
 	}).Info("gist cloned")
 	return cloneResult{name: key, success: true}
 }

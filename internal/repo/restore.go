@@ -47,8 +47,8 @@ func RunRestore(cfg RestoreConfig) error {
 			defer func() { <-sem }()
 			result := restoreSingleRepo(path, cfg.RootDir, cfg.Runner)
 			log.WithFields(logger.Fields{
-				"repo":   result.Name,
-				"status": result.Status,
+				logFieldRepo:   result.Name,
+				logFieldStatus: result.Status,
 			}).Info(result.Status)
 			results[idx] = result
 		}(i, repoPath)
@@ -57,23 +57,23 @@ func RunRestore(cfg RestoreConfig) error {
 	wg.Wait()
 
 	restoreStatusCategory := map[string]string{
-		"restored":                        "restored",
-		"skipped (not in failover state)": "skipped",
+		statusRestored:                    statusRestored,
+		"skipped (not in failover state)": statusSkipped,
 	}
 
-	counts := map[string]int{"restored": 0, "skipped": 0, "failed": 0}
+	counts := map[string]int{statusRestored: 0, statusSkipped: 0, mirrorStatusFailed: 0}
 	for _, r := range results {
 		category, known := restoreStatusCategory[r.Status]
 		if !known {
-			category = "failed"
+			category = mirrorStatusFailed
 		}
 		counts[category]++
 	}
 
 	log.WithFields(logger.Fields{
-		"restored": counts["restored"],
-		"skipped":  counts["skipped"],
-		"failed":   counts["failed"],
+		statusRestored:     counts[statusRestored],
+		statusSkipped:      counts[statusSkipped],
+		mirrorStatusFailed: counts[mirrorStatusFailed],
 	}).Info("restore completed")
 	return nil
 }
@@ -82,28 +82,28 @@ func restoreSingleRepo(repoPath, rootDir string, runner GitRunner) RestoreResult
 	name, _ := filepath.Rel(rootDir, repoPath)
 
 	// check if in failover state (github remote exists as backup)
-	githubURL := runner.Output(repoPath, "remote", "get-url", "github")
+	githubURL := runner.Output(repoPath, "remote", "get-url", ProviderGitHub)
 	if githubURL == "" {
 		return RestoreResult{Name: name, Status: "skipped (not in failover state)"}
 	}
 
 	// push any Codeberg-only commits back to GitHub
-	pushErr := runner.Run(repoPath, "push", "github", "--all", "--tags")
+	pushErr := runner.Run(repoPath, "push", ProviderGitHub, "--all", "--tags")
 
 	// rename origin -> codeberg
-	if err := runner.Run(repoPath, "remote", "rename", "origin", "codeberg"); err != nil {
+	if err := runner.Run(repoPath, "remote", "rename", "origin", ProviderCodeberg); err != nil {
 		return RestoreResult{Name: name, Status: fmt.Sprintf("FAIL (rename origin: %v)", err)}
 	}
 
 	// rename github -> origin
-	if err := runner.Run(repoPath, "remote", "rename", "github", "origin"); err != nil {
+	if err := runner.Run(repoPath, "remote", "rename", ProviderGitHub, "origin"); err != nil {
 		// rollback
-		_ = runner.Run(repoPath, "remote", "rename", "codeberg", "origin")
+		_ = runner.Run(repoPath, "remote", "rename", ProviderCodeberg, "origin")
 		return RestoreResult{Name: name, Status: fmt.Sprintf("FAIL (rename github: %v)", err)}
 	}
 
 	if pushErr != nil {
 		return RestoreResult{Name: name, Status: fmt.Sprintf("restored (push failed: %v)", pushErr)}
 	}
-	return RestoreResult{Name: name, Status: "restored"}
+	return RestoreResult{Name: name, Status: statusRestored}
 }

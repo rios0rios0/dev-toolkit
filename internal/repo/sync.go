@@ -43,8 +43,8 @@ func RunSync(rootDir string, runner GitRunner, output io.Writer) error {
 			defer func() { <-sem }()
 			result := SyncSingleRepo(path, rootDir, runner)
 			log.WithFields(logger.Fields{
-				"repo":   result.Name,
-				"status": result.Status,
+				logFieldRepo:   result.Name,
+				logFieldStatus: result.Status,
 			}).Info("sync result")
 			results[idx] = result
 		}(i, repoPath)
@@ -66,9 +66,9 @@ func RunSync(rootDir string, runner GitRunner, output io.Writer) error {
 	}
 
 	log.WithFields(logger.Fields{
-		"synced": synced,
-		"wip":    wip,
-		"failed": failed,
+		statusSynced:       synced,
+		"wip":              wip,
+		mirrorStatusFailed: failed,
 	}).Info("summary")
 	return nil
 }
@@ -167,7 +167,7 @@ func RestoreBranch(repoPath, currentBranch, wipBranch string, isDirty bool, runn
 func FinalizeSync(
 	repoPath, name, defaultBranch, wipBranch string, isDirty bool, runner GitRunner,
 ) SyncResult {
-	status := "synced"
+	status := statusSynced
 	if isDirty {
 		_ = runner.Run(repoPath, "checkout", wipBranch)
 		if err := runner.Run(repoPath, "rebase", defaultBranch); err != nil {

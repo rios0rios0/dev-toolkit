@@ -3,6 +3,7 @@ package project
 import (
 	"errors"
 	"fmt"
+	"slices"
 )
 
 // RunStartWithDeps resolves project dependencies from .dev.yaml and starts them in order.
@@ -53,8 +54,7 @@ func RunStopWithDeps(cfg Config) error {
 	}
 
 	var errs []error
-	for i := len(order) - 1; i >= 0; i-- {
-		path := order[i]
+	for i, path := range slices.Backward(order) {
 		derived := cfg
 		derived.RepoPath = path
 		if i == len(order)-1 {

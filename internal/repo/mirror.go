@@ -45,7 +45,7 @@ func RunMirror(cfg MirrorConfig) error {
 		return err
 	}
 
-	if providerName != "github" {
+	if providerName != ProviderGitHub {
 		return fmt.Errorf("mirror only supports GitHub as source provider, detected %q", providerName)
 	}
 
@@ -56,8 +56,8 @@ func RunMirror(cfg MirrorConfig) error {
 	}
 
 	log.WithFields(logger.Fields{
-		"count": len(repos),
-		"owner": owner,
+		"count":       len(repos),
+		logFieldOwner: owner,
 	}).Info("starting mirror")
 
 	mirrorProvider, ok := cfg.TargetProvider.(globalEntities.MirrorProvider)
@@ -68,7 +68,7 @@ func RunMirror(cfg MirrorConfig) error {
 	if cfg.DryRun {
 		for _, repoPath := range repos {
 			name := extractRepoName(repoPath, cfg.SourceDir)
-			log.WithField("repo", name).Info("would create mirror")
+			log.WithField(logFieldRepo, name).Info("would create mirror")
 		}
 		return nil
 	}
@@ -88,8 +88,8 @@ func RunMirror(cfg MirrorConfig) error {
 			time.Sleep(time.Duration(idx) * mirrorAPIDelay / time.Duration(workers))
 			result := mirrorSingleRepo(path, cfg, providerName, owner, mirrorProvider)
 			log.WithFields(logger.Fields{
-				"repo":   result.Name,
-				"status": result.Status,
+				logFieldRepo:   result.Name,
+				logFieldStatus: result.Status,
 			}).Info(result.Status)
 			results[idx] = result
 		}(i, repoPath)
@@ -98,12 +98,12 @@ func RunMirror(cfg MirrorConfig) error {
 	wg.Wait()
 
 	mirrorStatusCategory := map[string]string{
-		"mirrored":                     "mirrored",
-		"mirrored (remote add failed)": "mirrored",
-		"skipped (remote exists)":      "skipped",
+		statusMirrored:                 statusMirrored,
+		"mirrored (remote add failed)": statusMirrored,
+		"skipped (remote exists)":      statusSkipped,
 	}
 
-	counts := map[string]int{"mirrored": 0, "skipped": 0, mirrorStatusFailed: 0}
+	counts := map[string]int{statusMirrored: 0, statusSkipped: 0, mirrorStatusFailed: 0}
 	for _, r := range results {
 		category, known := mirrorStatusCategory[r.Status]
 		if !known {
@@ -113,8 +113,8 @@ func RunMirror(cfg MirrorConfig) error {
 	}
 
 	log.WithFields(logger.Fields{
-		"mirrored":         counts["mirrored"],
-		"skipped":          counts["skipped"],
+		statusMirrored:     counts[statusMirrored],
+		statusSkipped:      counts[statusSkipped],
 		mirrorStatusFailed: counts[mirrorStatusFailed],
 	}).Info("mirror completed")
 	return nil
@@ -159,7 +159,7 @@ func mirrorSingleRepo(
 		return MirrorResult{Name: name, Status: "mirrored (remote add failed)"}
 	}
 
-	return MirrorResult{Name: name, Status: "mirrored"}
+	return MirrorResult{Name: name, Status: statusMirrored}
 }
 
 func extractRepoName(repoPath, sourceDir string) string {
