@@ -16,15 +16,17 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
+## [0.8.4] - 2026-05-08
+
 ### Changed
 
 - changed the Go version to `1.26.3` and updated all module dependencies
 
 ### Fixed
 
+- fixed `golangci-lint` `modernize` finding in `RunStopWithDeps` by replacing the manual reverse loop with `slices.Backward`
 - fixed `ListMergedBranches` to strip the worktree `+ ` prefix from `git branch --merged` output, so branches checked out in another worktree are no longer skipped during prune
 - fixed all `golangci-lint` `goconst` findings by extracting repeated string literals (provider names, log field keys, status categories, Docker `prune`/`--force` flags, language identifiers) into package-level constants
-- fixed `golangci-lint` `modernize` finding in `RunStopWithDeps` by replacing the manual reverse loop with `slices.Backward`
 
 ## [0.8.3] - 2026-05-03
 
