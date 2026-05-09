@@ -4,9 +4,9 @@ go 1.26.3
 
 require (
 	github.com/google/go-github/v66 v66.0.0
-	github.com/rios0rios0/cliforge v0.3.5
+	github.com/rios0rios0/cliforge v0.3.6
 	github.com/rios0rios0/gitforge v1.0.0
-	github.com/rios0rios0/langforge v0.6.5
+	github.com/rios0rios0/langforge v0.6.6
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
@@ -32,10 +32,10 @@ require (
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	gitlab.com/gitlab-org/api/client-go v1.46.0 // indirect
-	golang.org/x/mod v0.35.0 // indirect
-	golang.org/x/net v0.53.0 // indirect
+	golang.org/x/mod v0.36.0 // indirect
+	golang.org/x/net v0.54.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
-	golang.org/x/sys v0.43.0 // indirect
+	golang.org/x/sys v0.44.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )
