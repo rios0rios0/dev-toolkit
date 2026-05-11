@@ -30,6 +30,9 @@ Always reference these instructions first and fallback to search or bash command
 - Sync repos: `./bin/dev repo sync ~/Development/github.com/rios0rios0`
 - Fork sync: `./bin/dev repo fork-sync ~/Development/github.com/rios0rios0`
 - Mirror to Codeberg: `./bin/dev repo mirror mine ~/Development/github.com/rios0rios0`
+- Failover to Codeberg: `./bin/dev repo failover ~/Development/github.com/rios0rios0`
+- Restore GitHub primary: `./bin/dev repo restore ~/Development/github.com/rios0rios0`
+- Gist commands: `./bin/dev gist {clone,sync} mine ~/Development/gist.github.com/rios0rios0`
 - Project commands: `./bin/dev project {info,use,start,build,lint,test,sast,stop} .`
 - Docker: `./bin/dev docker {ips,reset}`
 - System: `./bin/dev system {cleanup,clear-history,clear-logs,top5size}`
@@ -50,6 +53,7 @@ Always reference these instructions first and fallback to search or bash command
 - `cmd/dev-toolkit/main.go` -- All CLI wiring (Cobra commands, dependency construction, update check)
 - `internal/repo/` -- Repository operations: clone, sync, fork-sync, prune, mirror, failover, restore
 - `internal/project/` -- Language-aware commands: start, build, lint, test, sast, stop, use, info
+- `internal/gist/` -- Gist operations: clone, sync (slug derived from description)
 - `internal/docker/` -- Docker management: container IPs, environment reset
 - `internal/system/` -- System utilities: cleanup, clear-history, clear-logs, top5size
 - `internal/testutil/` -- Test doubles (stubs) and builders for all interfaces
@@ -72,6 +76,7 @@ Always reference these instructions first and fallback to search or bash command
 | GitHub | `GH_TOKEN` |
 | Azure DevOps | `AZURE_DEVOPS_EXT_PAT` |
 | GitLab | `GITLAB_TOKEN` |
+| Codeberg | `CODEBERG_TOKEN` |
 
 ### Key Commands Reference
 ```bash

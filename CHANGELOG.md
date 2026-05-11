@@ -19,6 +19,7 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 ### Changed
 
 - changed the Go module dependencies to their latest versions
+- refreshed `.github/copilot-instructions.md` to document gist commands, `internal/gist/` package, Codeberg authentication, and failover/restore commands
 
 ## [0.8.4] - 2026-05-08
 
