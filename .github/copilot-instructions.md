@@ -29,11 +29,17 @@ Always reference these instructions first and fallback to search or bash command
 - Clone repos: `./bin/dev repo clone mine ~/Development/github.com/rios0rios0`
 - Sync repos: `./bin/dev repo sync ~/Development/github.com/rios0rios0`
 - Fork sync: `./bin/dev repo fork-sync ~/Development/github.com/rios0rios0`
+- Prune branches: `./bin/dev repo prune ~/Development/github.com/rios0rios0`
 - Mirror to Codeberg: `./bin/dev repo mirror mine ~/Development/github.com/rios0rios0`
+- Failover to Codeberg: `./bin/dev repo failover ~/Development/github.com/rios0rios0`
+- Restore from failover: `./bin/dev repo restore ~/Development/github.com/rios0rios0`
+- Clone gists: `./bin/dev gist clone mine ~/Development/gist.github.com/rios0rios0`
+- Sync gists: `./bin/dev gist sync ~/Development/gist.github.com/rios0rios0`
 - Project commands: `./bin/dev project {info,use,start,build,lint,test,sast,stop} .`
 - Docker: `./bin/dev docker {ips,reset}`
 - System: `./bin/dev system {cleanup,clear-history,clear-logs,top5size}`
 - Self-update: `./bin/dev self-update`
+- Version: `./bin/dev version`
 
 ## Validation
 
@@ -51,6 +57,7 @@ Always reference these instructions first and fallback to search or bash command
 - `internal/repo/` -- Repository operations: clone, sync, fork-sync, prune, mirror, failover, restore
 - `internal/project/` -- Language-aware commands: start, build, lint, test, sast, stop, use, info
 - `internal/docker/` -- Docker management: container IPs, environment reset
+- `internal/gist/` -- Gist operations: clone, sync (GitHub gists via SSH with description-derived slugs)
 - `internal/system/` -- System utilities: cleanup, clear-history, clear-logs, top5size
 - `internal/testutil/` -- Test doubles (stubs) and builders for all interfaces
 - `install.sh` -- Generic installer for GitHub releases
@@ -72,6 +79,7 @@ Always reference these instructions first and fallback to search or bash command
 | GitHub | `GH_TOKEN` |
 | Azure DevOps | `AZURE_DEVOPS_EXT_PAT` |
 | GitLab | `GITLAB_TOKEN` |
+| Codeberg | `CODEBERG_TOKEN` |
 
 ### Key Commands Reference
 ```bash
