@@ -4,9 +4,9 @@ go 1.26.3
 
 require (
 	github.com/google/go-github/v66 v66.0.0
-	github.com/rios0rios0/cliforge v0.3.6
+	github.com/rios0rios0/cliforge v0.3.7
 	github.com/rios0rios0/gitforge v1.0.0
-	github.com/rios0rios0/langforge v0.6.6
+	github.com/rios0rios0/langforge v0.6.7
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
@@ -19,7 +19,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.9.0 // indirect
-	github.com/go-git/go-git/v5 v5.19.0 // indirect
+	github.com/go-git/go-git/v5 v5.19.1 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
