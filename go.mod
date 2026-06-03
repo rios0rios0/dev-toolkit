@@ -1,6 +1,6 @@
 module github.com/rios0rios0/dev-toolkit
 
-go 1.26.3
+go 1.26.4
 
 require (
 	github.com/google/go-github/v66 v66.0.0
