@@ -20,6 +20,10 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 - changed the Go module dependencies to their latest versions
 
+### Security
+
+- replaced `secrets: inherit` with an explicit `CLAUDE_CODE_OAUTH_TOKEN` pass-through in the Claude Code workflows to satisfy the `secrets-inherit` least-privilege check
+
 ## [0.8.11] - 2026-06-18
 
 ### Changed
