@@ -155,5 +155,6 @@ func TestRunMirror(t *testing.T) {
 
 func createDirStructure(t *testing.T, root, path string) {
 	t.Helper()
-	require.NoError(t, os.MkdirAll(filepath.Join(root, path), 0o750))
+	// nosemgrep: go.lang.correctness.permissions.file_permission.incorrect-default-permission
+	require.NoError(t, os.MkdirAll(filepath.Join(root, path), 0o700))
 }
