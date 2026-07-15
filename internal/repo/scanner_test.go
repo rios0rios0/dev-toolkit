@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/rios0rios0/dev-toolkit/internal/repo"
 )
@@ -14,7 +15,7 @@ func createGitRepo(t *testing.T, path string) {
 	t.Helper()
 	// nosemgrep: go.lang.correctness.permissions.file_permission.incorrect-default-permission
 	err := os.MkdirAll(filepath.Join(path, ".git"), 0o700)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestScanFlatRepos(t *testing.T) {
@@ -42,7 +43,7 @@ func TestScanFlatRepos(t *testing.T) {
 		root := t.TempDir()
 		createGitRepo(t, filepath.Join(root, "repo-a"))
 		// nosemgrep: go.lang.correctness.permissions.file_permission.incorrect-default-permission
-		_ = os.MkdirAll(filepath.Join(root, "not-a-repo"), 0o700)
+		require.NoError(t, os.MkdirAll(filepath.Join(root, "not-a-repo"), 0o700))
 
 		// when
 		repos := repo.ScanFlatRepos(root)
@@ -115,7 +116,7 @@ func TestScanNestedRepos(t *testing.T) {
 		root := t.TempDir()
 		createGitRepo(t, filepath.Join(root, "backend", "catalog"))
 		// nosemgrep: go.lang.correctness.permissions.file_permission.incorrect-default-permission
-		_ = os.MkdirAll(filepath.Join(root, "empty-project"), 0o700)
+		require.NoError(t, os.MkdirAll(filepath.Join(root, "empty-project"), 0o700))
 
 		// when
 		repos := repo.ScanNestedRepos(root)
@@ -192,7 +193,7 @@ func TestFindAllRepos(t *testing.T) {
 		// given
 		root := t.TempDir()
 		// nosemgrep: go.lang.correctness.permissions.file_permission.incorrect-default-permission
-		_ = os.MkdirAll(filepath.Join(root, ".git"), 0o700)
+		require.NoError(t, os.MkdirAll(filepath.Join(root, ".git"), 0o700))
 		createGitRepo(t, filepath.Join(root, "child"))
 
 		// when
@@ -207,7 +208,7 @@ func TestFindAllRepos(t *testing.T) {
 		// given
 		root := t.TempDir()
 		// nosemgrep: go.lang.correctness.permissions.file_permission.incorrect-default-permission
-		_ = os.MkdirAll(filepath.Join(root, "empty"), 0o700)
+		require.NoError(t, os.MkdirAll(filepath.Join(root, "empty"), 0o700))
 
 		// when
 		repos := repo.FindAllRepos(root)
