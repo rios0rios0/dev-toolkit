@@ -98,7 +98,7 @@ func ensureReportDir(repoPath, toolName string) (string, error) {
 	// 0o600 file threshold) is the least-privilege mode, and owner-only is sufficient here.
 	// nosemgrep: go.lang.correctness.permissions.file_permission.incorrect-default-permission
 	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return "", fmt.Errorf("failed to create report directory: %w", err)
+		return "", fmt.Errorf("failed to create report directory %s: %w", dir, err)
 	}
 	return dir, nil
 }

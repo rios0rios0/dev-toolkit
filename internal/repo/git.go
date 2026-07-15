@@ -42,11 +42,12 @@ func (r *DefaultGitRunner) Output(dir string, args ...string) string {
 }
 
 func (r *DefaultGitRunner) Clone(url, target string) error {
-	// Clone target's parent dir; a directory needs the owner execute bit, so 0o700 (not the
-	// rule's 0o600 file threshold) is the least-privilege mode, and owner-only is sufficient.
+	parentDir := filepath.Dir(target)
+	// A directory needs the owner execute bit, so 0o700 (not the rule's 0o600 file threshold)
+	// is the least-privilege mode, and owner-only is sufficient.
 	// nosemgrep: go.lang.correctness.permissions.file_permission.incorrect-default-permission
-	if mkdirErr := os.MkdirAll(filepath.Dir(target), 0o700); mkdirErr != nil {
-		return mkdirErr
+	if mkdirErr := os.MkdirAll(parentDir, 0o700); mkdirErr != nil {
+		return fmt.Errorf("failed to create clone parent directory %s: %w", parentDir, mkdirErr)
 	}
 
 	cmd := exec.CommandContext(

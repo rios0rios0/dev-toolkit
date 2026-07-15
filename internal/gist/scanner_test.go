@@ -15,7 +15,7 @@ func createGistRepo(t *testing.T, path string) {
 	t.Helper()
 	// nosemgrep: go.lang.correctness.permissions.file_permission.incorrect-default-permission
 	err := os.MkdirAll(filepath.Join(path, ".git"), 0o700)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestScanLocalGists(t *testing.T) {
