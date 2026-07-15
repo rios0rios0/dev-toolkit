@@ -12,7 +12,8 @@ import (
 
 func createGitRepo(t *testing.T, path string) {
 	t.Helper()
-	err := os.MkdirAll(filepath.Join(path, ".git"), 0o750)
+	// nosemgrep: go.lang.correctness.permissions.file_permission.incorrect-default-permission
+	err := os.MkdirAll(filepath.Join(path, ".git"), 0o700)
 	assert.NoError(t, err)
 }
 
@@ -40,7 +41,8 @@ func TestScanFlatRepos(t *testing.T) {
 		// given
 		root := t.TempDir()
 		createGitRepo(t, filepath.Join(root, "repo-a"))
-		_ = os.MkdirAll(filepath.Join(root, "not-a-repo"), 0o750)
+		// nosemgrep: go.lang.correctness.permissions.file_permission.incorrect-default-permission
+		_ = os.MkdirAll(filepath.Join(root, "not-a-repo"), 0o700)
 
 		// when
 		repos := repo.ScanFlatRepos(root)
@@ -112,7 +114,8 @@ func TestScanNestedRepos(t *testing.T) {
 		// given
 		root := t.TempDir()
 		createGitRepo(t, filepath.Join(root, "backend", "catalog"))
-		_ = os.MkdirAll(filepath.Join(root, "empty-project"), 0o750)
+		// nosemgrep: go.lang.correctness.permissions.file_permission.incorrect-default-permission
+		_ = os.MkdirAll(filepath.Join(root, "empty-project"), 0o700)
 
 		// when
 		repos := repo.ScanNestedRepos(root)
@@ -188,7 +191,8 @@ func TestFindAllRepos(t *testing.T) {
 		t.Parallel()
 		// given
 		root := t.TempDir()
-		_ = os.MkdirAll(filepath.Join(root, ".git"), 0o750)
+		// nosemgrep: go.lang.correctness.permissions.file_permission.incorrect-default-permission
+		_ = os.MkdirAll(filepath.Join(root, ".git"), 0o700)
 		createGitRepo(t, filepath.Join(root, "child"))
 
 		// when
@@ -202,7 +206,8 @@ func TestFindAllRepos(t *testing.T) {
 		t.Parallel()
 		// given
 		root := t.TempDir()
-		_ = os.MkdirAll(filepath.Join(root, "empty"), 0o750)
+		// nosemgrep: go.lang.correctness.permissions.file_permission.incorrect-default-permission
+		_ = os.MkdirAll(filepath.Join(root, "empty"), 0o700)
 
 		// when
 		repos := repo.FindAllRepos(root)

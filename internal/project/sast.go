@@ -94,7 +94,10 @@ func RunSAST(cfg Config) error {
 // ensureReportDir creates the report directory for a tool under build/reports/<tool>.
 func ensureReportDir(repoPath, toolName string) (string, error) {
 	dir := filepath.Join(repoPath, "build", "reports", toolName)
-	if err := os.MkdirAll(dir, 0o750); err != nil {
+	// Report output dir; a directory needs the owner execute bit, so 0o700 (not the rule's
+	// 0o600 file threshold) is the least-privilege mode, and owner-only is sufficient here.
+	// nosemgrep: go.lang.correctness.permissions.file_permission.incorrect-default-permission
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return "", fmt.Errorf("failed to create report directory: %w", err)
 	}
 	return dir, nil
