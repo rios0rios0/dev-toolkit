@@ -30,6 +30,8 @@ Always reference these instructions first and fallback to search or bash command
 - Sync repos: `./bin/dev repo sync ~/Development/github.com/rios0rios0`
 - Fork sync: `./bin/dev repo fork-sync ~/Development/github.com/rios0rios0`
 - Prune branches: `./bin/dev repo prune ~/Development/github.com/rios0rios0`
+- List worktrees: `./bin/dev repo worktree list ~/Development/github.com/rios0rios0`
+- Prune worktrees: `./bin/dev repo worktree prune ~/Development/github.com/rios0rios0`
 - Mirror to Codeberg: `./bin/dev repo mirror mine ~/Development/github.com/rios0rios0`
 - Failover to Codeberg: `./bin/dev repo failover ~/Development/github.com/rios0rios0`
 - Restore from failover: `./bin/dev repo restore ~/Development/github.com/rios0rios0`
@@ -49,12 +51,13 @@ Always reference these instructions first and fallback to search or bash command
 3. **Clone dry-run**: `./bin/dev repo clone mine --dry-run ~/Development/github.com/rios0rios0`
 4. **Sync**: `./bin/dev repo sync ~/Development/github.com/rios0rios0`
 5. **Project info**: `./bin/dev project info .` (verifies language detection)
+6. **Worktree dry-run**: `./bin/dev repo worktree prune --dry-run ~/Development/github.com/rios0rios0`
 
 ## Project Structure
 
 ### Key Files and Directories
 - `cmd/dev-toolkit/main.go` -- All CLI wiring (Cobra commands, dependency construction, update check)
-- `internal/repo/` -- Repository operations: clone, sync, fork-sync, prune, mirror, failover, restore
+- `internal/repo/` -- Repository operations: clone, sync, fork-sync, prune, worktree, mirror, failover, restore
 - `internal/project/` -- Language-aware commands: start, build, lint, test, sast, stop, use, info
 - `internal/docker/` -- Docker management: container IPs, environment reset
 - `internal/gist/` -- Gist operations: clone, sync (GitHub gists via SSH with description-derived slugs)
@@ -68,6 +71,7 @@ Always reference these instructions first and fallback to search or bash command
 - **Parallel execution**: Goroutines with semaphore channel for controlled concurrency
 - **SSH preflight**: Verifies SSH connectivity before batch cloning
 - **WIP branches**: Preserves dirty state during sync via temporary commits
+- **Worktree rule tables**: Ordered guard/removal rule slices classify linked worktrees; guards (locked, detached, dirty, unpushed) always win over removal rules
 - **Dependency injection**: All business logic accepts interfaces for testability
 - **SAST orchestration**: Per-tool failure isolation with embedded default configs
 - **Platform gating**: System commands conditionally registered via `runtime.GOOS`

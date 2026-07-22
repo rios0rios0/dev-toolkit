@@ -16,6 +16,19 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
+### Added
+
+- added `dev repo worktree list` to report every linked Git worktree under a directory together with the reason it is disposable or protected
+- added `dev repo worktree prune` to remove linked worktrees that outlived their purpose: stale registrations whose directory is gone, worktrees living outside the scanned root, worktrees whose branch is merged into the default branch, and worktrees whose upstream branch was deleted on the remote
+- added a `--prune-worktrees` flag to `dev repo clone` that runs the same worktree cleanup pass after the clone workflow
+
+### Fixed
+
+- fixed `dev repo worktree` marking every worktree as living outside the root when the root directory was given as a relative path (e.g. `./backend`): Git reports absolute worktree paths, and `filepath.Rel` fails when only one side is relative, so `isInsideRoot` classified all of them as disposable. The root is now resolved to an absolute path, and an uncomparable path is treated as inside the root so it is never reported as disposable
+- fixed `make test` and `make sast` leaving generated reports (`reports/`, `coverage.txt`, `coverage.xml`, `cobertura.xml`, `junit.xml`) as untracked files by adding them to `.gitignore`
+- fixed the unanchored `dev-toolkit` entry in `.gitignore` also matching the `cmd/dev-toolkit/` source directory, which made any newly added file there impossible to commit; all entries are now anchored to the repository root
+- fixed linked Git worktrees being invisible to every repository workflow: `ScanFlatRepos`, `ScanNestedRepos`, and `FindAllRepos` required `.git` to be a directory, but a linked worktree stores `.git` as a file, so worktrees were silently skipped by `clone`, `sync`, `prune`, and the remaining repo commands. Worktrees are deliberately kept out of the clone remote-vs-local diff -- they are extra checkouts of repositories that do exist on the remote, so deleting them as "extra" would corrupt the parent repository's metadata -- and are handled by the dedicated `worktree` commands instead
+
 ## [0.8.17] - 2026-07-16
 
 ### Changed

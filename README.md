@@ -19,6 +19,7 @@ Dev-Toolkit is a developer workspace toolkit that manages Git repositories acros
 - **Gist Cloning & Syncing**: discovers GitHub gists for a user, clones missing ones via SSH using a description-derived slug, and syncs them with the same WIP-aware workflow as repos
 - **Fork Syncing**: detects forked repos via provider API, syncs with upstream parent, and handles conflicts by creating reference branches
 - **Branch Pruning**: deletes local branches merged into the default branch across all repos
+- **Worktree Cleanup**: finds linked Git worktrees that outlived their purpose -- stale registrations, worktrees outside the root, merged branches, deleted upstreams -- and clears them through Git itself (`git worktree prune` for stale registrations, `git worktree remove` for the rest), protecting anything locked, detached, dirty, or unpushed
 - **Docker Management**: lists container IPs and resets the Docker environment (stop, prune)
 - **System Cleanup**: reclaims disk space by clearing caches across Go, Node, Python, Gradle, JetBrains, Terra, and SDKMAN, pruning obsolete CLI-agent binary versions, and wiping transient state -- credentials, SDKs, and shell history are preserved
 - **Multi-Provider Support**: automatic provider detection from directory path with per-provider auth tokens
@@ -45,6 +46,7 @@ dev repo clone <ssh-alias> [root-dir]
 dev repo clone mine ~/Development/github.com/rios0rios0
 dev repo clone my-org ~/Development/dev.azure.com/my-org
 dev repo clone mine --dry-run  # preview without cloning
+dev repo clone mine --prune-worktrees  # also clean up disposable linked worktrees
 
 # Sync all repos under a directory
 dev repo sync [root-dir]
@@ -58,6 +60,13 @@ dev repo fork-sync --dry-run     # preview without syncing
 # Delete local merged branches
 dev repo prune [root-dir]
 dev repo prune ~/Development/github.com/rios0rios0 --dry-run
+
+# Inspect and clean up linked worktrees (run before "repo prune": a branch checked
+# out in a worktree cannot be deleted by "git branch -d")
+dev repo worktree list [root-dir]
+dev repo worktree prune [root-dir]           # confirm each removal interactively
+dev repo worktree prune ~/Development/github.com/rios0rios0 --dry-run
+dev repo worktree prune ~/Development/github.com/rios0rios0 --yes  # no prompts
 
 # Clone all GitHub gists for a user (slug derived from description; falls back to gist ID)
 dev gist clone <ssh-alias> [root-dir]
