@@ -708,3 +708,105 @@ func TestHandleExtraRepos(t *testing.T) {
 		assert.Empty(t, buf.String())
 	})
 }
+
+func TestRunCloneWithPruneWorktrees(t *testing.T) {
+	t.Parallel()
+
+	// cloneRootWithWorktree builds a provider-detectable root holding one repo whose
+	// merged worktree is a removal candidate.
+	setup := func(t *testing.T) (string, *doubles.GitRunnerStub, *doubles.ForgeProviderStub) {
+		t.Helper()
+		root := t.TempDir() + "/github.com/owner"
+		createGitRepo(t, root+"/repo-a")
+		porcelain := "worktree " + root + "/repo-a\nHEAD abc\nbranch refs/heads/main\n\n" +
+			"worktree " + root + "/repo-a-wt\nHEAD def\nbranch refs/heads/feat/done\n"
+		runner := doubles.NewGitRunnerStub().
+			WithOutput([]string{"worktree", "list", "--porcelain"}, porcelain).
+			WithOutput([]string{"symbolic-ref", "refs/remotes/origin/HEAD"}, "refs/remotes/origin/main").
+			WithOutput([]string{"branch", "--merged", "main"}, "* main\n+ feat/done")
+		provider := doubles.NewForgeProviderStub().WithRepos([]globalEntities.Repository{
+			builders.NewRepositoryBuilder().WithName("repo-a").Build(),
+		})
+		return root, runner, provider
+	}
+
+	t.Run("should leave worktrees alone when the flag is not set", func(t *testing.T) {
+		t.Parallel()
+		// given
+		root, runner, provider := setup(t)
+		var buf bytes.Buffer
+
+		// when
+		err := repo.RunClone(repo.CloneConfig{
+			RootDir:  root,
+			SSHAlias: "mine",
+			DryRun:   true,
+			Provider: provider,
+			Runner:   runner,
+			Output:   &buf,
+			Logger:   repo.NewLogger(&buf),
+			Input:    strings.NewReader(""),
+		})
+
+		// then
+		require.NoError(t, err)
+		assert.NotContains(t, buf.String(), "worktree")
+	})
+
+	t.Run("should run the worktree pass when the flag is set", func(t *testing.T) {
+		t.Parallel()
+		// given
+		root, runner, provider := setup(t)
+		var buf bytes.Buffer
+
+		// when
+		err := repo.RunClone(repo.CloneConfig{
+			RootDir:        root,
+			SSHAlias:       "mine",
+			DryRun:         true,
+			PruneWorktrees: true,
+			Provider:       provider,
+			Runner:         runner,
+			Output:         &buf,
+			Logger:         repo.NewLogger(&buf),
+			Input:          strings.NewReader(""),
+		})
+
+		// then
+		require.NoError(t, err)
+		output := buf.String()
+		assert.Contains(t, output, "everything is in sync")
+		assert.Contains(t, output, "would remove worktree")
+		assert.Contains(t, output, "repo-a-wt")
+	})
+
+	t.Run("should run the worktree pass after cloning missing repos", func(t *testing.T) {
+		t.Parallel()
+		// given a remote repo that is missing locally, so the sync shortcut is skipped
+		root, runner, _ := setup(t)
+		provider := doubles.NewForgeProviderStub().WithRepos([]globalEntities.Repository{
+			builders.NewRepositoryBuilder().WithName("repo-a").Build(),
+			builders.NewRepositoryBuilder().WithName("repo-b").Build(),
+		})
+		var buf bytes.Buffer
+
+		// when
+		err := repo.RunClone(repo.CloneConfig{
+			RootDir:        root,
+			SSHAlias:       "mine",
+			DryRun:         true,
+			PruneWorktrees: true,
+			Provider:       provider,
+			Runner:         runner,
+			Output:         &buf,
+			Logger:         repo.NewLogger(&buf),
+			Input:          strings.NewReader(""),
+		})
+
+		// then
+		require.NoError(t, err)
+		output := buf.String()
+		assert.Contains(t, output, "clone workflow completed")
+		assert.Contains(t, output, "would remove worktree")
+	})
+}

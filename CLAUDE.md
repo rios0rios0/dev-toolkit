@@ -31,6 +31,11 @@ dev repo fork-sync ~/Development/github.com/rios0rios0          # sync forks wit
 dev repo fork-sync ~/Development/github.com/rios0rios0 --dry-run # preview fork sync
 dev repo prune ~/Development/github.com/rios0rios0              # delete merged branches
 dev repo prune ~/Development/github.com/rios0rios0 --dry-run    # preview without deleting
+dev repo worktree list ~/Development/github.com/rios0rios0      # list linked worktrees + classification
+dev repo worktree prune ~/Development/github.com/rios0rios0     # remove disposable worktrees (prompts)
+dev repo worktree prune ~/Development/github.com/rios0rios0 --dry-run  # preview without removing
+dev repo worktree prune ~/Development/github.com/rios0rios0 --yes     # remove without prompting
+dev repo clone mine --prune-worktrees                           # clone, then clean up worktrees
 dev repo mirror mine ~/Development/github.com/rios0rios0        # create Codeberg pull mirrors
 dev repo failover ~/Development/github.com/rios0rios0           # switch repos to Codeberg primary
 dev repo restore ~/Development/github.com/rios0rios0            # restore GitHub as primary remote
@@ -73,6 +78,7 @@ internal/
     fork_resolver_github.go  -- GitHub implementation using go-github API
     fork_sync.go             -- fork-sync orchestration: detect forks, add upstream, rebase, handle conflicts
     prune.go                 -- prune merged branches with dry-run support
+    worktree.go              -- linked worktree parsing, rule-based classification, and cleanup
     mirror.go                -- create Codeberg pull mirrors via Forgejo migration API
     failover.go              -- switch repos from GitHub to Codeberg as primary remote
     restore.go               -- restore GitHub as primary remote after failover
@@ -132,6 +138,8 @@ internal/
 - **Docker operations**: Uses `exec.Command("docker", ...)` behind `docker.Runner` interface for testability
 - **System operations**: Uses `exec.Command(...)` behind `system.Runner` and `FileSystem` interfaces; platform-gated via `runtime.GOOS`
 - **Fork sync**: Uses `ForkResolver` interface to query provider APIs for parent repo info; auto-adds `upstream` remote
+- **Worktree detection**: A linked worktree stores `.git` as a *file*, so the `.git`-directory scanners (`ScanFlatRepos`, `ScanNestedRepos`, `FindAllRepos`) never see one. This is intentional: worktrees are extra checkouts of repos that exist on the remote, so they must stay out of the clone remote-vs-local diff. `worktree.go` reads them from `git worktree list --porcelain` instead
+- **Worktree classification**: Ordered rule tables (`worktreeGuardRules`, `worktreeRemovalRules`) instead of branching; guards (locked, detached, dirty, unpushed) are always evaluated before removal rules, so preserving work wins over cleaning up. Removal always goes through `git worktree remove`/`git worktree prune`, never `os.RemoveAll`, to keep the parent repo's metadata consistent
 - **SAST orchestration**: Runs each tool (CodeQL, Semgrep, Trivy, Hadolint, Gitleaks) with per-tool failure isolation and embedded default configs
 - **Dependency injection**: Business logic accepts interfaces (`GitRunner`, `ForgeProvider`, `ForkResolver`, `LanguageDetector`, `CommandRunner`, `ConfigReader`, `docker.Runner`, `system.Runner`, `FileSystem`, `io.Writer`) for testability
 - **Project dependencies**: `.dev.yaml` declares relative paths to dependent projects; resolved via DFS topological sort with cycle detection

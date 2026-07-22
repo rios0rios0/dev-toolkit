@@ -16,6 +16,17 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
+### Added
+
+- added `dev repo worktree list` to report every linked Git worktree under a directory together with the reason it is disposable or protected
+- added `dev repo worktree prune` to remove linked worktrees that outlived their purpose: stale registrations whose directory is gone, worktrees living outside the scanned root, worktrees whose branch is merged into the default branch, and worktrees whose upstream branch was deleted on the remote
+- added a `--prune-worktrees` flag to `dev repo clone` that runs the same worktree cleanup pass after the clone workflow
+
+### Fixed
+
+- fixed `make test` and `make sast` leaving generated reports (`reports/`, `coverage.txt`, `coverage.xml`, `cobertura.xml`, `junit.xml`) as untracked files by adding them to `.gitignore`
+- fixed linked Git worktrees being invisible to every repository workflow: `ScanFlatRepos`, `ScanNestedRepos`, and `FindAllRepos` required `.git` to be a directory, but a linked worktree stores `.git` as a file, so worktrees were silently skipped by `clone`, `sync`, `prune`, and the remaining repo commands. Worktrees are deliberately kept out of the clone remote-vs-local diff -- they are extra checkouts of repositories that do exist on the remote, so deleting them as "extra" would corrupt the parent repository's metadata -- and are handled by the dedicated `worktree` commands instead
+
 ## [0.8.17] - 2026-07-16
 
 ### Changed

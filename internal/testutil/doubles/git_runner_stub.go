@@ -39,6 +39,20 @@ func (s *GitRunnerStub) WithOutput(args []string, output string) *GitRunnerStub 
 	return s
 }
 
+// WithOutputForDir configures output for a command only when it runs in a specific
+// directory, so callers that fan the same command across sibling checkouts (e.g.
+// worktrees) can be given per-directory answers.
+func (s *GitRunnerStub) WithOutputForDir(dir string, args []string, output string) *GitRunnerStub {
+	prev := s.OutputFunc
+	s.OutputFunc = func(d string, a ...string) string {
+		if d == dir && matchArgs(args, a) {
+			return output
+		}
+		return prev(d, a...)
+	}
+	return s
+}
+
 func (s *GitRunnerStub) Run(dir string, args ...string) error {
 	return s.RunFunc(dir, args...)
 }

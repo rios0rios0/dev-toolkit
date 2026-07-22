@@ -57,6 +57,7 @@ func main() {
 	repoCmd.AddCommand(newSyncCmd())
 	repoCmd.AddCommand(newForkSyncCmd())
 	repoCmd.AddCommand(newPruneCmd())
+	repoCmd.AddCommand(newWorktreeCmd())
 	repoCmd.AddCommand(newMirrorCmd())
 	repoCmd.AddCommand(newFailoverCmd())
 	repoCmd.AddCommand(newRestoreCmd())
@@ -115,12 +116,17 @@ func main() {
 func newCloneCmd() *cobra.Command {
 	var dryRun bool
 	var includeArchived bool
+	var pruneWorktrees bool
 
 	cmd := &cobra.Command{
 		Use:   "clone <ssh-alias> [root-dir]",
 		Short: "Clone missing repositories from a Git provider",
 		Long: `Discovers repositories from the Git provider, compares with local directories,
-clones missing repos via SSH, and optionally removes extra local repos.`,
+clones missing repos via SSH, and optionally removes extra local repos.
+
+Linked worktrees are not part of that comparison: they are extra checkouts of
+repositories that do exist on the remote. Pass --prune-worktrees to also run the
+worktree cleanup pass (the same one as "dev repo worktree prune") afterwards.`,
 		Args: cobra.RangeArgs(1, repo.MaxCloneArgs()),
 		RunE: func(_ *cobra.Command, args []string) error {
 			sshAlias := args[0]
@@ -140,6 +146,7 @@ clones missing repos via SSH, and optionally removes extra local repos.`,
 				SSHAlias:        sshAlias,
 				DryRun:          dryRun,
 				IncludeArchived: includeArchived,
+				PruneWorktrees:  pruneWorktrees,
 				Provider:        provider,
 				Runner:          &repo.DefaultGitRunner{},
 				Output:          os.Stderr,
@@ -150,6 +157,8 @@ clones missing repos via SSH, and optionally removes extra local repos.`,
 
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "show what would be done without making changes")
 	cmd.Flags().BoolVar(&includeArchived, "include-archived", false, "include archived repositories")
+	cmd.Flags().BoolVar(&pruneWorktrees, "prune-worktrees", false,
+		"also clean up disposable linked worktrees after cloning")
 
 	return cmd
 }
@@ -238,6 +247,74 @@ lists local branches merged into the default branch and deletes them.`,
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "show which branches would be deleted without deleting them")
 
 	return cmd
+}
+
+func newWorktreeCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "worktree",
+		Short: "Inspect and clean up linked Git worktrees",
+	}
+	cmd.AddCommand(newWorktreeListCmd())
+	cmd.AddCommand(newWorktreePruneCmd())
+	return cmd
+}
+
+func newWorktreeListCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "list [root-dir]",
+		Short: "List linked worktrees and whether they are disposable",
+		Long: `For each repository found under the root directory, lists every linked
+worktree together with the reason it is either disposable or protected.`,
+		Args: cobra.MaximumNArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			return repo.RunWorktreeList(rootDirFromArgs(args), &repo.DefaultGitRunner{}, os.Stderr)
+		},
+	}
+}
+
+func newWorktreePruneCmd() *cobra.Command {
+	var dryRun bool
+	var assumeYes bool
+
+	cmd := &cobra.Command{
+		Use:   "prune [root-dir]",
+		Short: "Remove disposable linked worktrees",
+		Long: `For each repository found under the root directory, removes linked worktrees
+that are no longer useful: stale registrations whose directory is gone, worktrees
+living outside the root directory, worktrees whose branch is merged into the
+default branch, and worktrees whose upstream branch was deleted on the remote.
+
+Removal always goes through "git worktree remove", so the parent repository's
+metadata stays consistent. Worktrees that are locked, on a detached HEAD, hold
+uncommitted changes, or hold unpushed commits are never removed. Each removal is
+confirmed interactively unless --yes is given.`,
+		Args: cobra.MaximumNArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			return repo.RunWorktreePrune(repo.WorktreePruneConfig{
+				RootDir:   rootDirFromArgs(args),
+				DryRun:    dryRun,
+				AssumeYes: assumeYes,
+				Runner:    &repo.DefaultGitRunner{},
+				Output:    os.Stderr,
+				Input:     os.Stdin,
+			})
+		},
+	}
+
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "show which worktrees would be removed without removing them")
+	cmd.Flags().BoolVar(&assumeYes, "yes", false, "remove without prompting for confirmation")
+
+	return cmd
+}
+
+// rootDirFromArgs resolves the optional root-dir argument, defaulting to the
+// current working directory.
+func rootDirFromArgs(args []string) string {
+	rootDir, _ := os.Getwd()
+	if len(args) > 0 {
+		rootDir = args[0]
+	}
+	return filepath.Clean(rootDir)
 }
 
 func newGistCloneCmd() *cobra.Command {

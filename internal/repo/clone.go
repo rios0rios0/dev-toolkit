@@ -29,6 +29,7 @@ type CloneConfig struct {
 	SSHAlias        string
 	DryRun          bool
 	IncludeArchived bool
+	PruneWorktrees  bool
 	Provider        globalEntities.ForgeProvider
 	Runner          GitRunner
 	Output          io.Writer
@@ -78,7 +79,7 @@ func RunClone(cfg CloneConfig) error {
 
 	if len(missing) == 0 && len(extra) == 0 {
 		log.Info("everything is in sync")
-		return nil
+		return PruneWorktreesForClone(cfg, log)
 	}
 
 	cloned, failed := CloneMissing(missing, cfg)
@@ -89,7 +90,25 @@ func RunClone(cfg CloneConfig) error {
 		mirrorStatusFailed: failed,
 		"extra":            len(extra),
 	}).Info("clone workflow completed")
-	return nil
+	return PruneWorktreesForClone(cfg, log)
+}
+
+// PruneWorktreesForClone runs the worktree cleanup pass when the clone command was
+// asked for it. Linked worktrees are deliberately absent from the remote-vs-local
+// diff above: they are extra checkouts of repositories that do exist on the remote,
+// not repositories missing from it.
+func PruneWorktreesForClone(cfg CloneConfig, log logger.FieldLogger) error {
+	if !cfg.PruneWorktrees {
+		return nil
+	}
+	return RunWorktreePrune(WorktreePruneConfig{
+		RootDir: cfg.RootDir,
+		DryRun:  cfg.DryRun,
+		Runner:  cfg.Runner,
+		Output:  cfg.Output,
+		Input:   cfg.Input,
+		Logger:  log,
+	})
 }
 
 // DiscoverRepos fetches repositories from the provider and optionally filters archived ones.
