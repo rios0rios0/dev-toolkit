@@ -308,11 +308,15 @@ confirmed interactively unless --yes is given.`,
 }
 
 // rootDirFromArgs resolves the optional root-dir argument, defaulting to the
-// current working directory.
+// current working directory. The result is absolute so it can be compared against
+// the absolute paths git reports for worktrees.
 func rootDirFromArgs(args []string) string {
 	rootDir, _ := os.Getwd()
 	if len(args) > 0 {
 		rootDir = args[0]
+	}
+	if abs, err := filepath.Abs(rootDir); err == nil {
+		return abs
 	}
 	return filepath.Clean(rootDir)
 }

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"os"
 	"strings"
 	"testing"
 
@@ -211,6 +212,42 @@ func TestScanWorktrees(t *testing.T) {
 		require.Len(t, candidates, 2)
 		assert.False(t, candidates[1].Keep)
 		assert.Equal(t, repo.WorktreeReasonGone, candidates[1].Reason)
+	})
+
+	t.Run("should not treat a worktree as orphaned when the root is relative", func(t *testing.T) {
+		t.Parallel()
+		// given git always reports absolute worktree paths, while the root may be relative
+		cwd, err := os.Getwd()
+		require.NoError(t, err)
+		runner := worktreeRunner(
+			worktreeEntry(cwd+"/repo", "main") + "\n" + worktreeEntry(cwd+"/repo-wt", "feat/wip"),
+		)
+
+		// when
+		candidates := repo.ScanWorktrees("repo", ".", runner)
+
+		// then
+		require.Len(t, candidates, 2)
+		assert.True(t, candidates[1].Keep)
+		assert.Equal(t, repo.WorktreeKeepActive, candidates[1].Reason)
+	})
+
+	t.Run("should still flag a worktree outside a relative root as orphaned", func(t *testing.T) {
+		t.Parallel()
+		// given
+		cwd, err := os.Getwd()
+		require.NoError(t, err)
+		runner := worktreeRunner(
+			worktreeEntry(cwd+"/repo", "main") + "\n" + worktreeEntry("/tmp/scratch/wt-stray", "feat/wip"),
+		)
+
+		// when
+		candidates := repo.ScanWorktrees("repo", ".", runner)
+
+		// then
+		require.Len(t, candidates, 2)
+		assert.False(t, candidates[1].Keep)
+		assert.Equal(t, repo.WorktreeReasonOrphaned, candidates[1].Reason)
 	})
 
 	t.Run("should keep an active worktree that matches no removal rule", func(t *testing.T) {

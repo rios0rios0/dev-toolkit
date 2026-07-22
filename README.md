@@ -19,7 +19,7 @@ Dev-Toolkit is a developer workspace toolkit that manages Git repositories acros
 - **Gist Cloning & Syncing**: discovers GitHub gists for a user, clones missing ones via SSH using a description-derived slug, and syncs them with the same WIP-aware workflow as repos
 - **Fork Syncing**: detects forked repos via provider API, syncs with upstream parent, and handles conflicts by creating reference branches
 - **Branch Pruning**: deletes local branches merged into the default branch across all repos
-- **Worktree Cleanup**: finds linked Git worktrees that outlived their purpose -- stale registrations, worktrees outside the root, merged branches, deleted upstreams -- and removes them through `git worktree remove`, protecting anything locked, detached, dirty, or unpushed
+- **Worktree Cleanup**: finds linked Git worktrees that outlived their purpose -- stale registrations, worktrees outside the root, merged branches, deleted upstreams -- and clears them through Git itself (`git worktree prune` for stale registrations, `git worktree remove` for the rest), protecting anything locked, detached, dirty, or unpushed
 - **Docker Management**: lists container IPs and resets the Docker environment (stop, prune)
 - **System Cleanup**: reclaims disk space by clearing caches across Go, Node, Python, Gradle, JetBrains, Terra, and SDKMAN, pruning obsolete CLI-agent binary versions, and wiping transient state -- credentials, SDKs, and shell history are preserved
 - **Multi-Provider Support**: automatic provider detection from directory path with per-provider auth tokens

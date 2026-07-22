@@ -134,12 +134,27 @@ type worktreeEnv struct {
 	runner  GitRunner
 }
 
+// isInsideRoot reports whether the worktree lives under the scanned root. Git always
+// reports absolute worktree paths, so the root is resolved to an absolute path too:
+// [filepath.Rel] fails when only one side is relative, which would otherwise mark
+// every worktree as living outside the root.
 func (e worktreeEnv) isInsideRoot(w Worktree) bool {
-	rel, err := filepath.Rel(e.rootDir, w.Path)
+	rel, err := filepath.Rel(e.rootDir, absPathOrOriginal(w.Path))
 	if err != nil {
-		return false
+		// Fail safe: a path that cannot be compared must never be reported as disposable.
+		return true
 	}
 	return rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
+}
+
+// absPathOrOriginal resolves a path against the working directory, falling back to
+// the input when resolution fails.
+func absPathOrOriginal(path string) string {
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return path
+	}
+	return abs
 }
 
 func (e worktreeEnv) isDirty(w Worktree) bool {
@@ -260,7 +275,7 @@ func ScanWorktrees(repoPath, rootDir string, runner GitRunner) []WorktreeCandida
 
 	defaultBranch := DetectDefaultBranch(repoPath, runner)
 	env := worktreeEnv{
-		rootDir: rootDir,
+		rootDir: absPathOrOriginal(rootDir),
 		merged:  toBranchSet(ListMergedBranches(repoPath, defaultBranch, runner)),
 		gone:    ListGoneBranches(repoPath, runner),
 		runner:  runner,
