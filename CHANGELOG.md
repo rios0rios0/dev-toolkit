@@ -19,6 +19,7 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 ### Changed
 
 - changed the Go version to `1.26.6` and updated all module dependencies
+- changed `langforge` to `v1.0.0`, which makes Dart/Flutter projects detectable by every `dev project` command -- this crosses a MAJOR boundary, but both breaking changes (the per-ecosystem `Provider` structs replaced by `repositories.CompositeProvider`, and `javagradle.RuntimeManager`/`javamaven.RuntimeManager` merged into a shared `java.RuntimeManager`) only affect callers naming those concrete types, which this project never did
 
 ## [0.9.4] - 2026-08-13
 

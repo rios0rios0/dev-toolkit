@@ -150,5 +150,5 @@ internal/
 
 - **gitforge** -- Multi-provider Git hosting abstractions (GitHub, Azure DevOps, GitLab, Codeberg)
 - **go-github** -- GitHub API client (used by `ForkResolver` to get fork parent info)
-- **langforge** -- Language detection, version management, and runtime information (Go, Node, Python, Java, C#, Terraform)
+- **langforge** -- Language detection, version management, and runtime information (Go, Dart, Node, Python, Java, C#, Ruby, Terraform)
 - **cliforge** -- Self-update mechanism and automatic version check on startup
