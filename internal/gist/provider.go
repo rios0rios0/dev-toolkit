@@ -27,7 +27,7 @@ func NewGitHubProvider(token string) *GitHubProvider {
 // ListGists paginates through all gists belonging to owner.
 func (p *GitHubProvider) ListGists(ctx context.Context, owner string) ([]Gist, error) {
 	const pageSize = 100
-	opts := &gh.GistListOptions{ListOptions: gh.ListOptions{PerPage: pageSize}}
+	opts := &gh.GistListOptions{PerPage: pageSize}
 
 	var gists []Gist
 	for {
