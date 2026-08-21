@@ -1,6 +1,6 @@
 module github.com/rios0rios0/dev-toolkit
 
-go 1.26.6
+go 1.27.0
 
 require (
 	github.com/google/go-github/v66 v66.0.0
@@ -9,7 +9,7 @@ require (
 	github.com/rios0rios0/langforge v1.0.2
 	github.com/sirupsen/logrus v1.10.1
 	github.com/spf13/cobra v1.10.2
-	github.com/stretchr/testify v1.12.0
+	github.com/stretchr/testify v1.12.1
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -30,6 +30,7 @@ require (
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	gitlab.com/gitlab-org/api/client-go v1.46.0 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/mod v0.40.0 // indirect
 	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
