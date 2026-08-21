@@ -21,6 +21,7 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 - changed the Go module dependencies to their latest versions
 - changed the Go module dependencies to their latest versions
 - changed the Go version to `1.27.0` and updated all module dependencies
+- changed struct literals and `errors.As` calls to the Go 1.27 forms required by the `modernize` linter
 
 ## [0.9.7] - 2026-08-17
 

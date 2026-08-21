@@ -270,8 +270,7 @@ func SSHPreflightHost(host, sshAlias string, log logger.FieldLogger) error {
 		return nil
 	}
 
-	var exitErr *exec.ExitError
-	if !errors.As(err, &exitErr) {
+	if _, ok := errors.AsType[*exec.ExitError](err); !ok {
 		return fmt.Errorf("SSH preflight failed: %w", err)
 	}
 
