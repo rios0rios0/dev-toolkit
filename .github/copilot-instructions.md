@@ -7,7 +7,7 @@ Always reference these instructions first and fallback to search or bash command
 ## Working Effectively
 
 ### Prerequisites
-- **Go 1.26+**: Required for building. Check with `go version`.
+- **Go 1.27+**: Required for building. Check with `go version`.
 
 ### Bootstrap and Build
 - `make build` -- builds the `dev` binary in `bin/` directory. Takes ~1 second. NEVER CANCEL.
