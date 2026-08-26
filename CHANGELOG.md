@@ -22,6 +22,27 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-08-26
+
+### Added
+
+- added a tailored `code-review` skill under `.github/skills/` so GitHub Copilot reviews changes against the [rios0rios0/guide](https://github.com/rios0rios0/guide/wiki) standards and this repository's own load-bearing invariants
+- added credential resolution through the provider's own CLI, so an already authenticated `gh`, `az`, or `glab` covers the provider API calls and no second token has to be exported. Credentials now come from a `CredentialResolver` chain instead of a bare `os.Getenv`: the provider's token environment variable first (an explicitly exported token still wins), then `gh auth token`, `az account get-access-token` scoped to the Azure DevOps resource, or `glab auth token`. Codeberg has no widely installed official CLI and stays environment-only. When nothing can authenticate, the error now names every option rather than only the first one that failed. Cloning and syncing were already over SSH, so `dev repo clone` on a machine with SSH keys and `gh auth login` needs nothing else
+
+### Changed
+
+- changed the changelog to [chlog](https://github.com/luizjhonata/chlog) fragments: a change now writes its own YAML file under `.changes/unreleased/` through `chlog new --kind <Kind> --body "..."`, and `CHANGELOG.md` is GENERATED from them at release time by `chlog batch auto && chlog merge`. That is the one thing a single shared file cannot do — two branches each adding an entry no longer touch the same lines, so a rebase that used to conflict on `CHANGELOG.md` now conflicts on nothing. The `[Unreleased]` section was empty, so nothing had to be carried across. AutoBump already reads the fragments directly, so the release flow is unchanged.
+- changed the Go module dependencies to their latest versions
+
+### Fixed
+
+- fixed the `main` pipeline, which every repository's `sast:gitleaks` job had been failing since the code-review skill landed: the skill's own security bullet listed credential prefixes verbatim to warn against writing them, and the scanner's second pass matches those prefixes on their own, so the warning tripped the rule it was describing. The bullet now names the vendors instead, and the commit that carried the original wording is allowlisted by fingerprint in `.gitleaksignore`, because the scan walks the whole history reachable from `HEAD` and no edit at the tip can clear a past commit. No credential was ever committed.
+- fixed the documented minimum Go toolchain in `CONTRIBUTING.md`, which still said 1.26+ while `go.mod` requires `go 1.27.0`
+
+### Removed
+
+- removed the stale "update the version in `src/main.go`" item from the bump pull request checklist: there is no `src/` directory, and the build version is injected by the `Makefile` through `-X main.version=$(VERSION)` from the latest Git tag, so there is nothing to edit by hand
+
 ## [0.9.9] - 2026-08-25
 
 ### Changed
