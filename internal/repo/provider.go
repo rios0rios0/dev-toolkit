@@ -2,7 +2,6 @@ package repo
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	globalEntities "github.com/rios0rios0/gitforge/pkg/global/domain/entities"
@@ -101,16 +100,24 @@ func NewProviderRegistry() *gitRegistry.ProviderRegistry {
 	return r
 }
 
-// ResolveProvider creates a ForgeProvider by looking up the token from the environment.
+// ResolveProvider creates a ForgeProvider using the default credential chain, so an
+// authenticated provider CLI is enough when no token is exported.
 func ResolveProvider(providerName string) (globalEntities.ForgeProvider, error) {
-	envVar := providerTokenEnv[providerName]
-	token := os.Getenv(envVar)
-	if token == "" {
-		return nil, fmt.Errorf("%s environment variable not set", envVar)
+	return ResolveProviderWith(providerName, DefaultCredentialResolver())
+}
+
+// ResolveProviderWith creates a ForgeProvider from whatever credential the given
+// resolver supplies.
+func ResolveProviderWith(
+	providerName string, resolver CredentialResolver,
+) (globalEntities.ForgeProvider, error) {
+	cred, credErr := resolver.Resolve(providerName)
+	if credErr != nil {
+		return nil, credErr
 	}
 
 	registry := NewProviderRegistry()
-	provider, err := registry.Get(providerName, token)
+	provider, err := registry.Get(providerName, cred.Token)
 	if err != nil {
 		return nil, fmt.Errorf("unknown provider: %s", providerName)
 	}

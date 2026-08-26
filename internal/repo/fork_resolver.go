@@ -3,7 +3,6 @@ package repo
 import (
 	"context"
 	"fmt"
-	"os"
 )
 
 // ParentInfo holds the upstream parent repository's SSH URL and default branch.
@@ -22,22 +21,24 @@ var resolverFactoryMap = map[string]func(token string) ForkResolver{
 	ProviderGitHub: func(token string) ForkResolver { return NewGitHubForkResolver(token) },
 }
 
-// ResolveForkResolver creates a ForkResolver for the given provider using the environment token.
+// ResolveForkResolver creates a ForkResolver for the given provider using the default
+// credential chain.
 func ResolveForkResolver(providerName string) (ForkResolver, error) {
+	return ResolveForkResolverWith(providerName, DefaultCredentialResolver())
+}
+
+// ResolveForkResolverWith creates a ForkResolver from whatever credential the given
+// resolver supplies.
+func ResolveForkResolverWith(providerName string, resolver CredentialResolver) (ForkResolver, error) {
 	factory, ok := resolverFactoryMap[providerName]
 	if !ok {
 		return nil, fmt.Errorf("fork resolution not supported for provider: %s", providerName)
 	}
 
-	envVar := ProviderTokenEnv(providerName)
-	if envVar == "" {
-		return nil, fmt.Errorf("unknown provider: %s", providerName)
+	cred, err := resolver.Resolve(providerName)
+	if err != nil {
+		return nil, err
 	}
 
-	token := os.Getenv(envVar)
-	if token == "" {
-		return nil, fmt.Errorf("%s environment variable not set", envVar)
-	}
-
-	return factory(token), nil
+	return factory(cred.Token), nil
 }
