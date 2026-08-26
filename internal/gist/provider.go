@@ -2,11 +2,10 @@ package gist
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"os"
 
 	gh "github.com/google/go-github/v66/github"
+	"github.com/rios0rios0/dev-toolkit/internal/repo"
 )
 
 // Provider lists gists for a given owner.
@@ -50,11 +49,19 @@ func (p *GitHubProvider) ListGists(ctx context.Context, owner string) ([]Gist, e
 	return gists, nil
 }
 
-// ResolveProvider builds a Provider, reading the GH_TOKEN environment variable.
+// ResolveProvider builds a Provider using the default GitHub credential chain: the
+// GH_TOKEN environment variable when it is exported, and otherwise the token held by an
+// authenticated "gh" CLI.
 func ResolveProvider() (Provider, error) {
-	token := os.Getenv("GH_TOKEN")
-	if token == "" {
-		return nil, errors.New("GH_TOKEN environment variable not set")
+	return ResolveProviderWith(repo.DefaultCredentialResolver())
+}
+
+// ResolveProviderWith builds a Provider from whatever credential the given resolver
+// supplies for GitHub.
+func ResolveProviderWith(resolver repo.CredentialResolver) (Provider, error) {
+	cred, err := resolver.Resolve(repo.ProviderGitHub)
+	if err != nil {
+		return nil, err
 	}
-	return NewGitHubProvider(token), nil
+	return NewGitHubProvider(cred.Token), nil
 }

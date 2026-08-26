@@ -22,7 +22,7 @@ Dev-Toolkit is a developer workspace toolkit that manages Git repositories acros
 - **Worktree Cleanup**: finds linked Git worktrees that outlived their purpose -- stale registrations, worktrees outside the root, merged branches, deleted upstreams -- and clears them through Git itself (`git worktree prune` for stale registrations, `git worktree remove` for the rest), protecting anything locked, detached, dirty, or unpushed
 - **Docker Management**: lists container IPs and resets the Docker environment (stop, prune)
 - **System Cleanup**: reclaims disk space by clearing caches across Go, Node, Python, Gradle, JetBrains, Terra, and SDKMAN, pruning obsolete CLI-agent binary versions, and wiping transient state -- credentials, SDKs, and shell history are preserved
-- **Multi-Provider Support**: automatic provider detection from directory path with per-provider auth tokens
+- **Multi-Provider Support**: automatic provider detection from directory path, authenticating through an exported token or, failing that, an already authenticated `gh`, `az`, or `glab` CLI
 
 ## Installation
 
@@ -85,13 +85,34 @@ dev docker reset --dry-run      # preview without executing
 
 ### Authentication
 
-Set the appropriate environment variable for your provider:
+Provider credentials are resolved in order: the environment variable if you exported one,
+otherwise the provider's own CLI if it is installed and authenticated. If you have already run
+`gh auth login`, cloning your repositories needs nothing else -- there is no second token to export.
 
-| Provider | Environment Variable |
-|----------|---------------------|
-| GitHub | `GH_TOKEN` |
-| Azure DevOps | `AZURE_DEVOPS_EXT_PAT` |
-| GitLab | `GITLAB_TOKEN` |
+| Provider | Environment Variable | CLI Fallback | Authenticate With |
+|----------|---------------------|--------------|-------------------|
+| GitHub | `GH_TOKEN` | `gh auth token` | `gh auth login` |
+| Azure DevOps | `AZURE_DEVOPS_EXT_PAT` | `az account get-access-token` | `az login` |
+| GitLab | `GITLAB_TOKEN` | `glab auth token` | `glab auth login` |
+| Codeberg | `CODEBERG_TOKEN` | -- | -- |
+
+The environment variable wins when both are available, so an explicitly exported token still
+overrides whatever the CLI happens to be logged in as. Codeberg has no widely installed official
+CLI, so it stays on the environment variable alone.
+
+For Azure DevOps the `az` fallback requests a Microsoft Entra access token scoped to the Azure
+DevOps resource (`499b84ac-1321-427f-aa17-267ca6975798`), which the REST API accepts anywhere a
+PAT is accepted.
+
+When nothing can authenticate, the error names every option rather than only the first one that
+failed:
+
+```
+no github credential available: GH_TOKEN environment variable not set; gh CLI is not installed
+```
+
+These credentials are only used for the provider APIs -- discovering repositories, gists, and fork
+parents. Cloning and syncing go over SSH, so SSH keys are still required (see below).
 
 ### SSH Aliases
 
