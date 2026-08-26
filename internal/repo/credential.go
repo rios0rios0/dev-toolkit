@@ -186,9 +186,12 @@ func (r *CLICredentialResolver) Resolve(providerName string) (Credential, error)
 		return Credential{}, fmt.Errorf("%s CLI is not installed", cli.Binary)
 	}
 
+	// The token command can fail for reasons that have nothing to do with being logged
+	// out -- a timeout, a transient network error while minting the token -- so the
+	// message reports only what was observed and leaves the cause to the wrapped error.
 	token, err := runner.Output(cli.Binary, cli.TokenArgs...)
 	if err != nil {
-		return Credential{}, fmt.Errorf("%s CLI is installed but not authenticated, run %q: %w",
+		return Credential{}, fmt.Errorf("%s CLI could not provide a token (authenticate with %q): %w",
 			cli.Binary, cli.LoginHint, err)
 	}
 	if token == "" {

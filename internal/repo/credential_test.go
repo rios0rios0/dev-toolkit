@@ -61,17 +61,17 @@ func TestEnvCredentialResolver(t *testing.T) {
 		assert.Contains(t, err.Error(), "unknown provider: bitbucket")
 	})
 
-	t.Run("should fall back to the process environment when no lookup is set", func(t *testing.T) {
+	t.Run("should reject an unknown provider without consulting a zero-value lookup", func(t *testing.T) {
 		t.Parallel()
 		// given
-		resolver := repo.NewEnvCredentialResolver()
-		resolver.Lookup = nil
+		resolver := &repo.EnvCredentialResolver{}
 
 		// when
 		_, err := resolver.Resolve("bitbucket")
 
 		// then
 		require.Error(t, err)
+		assert.Contains(t, err.Error(), "unknown provider: bitbucket")
 	})
 }
 
@@ -156,6 +156,22 @@ func TestCLICredentialResolver(t *testing.T) {
 		assert.Contains(t, err.Error(), "no oauth token found")
 	})
 
+	t.Run("should not blame authentication when the token command fails for another reason", func(t *testing.T) {
+		t.Parallel()
+		// given
+		runner := doubles.NewCLIRunnerStub().
+			WithError("az", errors.New("context deadline exceeded"))
+		resolver := &repo.CLICredentialResolver{Runner: runner}
+
+		// when
+		_, err := resolver.Resolve(repo.ProviderAzureDevOps)
+
+		// then
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "context deadline exceeded")
+		assert.NotContains(t, err.Error(), "not authenticated")
+	})
+
 	t.Run("should return an error when the CLI returns an empty token", func(t *testing.T) {
 		t.Parallel()
 		// given
@@ -182,16 +198,17 @@ func TestCLICredentialResolver(t *testing.T) {
 		assert.Contains(t, err.Error(), "no CLI integration for provider: codeberg")
 	})
 
-	t.Run("should fall back to the real runner when none is set", func(t *testing.T) {
+	t.Run("should reject a provider with no CLI without using a zero-value runner", func(t *testing.T) {
 		t.Parallel()
 		// given
-		resolver := &repo.CLICredentialResolver{Runner: nil}
+		resolver := &repo.CLICredentialResolver{}
 
 		// when
 		_, err := resolver.Resolve(repo.ProviderCodeberg)
 
 		// then
 		require.Error(t, err)
+		assert.Contains(t, err.Error(), "no CLI integration for provider: codeberg")
 	})
 }
 
