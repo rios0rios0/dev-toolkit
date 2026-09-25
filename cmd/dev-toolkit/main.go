@@ -136,7 +136,11 @@ worktree cleanup pass (the same one as "dev repo worktree prune") afterwards.`,
 			}
 			rootDir = filepath.Clean(rootDir)
 
-			provider, resolveErr := repo.ResolveProvider(mustDetectProvider(rootDir))
+			providerName, owner, detectErr := repo.DetectProviderAndOwner(rootDir)
+			if detectErr != nil {
+				return detectErr
+			}
+			provider, resolveErr := repo.ResolveProviderForOwner(providerName, owner)
 			if resolveErr != nil {
 				return resolveErr
 			}

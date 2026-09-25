@@ -236,6 +236,132 @@ func TestProviderCLIFor(t *testing.T) {
 	})
 }
 
+func TestAzureOrganizationCredentials(t *testing.T) {
+	t.Parallel()
+
+	const tenantID = "11111111-2222-3333-4444-555555555555"
+	t.Run("should authenticate the provider in the organization tenant without an exported PAT", func(t *testing.T) {
+		t.Parallel()
+		// given
+		runner := doubles.NewCLIRunnerStub().WithToken("az", "fixture-token-placeholder")
+		cli := &repo.CLICredentialResolver{
+			Runner: runner, Organization: "example-org",
+			TenantResolver: &doubles.AzureTenantResolverStub{Tenant: tenantID},
+		}
+		chain := repo.NewChainCredentialResolver(
+			&repo.EnvCredentialResolver{Lookup: func(_ string) string { return "" }}, cli,
+		)
+
+		// when
+		provider, err := repo.ResolveProviderWith(repo.ProviderAzureDevOps, chain)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, "fixture-token-placeholder", provider.AuthToken())
+		assert.Equal(t, repo.ProviderAzureDevOps, provider.Name())
+		assert.Equal(t, []string{"az account get-access-token --resource 499b84ac-1321-427f-aa17-267ca6975798" +
+			" --query accessToken --output tsv --tenant " + tenantID}, runner.Calls)
+	})
+
+	t.Run("should preserve explicit PAT precedence even when tenant discovery would fail", func(t *testing.T) {
+		t.Parallel()
+		// given
+		cli := &repo.CLICredentialResolver{
+			Runner: doubles.NewCLIRunnerStub(), Organization: "example-org",
+			TenantResolver: &doubles.AzureTenantResolverStub{Err: errors.New("metadata unavailable")},
+		}
+		chain := repo.NewChainCredentialResolver(
+			&repo.EnvCredentialResolver{Lookup: func(_ string) string { return "fixture-pat-placeholder" }}, cli,
+		)
+
+		// when
+		provider, err := repo.ResolveProviderWith(repo.ProviderAzureDevOps, chain)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, "fixture-pat-placeholder", provider.AuthToken())
+	})
+
+	for _, scenario := range []struct {
+		name     string
+		provider string
+		binary   string
+		tenant   string
+	}{
+		{"should retain the default Azure account for personal organizations", repo.ProviderAzureDevOps, "az", ""},
+		{"should leave GitHub CLI authentication unchanged", repo.ProviderGitHub, "gh", tenantID},
+		{"should leave GitLab CLI authentication unchanged", repo.ProviderGitLab, "glab", tenantID},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
+			t.Parallel()
+			// given
+			runner := doubles.NewCLIRunnerStub().WithToken(scenario.binary, "fixture-token-placeholder")
+			cli := &repo.CLICredentialResolver{
+				Runner: runner, Organization: "example-org",
+				TenantResolver: &doubles.AzureTenantResolverStub{Tenant: scenario.tenant},
+			}
+
+			// when
+			cred, err := cli.Resolve(scenario.provider)
+
+			// then
+			require.NoError(t, err)
+			assert.Equal(t, "fixture-token-placeholder", cred.Token)
+			require.Len(t, runner.Calls, 1)
+			assert.NotContains(t, runner.Calls[0], "--tenant")
+		})
+	}
+
+	t.Run("should suggest tenant-specific login when the Azure session is unavailable", func(t *testing.T) {
+		t.Parallel()
+		// given
+		cli := &repo.CLICredentialResolver{
+			Runner:       doubles.NewCLIRunnerStub().WithError("az", errors.New("session expired")),
+			Organization: "example-org", TenantResolver: &doubles.AzureTenantResolverStub{Tenant: tenantID},
+		}
+
+		// when
+		_, err := cli.Resolve(repo.ProviderAzureDevOps)
+
+		// then
+		require.ErrorContains(t, err, "az login --tenant "+tenantID+" --allow-no-subscriptions")
+		assert.Contains(t, err.Error(), "session expired")
+	})
+
+	t.Run("should report missing az before attempting tenant discovery", func(t *testing.T) {
+		t.Parallel()
+		// given
+		cli := &repo.CLICredentialResolver{
+			Runner: doubles.NewCLIRunnerStub(), Organization: "example-org",
+			TenantResolver: &doubles.AzureTenantResolverStub{Err: errors.New("metadata unavailable")},
+		}
+
+		// when
+		_, err := cli.Resolve(repo.ProviderAzureDevOps)
+
+		// then
+		require.EqualError(t, err, "az CLI is not installed")
+	})
+
+	t.Run("should report tenant discovery failures instead of using a different tenant", func(t *testing.T) {
+		t.Parallel()
+		// given
+		cli := &repo.CLICredentialResolver{
+			Runner:         doubles.NewCLIRunnerStub().WithToken("az", "fixture-token-placeholder"),
+			Organization:   "example-org",
+			TenantResolver: &doubles.AzureTenantResolverStub{Err: errors.New("metadata unavailable")},
+		}
+
+		// when
+		cred, err := cli.Resolve(repo.ProviderAzureDevOps)
+
+		// then
+		require.ErrorContains(t, err, "could not determine Azure DevOps organization tenant")
+		assert.Contains(t, err.Error(), "metadata unavailable")
+		assert.Empty(t, cred.Token)
+	})
+}
+
 func TestChainCredentialResolver(t *testing.T) {
 	t.Parallel()
 

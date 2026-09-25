@@ -1,0 +1,3 @@
+kind: 'Fixed'
+body: 'fixed Azure CLI authentication for Azure DevOps organizations in a different tenant from the default Azure subscription'
+time: '2026-09-25T16:53:25.26558672Z'

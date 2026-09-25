@@ -101,8 +101,24 @@ overrides whatever the CLI happens to be logged in as. Codeberg has no widely in
 CLI, so it stays on the environment variable alone.
 
 For Azure DevOps the `az` fallback requests a Microsoft Entra access token scoped to the Azure
-DevOps resource (`499b84ac-1321-427f-aa17-267ca6975798`), which the REST API accepts anywhere a
-PAT is accepted.
+DevOps resource (`499b84ac-1321-427f-aa17-267ca6975798`). Repository cloning discovers the
+organization's tenant from public Azure DevOps metadata and passes `--tenant` to `az`, so the
+default Azure subscription can belong to a different tenant. No token export or default-account
+change is required, and the Azure DevOps CLI extension is not required for token retrieval.
+
+```bash
+az login --tenant <organization-tenant-id> --allow-no-subscriptions
+dev repo clone work ~/Development/dev.azure.com/example-org --dry-run
+dev repo clone work ~/Development/dev.azure.com/example-org
+dev repo sync ~/Development/dev.azure.com/example-org
+```
+
+An existing `az login` session in that tenant is sufficient. If it expires, the error suggests
+the tenant-specific login command. `az devops login` stores a PAT separately and does not create
+an `az login` session; use `az login` for this fallback, or export `AZURE_DEVOPS_EXT_PAT` explicitly.
+Tenant discovery is skipped when a PAT is exported. Organizations without an Entra tenant keep
+using the default Azure CLI account. See Microsoft's [Azure CLI token documentation](https://learn.microsoft.com/en-us/azure/devops/cli/entra-tokens)
+for details about Entra authentication.
 
 When nothing can authenticate, the error names every option rather than only the first one that
 failed:

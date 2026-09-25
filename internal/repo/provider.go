@@ -106,6 +106,14 @@ func ResolveProvider(providerName string) (globalEntities.ForgeProvider, error) 
 	return ResolveProviderWith(providerName, DefaultCredentialResolver())
 }
 
+// ResolveProviderForOwner uses the target organization when resolving CLI credentials.
+// Explicit environment tokens still take precedence and skip tenant discovery entirely.
+func ResolveProviderForOwner(providerName, owner string) (globalEntities.ForgeProvider, error) {
+	cli := NewCLICredentialResolver()
+	cli.Organization = owner
+	return ResolveProviderWith(providerName, NewChainCredentialResolver(NewEnvCredentialResolver(), cli))
+}
+
 // ResolveProviderWith creates a ForgeProvider from whatever credential the given
 // resolver supplies.
 func ResolveProviderWith(
