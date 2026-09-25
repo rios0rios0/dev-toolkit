@@ -1,0 +1,3 @@
+kind: 'Fixed'
+body: 'fixed canonical HTTP header casing in the Azure tenant discovery tests to satisfy CI lint checks'
+time: '2026-09-25T17:13:34.22630557Z'

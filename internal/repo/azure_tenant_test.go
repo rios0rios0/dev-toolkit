@@ -39,7 +39,7 @@ func TestHTTPAzureTenantResolver(t *testing.T) {
 				assert.Equal(t, http.MethodGet, req.Method)
 				assert.Equal(t, "/test organization/_apis/connectionData", req.URL.Path)
 				assert.Empty(t, req.Header.Get("Authorization"))
-				w.Header().Set("X-VSS-ResourceTenant", scenario.header)
+				w.Header().Set("X-Vss-Resourcetenant", scenario.header)
 				w.Header().Set("Location", "/unexpected-login")
 				w.WriteHeader(scenario.status)
 			}))
