@@ -80,12 +80,17 @@ Always reference these instructions first and fallback to search or bash command
 - **Automatic update check**: On startup via cliforge (skipped for `version`, `self-update`, dev builds)
 
 ### Authentication
-| Provider | Environment Variable |
-|----------|---------------------|
-| GitHub | `GH_TOKEN` |
-| Azure DevOps | `AZURE_DEVOPS_EXT_PAT` |
-| GitLab | `GITLAB_TOKEN` |
-| Codeberg | `CODEBERG_TOKEN` |
+| Provider | Environment Variable | CLI Fallback |
+|----------|---------------------|--------------|
+| GitHub | `GH_TOKEN` | `gh auth token` |
+| Azure DevOps | `AZURE_DEVOPS_EXT_PAT` | `az account get-access-token` |
+| GitLab | `GITLAB_TOKEN` | `glab auth token` |
+| Codeberg | `CODEBERG_TOKEN` | None |
+
+Explicit environment tokens take precedence. Repository cloning uses `ResolveProviderForOwner`
+to discover the Azure DevOps organization's tenant before requesting an Azure CLI token with
+`--tenant`. Discovery uses an unauthenticated request and does not follow sign-in redirects.
+Git transfers retain their existing SSH authentication; `repo sync` does not need an API token.
 
 ### Key Commands Reference
 ```bash

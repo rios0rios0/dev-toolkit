@@ -163,7 +163,9 @@ func (r *EnvCredentialResolver) Resolve(providerName string) (Credential, error)
 // for that provider, so requiring a separate exported token asks them to prove the same
 // thing twice.
 type CLICredentialResolver struct {
-	Runner CLIRunner
+	Runner         CLIRunner
+	Organization   string
+	TenantResolver AzureTenantResolver
 }
 
 // NewCLICredentialResolver creates a resolver that probes and runs the real CLIs.
@@ -186,6 +188,11 @@ func (r *CLICredentialResolver) Resolve(providerName string) (Credential, error)
 		return Credential{}, fmt.Errorf("%s CLI is not installed", cli.Binary)
 	}
 
+	cli, err := r.organizationCLI(providerName, cli)
+	if err != nil {
+		return Credential{}, err
+	}
+
 	// The token command can fail for reasons that have nothing to do with being logged
 	// out -- a timeout, a transient network error while minting the token -- so the
 	// message reports only what was observed and leaves the cause to the wrapped error.
@@ -200,6 +207,27 @@ func (r *CLICredentialResolver) Resolve(providerName string) (Credential, error)
 	}
 
 	return Credential{Token: token, Source: cli.Binary + " CLI"}, nil
+}
+
+// organizationCLI scopes Azure tokens to the organization instead of the default
+// subscription, which can belong to a different tenant for the same signed-in user.
+func (r *CLICredentialResolver) organizationCLI(providerName string, cli ProviderCLI) (ProviderCLI, error) {
+	if providerName != ProviderAzureDevOps || r.Organization == "" {
+		return cli, nil
+	}
+	resolver := r.TenantResolver
+	if resolver == nil {
+		resolver = &HTTPAzureTenantResolver{}
+	}
+	tenant, err := resolver.GetTenant(r.Organization)
+	if err != nil {
+		return ProviderCLI{}, fmt.Errorf("could not determine Azure DevOps organization tenant: %w", err)
+	}
+	if tenant != "" {
+		cli.TokenArgs = append(append([]string(nil), cli.TokenArgs...), "--tenant", tenant)
+		cli.LoginHint = "az login --tenant " + tenant + " --allow-no-subscriptions"
+	}
+	return cli, nil
 }
 
 // ChainCredentialResolver tries each resolver in order and returns the first credential

@@ -71,6 +71,7 @@ internal/
     git.go                   -- GitRunner interface + DefaultGitRunner (exec.Command wrapper around the resolved git binary)
     provider.go              -- provider detection, maps, registry (includes Codeberg)
     credential.go            -- CredentialResolver contract + Env/CLI/Chain resolvers, CLIRunner
+    azure_tenant.go          -- public Azure DevOps tenant discovery for organization-scoped Azure CLI tokens
     logger.go                -- NewLogger factory for isolated logrus instances
     scanner.go               -- local repo scanning (flat/nested/recursive)
     clone.go                 -- clone orchestration with dependency injection
@@ -144,6 +145,7 @@ internal/
 - **System operations**: Uses `exec.Command(...)` behind `system.Runner` and `FileSystem` interfaces; platform-gated via `runtime.GOOS`
 - **Credential resolution**: A `CredentialResolver` chain, not a bare `os.Getenv`. `EnvCredentialResolver` reads the provider's token env var; `CLICredentialResolver` asks the provider's own CLI for one (`gh auth token`, `az account get-access-token` scoped to the Azure DevOps resource, `glab auth token`), so an already authenticated CLI removes the need to export a second token. `ChainCredentialResolver` tries them in order -- env first, so an explicit token still overrides the CLI -- and on total failure reports *every* reason rather than only the last. Providers with no CLI integration (Codeberg) simply have no entry in `providerCLIMap` and stay env-only. Every consumer (`ResolveProvider`, `ResolveForkResolver`, `gist.ResolveProvider`) goes through the chain
 - **Fork sync**: Uses `ForkResolver` interface to query provider APIs for parent repo info; auto-adds `upstream` remote
+- **Azure CLI tenant selection**: Repository cloning uses `ResolveProviderForOwner` and public Azure DevOps metadata to request a token for the organization's tenant. Explicit PATs skip discovery; organizations without an Entra tenant retain the default Azure CLI account. Git sync uses the existing Git/SSH credentials.
 - **Worktree detection**: A linked worktree stores `.git` as a *file*, so the `.git`-directory scanners (`ScanFlatRepos`, `ScanNestedRepos`, `FindAllRepos`) never see one. This is intentional: worktrees are extra checkouts of repos that exist on the remote, so they must stay out of the clone remote-vs-local diff. `worktree.go` reads them from `git worktree list --porcelain` instead
 - **Worktree classification**: Ordered rule tables (`worktreeGuardRules`, `worktreeRemovalRules`) instead of branching; guards (locked, detached, dirty, unpushed) are always evaluated before removal rules, so preserving work wins over cleaning up. Removal always goes through `git worktree remove`/`git worktree prune`, never `os.RemoveAll`, to keep the parent repo's metadata consistent
 - **SAST orchestration**: Runs each tool (CodeQL, Semgrep, Trivy, Hadolint, Gitleaks) with per-tool failure isolation and embedded default configs
