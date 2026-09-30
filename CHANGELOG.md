@@ -22,6 +22,13 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
+## [0.10.11] - 2026-09-30
+
+### Fixed
+
+- fixed Azure CLI authentication for Azure DevOps organizations in a different tenant from the default Azure subscription
+- fixed canonical HTTP header casing in the Azure tenant discovery tests to satisfy CI lint checks
+
 ## [0.10.10] - 2026-09-10
 
 ### Changed
