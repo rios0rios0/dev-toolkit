@@ -1,6 +1,6 @@
 package builders
 
-import globalEntities "github.com/rios0rios0/gitforge/pkg/global/domain/entities"
+import globalEntities "github.com/rios0rios0/gitforge/v4/pkg/global/domain/entities"
 
 // RepositoryBuilder builds gitforge Repository entities for testing.
 type RepositoryBuilder struct {

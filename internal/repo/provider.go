@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"strings"
 
-	globalEntities "github.com/rios0rios0/gitforge/pkg/global/domain/entities"
-	adoProvider "github.com/rios0rios0/gitforge/pkg/providers/infrastructure/azuredevops"
-	cbProvider "github.com/rios0rios0/gitforge/pkg/providers/infrastructure/codeberg"
-	ghProvider "github.com/rios0rios0/gitforge/pkg/providers/infrastructure/github"
-	glProvider "github.com/rios0rios0/gitforge/pkg/providers/infrastructure/gitlab"
-	gitRegistry "github.com/rios0rios0/gitforge/pkg/registry/infrastructure"
+	globalEntities "github.com/rios0rios0/gitforge/v4/pkg/global/domain/entities"
+	adoProvider "github.com/rios0rios0/gitforge/v4/pkg/providers/infrastructure/azuredevops"
+	cbProvider "github.com/rios0rios0/gitforge/v4/pkg/providers/infrastructure/codeberg"
+	ghProvider "github.com/rios0rios0/gitforge/v4/pkg/providers/infrastructure/github"
+	glProvider "github.com/rios0rios0/gitforge/v4/pkg/providers/infrastructure/gitlab"
+	gitRegistry "github.com/rios0rios0/gitforge/v4/pkg/registry/infrastructure"
 )
 
 const (
