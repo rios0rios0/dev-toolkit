@@ -77,7 +77,7 @@ Always reference these instructions first and fallback to search or bash command
 - **External tool resolution**: `executable.Resolve` is the single place that looks the fixed toolchain (`git`, `docker`, `ssh`, `sh`) up on the user's PATH; those runners execute the resolved absolute path instead of a bare tool name (SonarCloud `go:S4036`). `system.DefaultRunner` and `DefaultCLIRunner` still take the binary from their caller
 - **SAST orchestration**: Per-tool failure isolation with embedded default configs
 - **Platform gating**: System commands conditionally registered via `runtime.GOOS`
-- **Automatic update check**: On startup via cliforge (skipped for `version`, `self-update`, dev builds)
+- **Automatic update check**: On startup via cliforge (skipped for `version`, `self-update`, shell completion, dev builds)
 
 ### Authentication
 | Provider | Environment Variable | CLI Fallback |

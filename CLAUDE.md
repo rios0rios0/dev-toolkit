@@ -151,7 +151,7 @@ internal/
 - **SAST orchestration**: Runs each tool (CodeQL, Semgrep, Trivy, Hadolint, Gitleaks) with per-tool failure isolation and embedded default configs
 - **Dependency injection**: Business logic accepts interfaces (`GitRunner`, `ForgeProvider`, `ForkResolver`, `CredentialResolver`, `CLIRunner`, `LanguageDetector`, `CommandRunner`, `ConfigReader`, `docker.Runner`, `system.Runner`, `FileSystem`, `io.Writer`) for testability
 - **Project dependencies**: `.dev.yaml` declares relative paths to dependent projects; resolved via DFS topological sort with cycle detection
-- **Automatic update check**: On startup (via cliforge), skipped for `version`, `self-update`, and local dev builds
+- **Automatic update check**: On startup (via cliforge), skipped for `version`, `self-update`, shell completion (`completion` and cobra's hidden `__complete`, which run on every shell start and TAB press), and local dev builds
 - **No switch/case**: All dispatch uses mapper pattern (maps of string -> value/function)
 
 ### Dependencies
