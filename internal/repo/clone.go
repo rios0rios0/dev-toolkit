@@ -14,7 +14,7 @@ import (
 	"strings"
 	"sync"
 
-	globalEntities "github.com/rios0rios0/gitforge/pkg/global/domain/entities"
+	globalEntities "github.com/rios0rios0/gitforge/v4/pkg/global/domain/entities"
 	logger "github.com/sirupsen/logrus"
 
 	"github.com/rios0rios0/dev-toolkit/internal/executable"

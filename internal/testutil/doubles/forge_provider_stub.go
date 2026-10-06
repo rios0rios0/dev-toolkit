@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	globalEntities "github.com/rios0rios0/gitforge/pkg/global/domain/entities"
+	globalEntities "github.com/rios0rios0/gitforge/v4/pkg/global/domain/entities"
 )
 
 // ForgeProviderStub is a test double for globalEntities.ForgeProvider.
@@ -63,6 +63,14 @@ func (s *ForgeProviderStub) CreatePullRequest(
 }
 
 func (s *ForgeProviderStub) PullRequestExists(
+	_ context.Context, _ globalEntities.Repository, _ string,
+) (bool, error) {
+	return false, nil
+}
+
+// ClosePullRequest reports that no open pull request existed for the branch,
+// which is what every caller treats as a no-op.
+func (s *ForgeProviderStub) ClosePullRequest(
 	_ context.Context, _ globalEntities.Repository, _ string,
 ) (bool, error) {
 	return false, nil

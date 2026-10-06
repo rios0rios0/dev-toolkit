@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	globalEntities "github.com/rios0rios0/gitforge/pkg/global/domain/entities"
+	globalEntities "github.com/rios0rios0/gitforge/v4/pkg/global/domain/entities"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
