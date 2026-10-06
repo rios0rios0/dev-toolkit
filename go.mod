@@ -4,7 +4,7 @@ go 1.27.1
 
 require (
 	github.com/google/go-github/v66 v66.0.0
-	github.com/rios0rios0/cliforge v0.4.6
+	github.com/rios0rios0/cliforge v0.4.7
 	github.com/rios0rios0/gitforge v1.0.0
 	github.com/rios0rios0/langforge v1.1.7
 	github.com/sirupsen/logrus v1.10.2
