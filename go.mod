@@ -3,7 +3,7 @@ module github.com/rios0rios0/dev-toolkit
 go 1.27.3
 
 require (
-	github.com/google/go-github/v74 v74.0.0
+	github.com/google/go-github/v93 v93.0.0
 	github.com/rios0rios0/cliforge v0.5.2
 	github.com/rios0rios0/gitforge/v4 v4.3.1
 	github.com/rios0rios0/langforge v1.1.10
