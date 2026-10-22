@@ -4,9 +4,9 @@ go 1.27.3
 
 require (
 	github.com/google/go-github/v66 v66.0.0
-	github.com/rios0rios0/cliforge v0.5.1
+	github.com/rios0rios0/cliforge v0.5.2
 	github.com/rios0rios0/gitforge/v4 v4.3.1
-	github.com/rios0rios0/langforge v1.1.9
+	github.com/rios0rios0/langforge v1.1.10
 	github.com/sirupsen/logrus v1.10.2
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
