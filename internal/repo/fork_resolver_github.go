@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	gh "github.com/google/go-github/v66/github"
+	gh "github.com/google/go-github/v74/github"
 )
 
 // GitHubForkResolver implements ForkResolver using the GitHub API.
