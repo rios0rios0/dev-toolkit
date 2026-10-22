@@ -42,4 +42,19 @@ func TestResolveProviderWith(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "not authenticated")
 	})
+
+	t.Run("should return an error when the GitHub client cannot be built", func(t *testing.T) {
+		t.Parallel()
+		// given
+		resolver := doubles.NewCredentialResolverStub().
+			WithCredential(repo.Credential{Token: "", Source: "stub"})
+
+		// when
+		provider, err := gist.ResolveProviderWith(resolver)
+
+		// then
+		require.Error(t, err)
+		assert.Nil(t, provider)
+		assert.Contains(t, err.Error(), "failed to create GitHub client")
+	})
 }

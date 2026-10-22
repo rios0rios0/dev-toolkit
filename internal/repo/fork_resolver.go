@@ -17,8 +17,14 @@ type ForkResolver interface {
 }
 
 //nolint:gochecknoglobals // read-only configuration lookup table
-var resolverFactoryMap = map[string]func(token string) ForkResolver{
-	ProviderGitHub: func(token string) ForkResolver { return NewGitHubForkResolver(token) },
+var resolverFactoryMap = map[string]func(token string) (ForkResolver, error){
+	ProviderGitHub: func(token string) (ForkResolver, error) {
+		resolver, err := NewGitHubForkResolver(token)
+		if err != nil {
+			return nil, err
+		}
+		return resolver, nil
+	},
 }
 
 // ResolveForkResolver creates a ForkResolver for the given provider using the default
@@ -40,5 +46,5 @@ func ResolveForkResolverWith(providerName string, resolver CredentialResolver) (
 		return nil, err
 	}
 
-	return factory(cred.Token), nil
+	return factory(cred.Token)
 }

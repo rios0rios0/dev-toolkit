@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	gh "github.com/google/go-github/v66/github"
+	gh "github.com/google/go-github/v93/github"
 )
 
 // GitHubForkResolver implements ForkResolver using the GitHub API.
@@ -13,10 +13,12 @@ type GitHubForkResolver struct {
 }
 
 // NewGitHubForkResolver creates a resolver that queries GitHub for fork parent info.
-func NewGitHubForkResolver(token string) *GitHubForkResolver {
-	return &GitHubForkResolver{
-		client: gh.NewClient(nil).WithAuthToken(token),
+func NewGitHubForkResolver(token string) (*GitHubForkResolver, error) {
+	client, err := gh.NewClient(gh.WithAuthToken(token))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create GitHub client: %w", err)
 	}
+	return &GitHubForkResolver{client: client}, nil
 }
 
 func (r *GitHubForkResolver) GetParentInfo(

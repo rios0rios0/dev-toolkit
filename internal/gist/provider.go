@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	gh "github.com/google/go-github/v66/github"
+	gh "github.com/google/go-github/v93/github"
 	"github.com/rios0rios0/dev-toolkit/internal/repo"
 )
 
@@ -19,8 +19,12 @@ type GitHubProvider struct {
 }
 
 // NewGitHubProvider builds a GitHub gist provider using a personal access token.
-func NewGitHubProvider(token string) *GitHubProvider {
-	return &GitHubProvider{client: gh.NewClient(nil).WithAuthToken(token)}
+func NewGitHubProvider(token string) (*GitHubProvider, error) {
+	client, err := gh.NewClient(gh.WithAuthToken(token))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create GitHub client: %w", err)
+	}
+	return &GitHubProvider{client: client}, nil
 }
 
 // ListGists paginates through all gists belonging to owner.
@@ -63,5 +67,9 @@ func ResolveProviderWith(resolver repo.CredentialResolver) (Provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewGitHubProvider(cred.Token), nil
+	provider, err := NewGitHubProvider(cred.Token)
+	if err != nil {
+		return nil, err
+	}
+	return provider, nil
 }
