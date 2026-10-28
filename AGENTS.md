@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to AI coding agents (Claude Code, Codex, Cursor, GitHub Copilot) when working with code in this repository.
 
 ## Project Overview
 
@@ -60,6 +60,8 @@ dev system top5size ~/some/dir                                  # show top 5 lar
 dev self-update                                                 # download and install latest release
 dev version                                                     # print current version to stdout
 ```
+
+`repo sync`, `repo failover`, `repo restore` and `gist sync` have no `--dry-run`: they rebase, make WIP commits, push, or rename remotes in every repository under the root. Never run them as smoke tests against a real workspace.
 
 ## Architecture
 
@@ -129,7 +131,7 @@ internal/
     executable.go            -- Resolver + Resolve: locate external tools (git, docker, ssh, sh) on PATH once per process
     *_test.go                -- BDD tests
   testutil/
-    doubles/                 -- GitRunnerStub, ForgeProviderStub, ForkResolverStub, GistProviderStub, CommandRunnerStub, LanguageDetectorStub, LanguageDetectorMultiStub, ConfigReaderStub, DockerRunnerStub, FileSystemStub, MirrorProviderStub, SystemRunnerStub, CLIRunnerStub, CredentialResolverStub
+    doubles/                 -- hand-written <Interface>Stub test doubles, one file per interface
     builders/                -- RepositoryBuilder
 ```
 
@@ -149,7 +151,7 @@ internal/
 - **Worktree detection**: A linked worktree stores `.git` as a *file*, so the `.git`-directory scanners (`ScanFlatRepos`, `ScanNestedRepos`, `FindAllRepos`) never see one. This is intentional: worktrees are extra checkouts of repos that exist on the remote, so they must stay out of the clone remote-vs-local diff. `worktree.go` reads them from `git worktree list --porcelain` instead
 - **Worktree classification**: Ordered rule tables (`worktreeGuardRules`, `worktreeRemovalRules`) instead of branching; guards (locked, detached, dirty, unpushed) are always evaluated before removal rules, so preserving work wins over cleaning up. Removal always goes through `git worktree remove`/`git worktree prune`, never `os.RemoveAll`, to keep the parent repo's metadata consistent
 - **SAST orchestration**: Runs each tool (CodeQL, Semgrep, Trivy, Hadolint, Gitleaks) with per-tool failure isolation and embedded default configs
-- **Dependency injection**: Business logic accepts interfaces (`GitRunner`, `ForgeProvider`, `ForkResolver`, `CredentialResolver`, `CLIRunner`, `LanguageDetector`, `CommandRunner`, `ConfigReader`, `docker.Runner`, `system.Runner`, `FileSystem`, `io.Writer`) for testability
+- **Dependency injection**: Business logic accepts interfaces (`GitRunner`, `ForgeProvider`, `ForkResolver`, `CredentialResolver`, `CLIRunner`, `AzureTenantResolver`, `gist.Provider`, `SASTTool`, `LanguageDetector`, `CommandRunner`, `ConfigReader`, `docker.Runner`, `system.Runner`, `FileSystem`, `io.Writer`) for testability
 - **Project dependencies**: `.dev.yaml` declares relative paths to dependent projects; resolved via DFS topological sort with cycle detection
 - **Automatic update check**: On startup (via cliforge), skipped for `version`, `self-update`, shell completion (`completion` and cobra's hidden `__complete`, which run on every shell start and TAB press), and local dev builds
 - **No switch/case**: All dispatch uses mapper pattern (maps of string -> value/function)

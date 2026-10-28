@@ -2,15 +2,13 @@
 
 Dev-Toolkit is a Go-based CLI tool (binary: `dev`) that manages Git repositories across multiple providers and bootstraps projects by detecting their language. It consolidates gitforge (Git hosting abstractions) and langforge (language detection) into a single workspace toolkit.
 
-Always reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.
-
 ## Working Effectively
 
 ### Prerequisites
 - **Go 1.27+**: Required for building. Check with `go version`.
 
 ### Bootstrap and Build
-- `make build` -- builds the `dev` binary in `bin/` directory. Takes ~1 second. NEVER CANCEL.
+- `make build` -- builds the `dev` binary in `bin/` directory. Takes ~1 second.
 - `make run` -- builds and runs the tool showing help output.
 - `make debug` -- builds without optimizations for debugging.
 - `make build-musl` -- builds a fully static binary using musl-gcc (requires musl toolchain).
@@ -49,9 +47,10 @@ Always reference these instructions first and fallback to search or bash command
 1. **Build validation**: `make build` should complete in ~1 second without errors.
 2. **Help commands**: Test `./bin/dev --help` and help for any modified subcommand.
 3. **Clone dry-run**: `./bin/dev repo clone mine --dry-run ~/Development/github.com/rios0rios0`
-4. **Sync**: `./bin/dev repo sync ~/Development/github.com/rios0rios0`
-5. **Project info**: `./bin/dev project info .` (verifies language detection)
-6. **Worktree dry-run**: `./bin/dev repo worktree prune --dry-run ~/Development/github.com/rios0rios0`
+4. **Project info**: `./bin/dev project info .` (verifies language detection)
+5. **Worktree dry-run**: `./bin/dev repo worktree prune --dry-run ~/Development/github.com/rios0rios0`
+
+`repo sync`, `repo failover`, `repo restore`, and `gist sync` have no `--dry-run`: they rebase, make WIP commits, push, or rename remotes in every repository under the root, so do not run them as smoke tests against a real workspace.
 
 ## Project Structure
 
@@ -91,31 +90,6 @@ Explicit environment tokens take precedence. Repository cloning uses `ResolvePro
 to discover the Azure DevOps organization's tenant before requesting an Azure CLI token with
 `--tenant`. Discovery uses an unauthenticated request and does not follow sign-in redirects.
 Git transfers retain their existing SSH authentication; `repo sync` does not need an API token.
-
-### Key Commands Reference
-```bash
-# Build (fast, ~1 second)
-make build
-
-# Test basic functionality
-make run
-
-# Format and validate code
-go fmt ./...
-go vet ./...
-
-# Test clone dry-run
-./bin/dev repo clone mine --dry-run ~/Development/github.com/rios0rios0
-
-# Test sync
-./bin/dev repo sync ~/Development/github.com/rios0rios0
-
-# Test project detection
-./bin/dev project info .
-
-# Test SAST suite
-./bin/dev project sast .
-```
 
 <!-- chlog:start -->
 ## Changelog (chlog) — MANDATORY
