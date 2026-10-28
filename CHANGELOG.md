@@ -22,6 +22,13 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
+## [0.10.15] - 2026-10-28
+
+### Changed
+
+- changed the gist provider and the fork resolver from `github.com/google/go-github/v66` to `github.com/google/go-github/v93`, building their clients with the new options constructor and reporting a client that cannot be built as an error
+- changed the Go modules `github.com/rios0rios0/cliforge` from `v0.5.1` to `v0.5.2` and `github.com/rios0rios0/langforge` from `v1.1.9` to `v1.1.10`
+
 ## [0.10.14] - 2026-10-21
 
 ### Changed
