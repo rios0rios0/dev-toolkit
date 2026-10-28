@@ -1,0 +1,3 @@
+kind: 'Changed'
+body: 'moved the agent instructions from `CLAUDE.md` to `AGENTS.md`, keeping a `CLAUDE.md` that imports it, and refreshed `AGENTS.md`, `.github/copilot-instructions.md` and the code-review skill to drop the live `repo sync` smoke test, list the missing interfaces and describe the credential chain'
+time: '2026-10-28T23:05:35.566387806Z'

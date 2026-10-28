@@ -20,7 +20,7 @@ The canonical engineering standards live in the
 repo-tailored index into that guide plus the rules that only apply here. Precedence, highest
 first:
 
-1. This repository's `.github/copilot-instructions.md`, `CLAUDE.md`, and `CONTRIBUTING.md` —
+1. This repository's `.github/copilot-instructions.md`, `AGENTS.md`, and `CONTRIBUTING.md` —
    they describe *this* codebase and its load-bearing invariants.
 2. The **rios0rios0/guide** wiki — the shared standard.
 3. General language idiom.
@@ -81,7 +81,7 @@ them before the generic ones.
 - **SSH preflight runs before batch cloning.** Removing it turns one auth failure into a hundred hanging processes; any git subprocess needs `GIT_SSH_COMMAND` batch mode and a timeout.
 - **System commands are platform-gated** through `runtime.GOOS` at registration time — a command that only makes sense on Linux must not appear in the Windows help.
 - **SAST orchestration isolates per-tool failure.** One scanner failing must not abort the rest; the embedded default configs are the fallback when a repository has none.
-- Tokens are read from `GH_TOKEN`, `AZURE_DEVOPS_EXT_PAT`, `GITLAB_TOKEN`, and `CODEBERG_TOKEN`; a token must never be interpolated into a URL that gets logged.
+- Tokens come from the `CredentialResolver` chain: the provider's env var (`GH_TOKEN`, `AZURE_DEVOPS_EXT_PAT`, `GITLAB_TOKEN`, `CODEBERG_TOKEN`) first, then its CLI (`gh auth token`, `az account get-access-token`, `glab auth token`; Codeberg is env-only). A token must never be interpolated into a URL that gets logged.
 - All business logic accepts interfaces, and the doubles live in `internal/testutil/`.
 
 ### Commands a reviewer should be able to quote
@@ -211,7 +211,7 @@ hand.
 - Fragment bodies start with a lowercase verb in simple past tense, capitalise proper nouns
   (GitHub, Go, Docker), and wrap code identifiers and versions in backticks.
 - `README.md` is updated whenever usage, setup, configuration, or architecture changes;
-  `.github/copilot-instructions.md` and `CLAUDE.md` whenever the workflow, commands, or
+  `.github/copilot-instructions.md` and `AGENTS.md` whenever the workflow, commands, or
   structure changes. Documentation and code ship in one commit.
 
 ## Git Flow and pull-request hygiene
@@ -275,7 +275,7 @@ A review that raises noise gets ignored. Do not report these:
 ### Change-control checklist
 - [ ] Changelog entry present for every behavioural change
 - [ ] `README.md` updated if usage, setup, or architecture changed
-- [ ] `.github/copilot-instructions.md` and `CLAUDE.md` updated if the workflow, commands, or structure changed
+- [ ] `.github/copilot-instructions.md` and `AGENTS.md` updated if the workflow, commands, or structure changed
 - [ ] Commit messages follow `type(SCOPE): message` in simple past tense
 - [ ] Breaking changes flagged in the commit footer, the changelog, and the PR description
 
