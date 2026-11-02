@@ -15,10 +15,10 @@ Dev-Toolkit is a developer workspace toolkit that manages Git repositories acros
 ## Features
 
 - **Repository Cloning**: discovers repos from GitHub, Azure DevOps, or GitLab and clones missing ones via SSH in parallel
-- **Repository Syncing**: fetches and rebases all repos under a directory, preserving uncommitted work via WIP branches
+- **Repository Syncing**: fetches all repos under a directory and rebases each one's default branch -- detected per repository, never assumed to be `main` -- preserving uncommitted work via WIP branches
 - **Gist Cloning & Syncing**: discovers GitHub gists for a user, clones missing ones via SSH using a description-derived slug, and syncs them with the same WIP-aware workflow as repos
 - **Fork Syncing**: detects forked repos via provider API, syncs with upstream parent, and handles conflicts by creating reference branches
-- **Branch Pruning**: deletes local branches merged into the default branch across all repos
+- **Branch Pruning**: deletes local branches merged into each repo's detected default branch
 - **Worktree Cleanup**: finds linked Git worktrees that outlived their purpose -- stale registrations, worktrees outside the root, merged branches, deleted upstreams -- and clears them through Git itself (`git worktree prune` for stale registrations, `git worktree remove` for the rest), protecting anything locked, detached, dirty, or unpushed
 - **Docker Management**: lists container IPs and resets the Docker environment (stop, prune)
 - **System Cleanup**: reclaims disk space by clearing caches across Go, Node, Python, Gradle, JetBrains, Terra, and SDKMAN, pruning obsolete CLI-agent binary versions, and wiping transient state -- credentials, SDKs, and shell history are preserved
@@ -82,6 +82,31 @@ dev docker ips                  # list container IP addresses
 dev docker reset                # stop all containers, prune everything
 dev docker reset --dry-run      # preview without executing
 ```
+
+### Default Branch Detection
+
+`repo sync`, `repo prune`, `repo fork-sync`, `repo worktree`, and `gist sync` act on each
+repository's own default branch -- `main`, `master`, `develop`, or any other name -- and never
+assume one. The first source that answers wins:
+
+1. `origin/HEAD` as recorded by `git clone`, but only while the branch it names still exists:
+   after the remote renames its default (say `master` to `main`), git keeps pointing
+   `origin/HEAD` at the deleted branch.
+2. The remote itself (`git ls-remote --symref origin HEAD`), when the recorded pointer is missing
+   or names a deleted branch.
+3. `main`, then `master`, among the remote-tracking branches, then among the local branches --
+   for an unreachable remote or a repository without one.
+
+When none answers, the repository is reported as `FAIL (default branch not found for remote
+origin)` and left untouched. Make `origin` reachable, or record the branch yourself with
+`git remote set-head origin <branch>`.
+
+`repo sync` fetches before touching anything, so a network failure leaves the repository as it
+was, then runs `git remote set-head origin --auto`: git records `origin/HEAD` only when cloning,
+and no fetch updates it. A renamed or switched default is therefore followed -- created from
+`origin` if it was never checked out locally -- and `repo prune` and `repo worktree`, which do
+not fetch, see it from then on. `repo fork-sync` reads the upstream parent's default branch the
+same way, without the local-branch fallback.
 
 ### Authentication
 

@@ -133,7 +133,10 @@ func ForkSyncSingleRepo(
 	cfg ForkSyncConfig,
 ) ForkSyncResult {
 	name := Key(remoteRepo)
-	defaultBranch := DetectDefaultBranch(repoPath, cfg.Runner)
+	defaultBranch, detectErr := DetectDefaultBranch(repoPath, cfg.Runner)
+	if detectErr != nil {
+		return ForkSyncResult{Name: name, Status: fmt.Sprintf("FAIL (%v)", detectErr)}
+	}
 	currentBranch := DetectCurrentBranch(repoPath, defaultBranch, cfg.Runner)
 	isDirty := cfg.Runner.Output(repoPath, "status", "--porcelain") != ""
 	wipBranch := fmt.Sprintf("wip/%s", currentBranch)
@@ -163,8 +166,7 @@ func ensureUpstreamRemote(
 	existingURL := cfg.Runner.Output(repoPath, "remote", "get-url", "upstream")
 	if existingURL != "" {
 		// upstream already configured, detect its default branch
-		branch := detectUpstreamDefaultBranch(repoPath, cfg.Runner)
-		return branch, nil
+		return detectUpstreamDefaultBranch(repoPath, cfg.Runner)
 	}
 
 	// need to add upstream remote via API
@@ -182,23 +184,12 @@ func ensureUpstreamRemote(
 	return parentInfo.DefaultBranch, nil
 }
 
-func detectUpstreamDefaultBranch(repoPath string, runner GitRunner) string {
-	ref := runner.Output(repoPath, "symbolic-ref", "refs/remotes/upstream/HEAD")
-	branch := strings.TrimPrefix(ref, "refs/remotes/upstream/")
-	if branch != "" && branch != ref {
-		return branch
-	}
-
-	// try auto-detecting
-	_ = runner.Run(repoPath, "remote", "set-head", "upstream", "--auto")
-	ref = runner.Output(repoPath, "symbolic-ref", "refs/remotes/upstream/HEAD")
-	branch = strings.TrimPrefix(ref, "refs/remotes/upstream/")
-	if branch != "" && branch != ref {
-		return branch
-	}
-
-	// fallback: use origin's default branch
-	return DetectDefaultBranch(repoPath, runner)
+// detectUpstreamDefaultBranch returns the branch the upstream remote uses as its default,
+// following a rename or switch made upstream since the remote was added. It fails rather
+// than borrowing origin's default, which a fork may have renamed independently.
+func detectUpstreamDefaultBranch(repoPath string, runner GitRunner) (string, error) {
+	refreshRemoteHEAD(repoPath, upstreamRemote, runner)
+	return DetectRemoteDefaultBranch(repoPath, upstreamRemote, runner)
 }
 
 func syncWithUpstream(
@@ -212,10 +203,7 @@ func syncWithUpstream(
 	}
 
 	// ensure local branch exists for upstream default
-	localBranchExists := runner.Output(
-		repoPath, "rev-parse", "--verify", "refs/heads/"+upstreamDefault,
-	) != ""
-	if !localBranchExists {
+	if !refExists(repoPath, localBranchRefPrefix+upstreamDefault, runner) {
 		if err := runner.Run(
 			repoPath, "checkout", "-b", upstreamDefault,
 			"upstream/"+upstreamDefault,

@@ -71,6 +71,7 @@ Dev-Toolkit is a Go-based CLI tool (binary: `dev`) that manages Git repositories
 - **Parallel execution**: Goroutines with semaphore channel for controlled concurrency
 - **SSH preflight**: Verifies SSH connectivity before batch cloning
 - **WIP branches**: Preserves dirty state during sync via temporary commits
+- **Default branch detection**: Ordered rules find each repo's default branch -- `origin/HEAD` only while its branch still exists, then `git ls-remote --symref`, then `main`/`master` only when present -- and `ErrDefaultBranchNotFound` fails the repo instead of a guess; `repo sync` fetches first and refreshes `origin/HEAD` with `git remote set-head origin --auto`
 - **Worktree rule tables**: Ordered guard/removal rule slices classify linked worktrees; guards (locked, detached, dirty, unpushed) always win over removal rules
 - **Dependency injection**: All business logic accepts interfaces for testability
 - **External tool resolution**: `executable.Resolve` is the single place that looks the fixed toolchain (`git`, `docker`, `ssh`, `sh`) up on the user's PATH; those runners execute the resolved absolute path instead of a bare tool name (SonarCloud `go:S4036`). `system.DefaultRunner` and `DefaultCLIRunner` still take the binary from their caller

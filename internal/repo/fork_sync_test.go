@@ -211,10 +211,7 @@ func TestForkSyncSingleRepo(t *testing.T) {
 			WithOutput([]string{"branch", "--show-current"}, "main").
 			WithOutput([]string{"status", "--porcelain"}, "").
 			WithOutput([]string{"remote", "get-url", "upstream"}, "git@github.com:existing/repo.git").
-			WithOutput(
-				[]string{"symbolic-ref", "refs/remotes/upstream/HEAD"},
-				"refs/remotes/upstream/main",
-			).
+			WithRemoteHEAD("upstream", "main").
 			WithOutput([]string{"rev-parse", "--verify", "refs/heads/main"}, "abc123")
 		fork := builders.NewRepositoryBuilder().
 			WithName("forked-repo").
@@ -253,10 +250,7 @@ func TestForkSyncSingleRepo(t *testing.T) {
 			WithOutput([]string{"branch", "--show-current"}, "feat/x").
 			WithOutput([]string{"status", "--porcelain"}, " M file.go").
 			WithOutput([]string{"remote", "get-url", "upstream"}, "git@github.com:upstream/repo.git").
-			WithOutput(
-				[]string{"symbolic-ref", "refs/remotes/upstream/HEAD"},
-				"refs/remotes/upstream/main",
-			).
+			WithRemoteHEAD("upstream", "main").
 			WithOutput([]string{"rev-parse", "--verify", "refs/heads/main"}, "abc123")
 		fork := builders.NewRepositoryBuilder().
 			WithName("forked-repo").
@@ -290,10 +284,7 @@ func TestForkSyncSingleRepo(t *testing.T) {
 			WithOutput([]string{"branch", "--show-current"}, "main").
 			WithOutput([]string{"status", "--porcelain"}, "").
 			WithOutput([]string{"remote", "get-url", "upstream"}, "git@github.com:upstream/repo.git").
-			WithOutput(
-				[]string{"symbolic-ref", "refs/remotes/upstream/HEAD"},
-				"refs/remotes/upstream/main",
-			).
+			WithRemoteHEAD("upstream", "main").
 			WithOutput([]string{"rev-parse", "--verify", "refs/heads/main"}, "abc123").
 			WithRunError([]string{"rebase", "upstream/main"}, errors.New("conflict"))
 		origRun := runner.RunFunc
@@ -336,10 +327,7 @@ func TestForkSyncSingleRepo(t *testing.T) {
 			WithOutput([]string{"branch", "--show-current"}, "main").
 			WithOutput([]string{"status", "--porcelain"}, "").
 			WithOutput([]string{"remote", "get-url", "upstream"}, "git@github.com:upstream/repo.git").
-			WithOutput(
-				[]string{"symbolic-ref", "refs/remotes/upstream/HEAD"},
-				"refs/remotes/upstream/main",
-			).
+			WithRemoteHEAD("upstream", "main").
 			WithOutput([]string{"rev-parse", "--verify", "refs/heads/main"}, "abc123").
 			WithRunError([]string{"fetch", "upstream"}, errors.New("network error"))
 		fork := builders.NewRepositoryBuilder().
@@ -371,6 +359,7 @@ func TestForkSyncSingleRepo(t *testing.T) {
 		t.Parallel()
 		// given
 		runner := doubles.NewGitRunnerStub().
+			WithRemoteHEAD("origin", "main").
 			WithOutput([]string{"branch", "--show-current"}, "main").
 			WithOutput([]string{"status", "--porcelain"}, "").
 			WithOutput([]string{"remote", "get-url", "upstream"}, "")
@@ -397,7 +386,104 @@ func TestForkSyncSingleRepo(t *testing.T) {
 		// then
 		assert.Contains(t, result.Status, "FAIL")
 		assert.Contains(t, result.Status, "upstream")
+		assert.Contains(t, result.Status, "could not resolve parent")
 	})
+
+	t.Run("should refresh upstream/HEAD before detecting the upstream default branch", func(t *testing.T) {
+		t.Parallel()
+		// given
+		runner := doubles.NewGitRunnerStub().
+			WithRemoteHEAD("origin", "main").
+			WithRemoteHEAD("upstream", "main").
+			WithRef("refs/heads/main").
+			WithOutput([]string{"branch", "--show-current"}, "main").
+			WithOutput([]string{"remote", "get-url", "upstream"}, "git@github.com:upstream/repo.git")
+		calls := recordRunCalls(runner)
+		fork, cfg := forkSyncCase(runner)
+
+		// when
+		result := repo.ForkSyncSingleRepo("/root/forked-repo", fork, cfg)
+
+		// then
+		assert.Equal(t, "synced", result.Status)
+		require.NotEmpty(t, *calls)
+		assert.Equal(t, "remote set-head upstream --auto", (*calls)[0])
+	})
+
+	t.Run("should rebase onto the branch upstream reports when upstream/HEAD names a deleted one", func(t *testing.T) {
+		t.Parallel()
+		// given: upstream renamed master to main after upstream/HEAD was recorded
+		runner := doubles.NewGitRunnerStub().
+			WithRemoteHEAD("origin", "main").
+			WithRef("refs/heads/main").
+			WithOutput([]string{"branch", "--show-current"}, "main").
+			WithOutput([]string{"remote", "get-url", "upstream"}, "git@github.com:upstream/repo.git").
+			WithOutput([]string{"symbolic-ref", "refs/remotes/upstream/HEAD"}, "refs/remotes/upstream/master").
+			WithOutput([]string{"ls-remote", "--symref", "upstream", "HEAD"}, advertisedHEAD("main"))
+		calls := recordRunCalls(runner)
+		fork, cfg := forkSyncCase(runner)
+
+		// when
+		result := repo.ForkSyncSingleRepo("/root/forked-repo", fork, cfg)
+
+		// then
+		assert.Equal(t, "synced", result.Status)
+		assert.Contains(t, *calls, "rebase upstream/main")
+		assert.NotContains(t, *calls, "rebase upstream/master")
+	})
+
+	t.Run("should fail instead of borrowing origin's default when upstream's is unknown", func(t *testing.T) {
+		t.Parallel()
+		// given
+		runner := doubles.NewGitRunnerStub().
+			WithRemoteHEAD("origin", "main").
+			WithRef("refs/heads/main").
+			WithOutput([]string{"branch", "--show-current"}, "main").
+			WithOutput([]string{"remote", "get-url", "upstream"}, "git@github.com:upstream/repo.git")
+		calls := recordRunCalls(runner)
+		fork, cfg := forkSyncCase(runner)
+
+		// when
+		result := repo.ForkSyncSingleRepo("/root/forked-repo", fork, cfg)
+
+		// then
+		assert.Equal(t, "FAIL (upstream: default branch not found for remote upstream)", result.Status)
+		assert.Equal(t, []string{"remote set-head upstream --auto"}, *calls)
+	})
+
+	t.Run("should fail before touching the fork when origin's default branch is unknown", func(t *testing.T) {
+		t.Parallel()
+		// given
+		runner := doubles.NewGitRunnerStub().
+			WithOutput([]string{"branch", "--show-current"}, "feat/x").
+			WithOutput([]string{"status", "--porcelain"}, " M file.go")
+		calls := recordRunCalls(runner)
+		fork, cfg := forkSyncCase(runner)
+
+		// when
+		result := repo.ForkSyncSingleRepo("/root/forked-repo", fork, cfg)
+
+		// then
+		assert.Equal(t, "FAIL (default branch not found for remote origin)", result.Status)
+		assert.Empty(t, *calls)
+	})
+}
+
+// forkSyncCase builds the fork and the config a single-repository fork-sync test needs,
+// with git answering through runner.
+func forkSyncCase(runner *doubles.GitRunnerStub) (globalEntities.Repository, repo.ForkSyncConfig) {
+	fork := builders.NewRepositoryBuilder().
+		WithName("forked-repo").
+		WithOrganization("owner").
+		WithFork(true).
+		Build()
+	return fork, repo.ForkSyncConfig{
+		RootDir:  "/root",
+		Provider: doubles.NewForgeProviderStub(),
+		Resolver: doubles.NewForkResolverStub(),
+		Runner:   runner,
+		Output:   repo.NewLogger(&discardWriter{}),
+	}
 }
 
 // discardWriter is an [io.Writer] that discards all output.

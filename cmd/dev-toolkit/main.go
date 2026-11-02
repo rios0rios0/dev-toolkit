@@ -186,7 +186,10 @@ func newSyncCmd() *cobra.Command {
 		Use:   "sync [root-dir]",
 		Short: "Sync all repositories under a directory",
 		Long: `For each repository found under the root directory, fetches all remotes,
-rebases the default branch, and preserves any uncommitted work via WIP commits.`,
+rebases the default branch, and preserves any uncommitted work via WIP commits.
+The default branch is detected per repository from the remote's HEAD, never
+assumed to be main; a repository whose default branch cannot be detected is
+reported as failed and left untouched.`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			rootDir, _ := os.Getwd()

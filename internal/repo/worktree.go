@@ -273,10 +273,9 @@ func ScanWorktrees(repoPath, rootDir string, runner GitRunner) []WorktreeCandida
 		name = repoPath
 	}
 
-	defaultBranch := DetectDefaultBranch(repoPath, runner)
 	env := worktreeEnv{
 		rootDir: absPathOrOriginal(rootDir),
-		merged:  toBranchSet(ListMergedBranches(repoPath, defaultBranch, runner)),
+		merged:  branchesMergedIntoDefault(repoPath, runner),
 		gone:    ListGoneBranches(repoPath, runner),
 		runner:  runner,
 	}
@@ -288,6 +287,17 @@ func ScanWorktrees(repoPath, rootDir string, runner GitRunner) []WorktreeCandida
 		candidates = append(candidates, candidate)
 	}
 	return candidates
+}
+
+// branchesMergedIntoDefault returns the local branches merged into the repository's default
+// branch. When the default branch cannot be detected nothing counts as merged, so no
+// worktree is removed for being merged into a guessed branch.
+func branchesMergedIntoDefault(repoPath string, runner GitRunner) map[string]struct{} {
+	defaultBranch, err := DetectDefaultBranch(repoPath, runner)
+	if err != nil {
+		return map[string]struct{}{}
+	}
+	return toBranchSet(ListMergedBranches(repoPath, defaultBranch, runner))
 }
 
 func toBranchSet(branches []string) map[string]struct{} {

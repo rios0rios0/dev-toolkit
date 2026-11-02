@@ -53,6 +53,21 @@ func (s *GitRunnerStub) WithOutputForDir(dir string, args []string, output strin
 	return s
 }
 
+// WithRef makes a fully qualified ref resolve, as `git rev-parse --verify <ref>` does for a
+// branch that exists.
+func (s *GitRunnerStub) WithRef(ref string) *GitRunnerStub {
+	return s.WithOutput([]string{"rev-parse", "--verify", ref}, "abc123")
+}
+
+// WithRemoteHEAD records branch as the default branch of remote the way git clone does:
+// refs/remotes/<remote>/HEAD points at refs/remotes/<remote>/<branch>, which exists.
+func (s *GitRunnerStub) WithRemoteHEAD(remote, branch string) *GitRunnerStub {
+	ref := "refs/remotes/" + remote + "/" + branch
+	return s.
+		WithOutput([]string{"symbolic-ref", "refs/remotes/" + remote + "/HEAD"}, ref).
+		WithRef(ref)
+}
+
 func (s *GitRunnerStub) Run(dir string, args ...string) error {
 	return s.RunFunc(dir, args...)
 }

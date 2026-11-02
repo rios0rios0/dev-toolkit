@@ -86,7 +86,10 @@ func RunPrune(rootDir string, runner GitRunner, dryRun bool, output io.Writer) e
 // PruneSingleRepo finds and deletes local branches that have been merged into the default branch.
 func PruneSingleRepo(repoPath, rootDir string, runner GitRunner, dryRun bool) PruneResult {
 	name, _ := filepath.Rel(rootDir, repoPath)
-	defaultBranch := DetectDefaultBranch(repoPath, runner)
+	defaultBranch, detectErr := DetectDefaultBranch(repoPath, runner)
+	if detectErr != nil {
+		return PruneResult{Name: name, Status: fmt.Sprintf("FAIL (%v)", detectErr)}
+	}
 
 	merged := ListMergedBranches(repoPath, defaultBranch, runner)
 	if len(merged) == 0 {

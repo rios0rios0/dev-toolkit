@@ -76,7 +76,19 @@ func RunSync(rootDir string, runner GitRunner, output io.Writer) error {
 // SyncSingleRepo syncs a single repository with fetch/rebase and WIP preservation.
 func SyncSingleRepo(repoPath, rootDir string, runner GitRunner) SyncResult {
 	name := strings.TrimPrefix(repoPath, rootDir+"/")
-	defaultBranch := DetectDefaultBranch(repoPath, runner)
+
+	// Fetch before touching anything: a failure leaves the repository as it was found, and
+	// the default branch is then detected from what the remote reports today.
+	if err := runner.Run(repoPath, "fetch", "--all", "--prune", "-q"); err != nil {
+		return SyncResult{Name: name, Status: fmt.Sprintf("FAIL (fetch: %v)", err)}
+	}
+	refreshRemoteHEAD(repoPath, originRemote, runner)
+
+	defaultBranch, detectErr := DetectDefaultBranch(repoPath, runner)
+	if detectErr != nil {
+		return SyncResult{Name: name, Status: fmt.Sprintf("FAIL (%v)", detectErr)}
+	}
+
 	currentBranch := DetectCurrentBranch(repoPath, defaultBranch, runner)
 	isDirty := runner.Output(repoPath, "status", "--porcelain") != ""
 	wipBranch := fmt.Sprintf("wip/%s", currentBranch)
@@ -88,16 +100,6 @@ func SyncSingleRepo(repoPath, rootDir string, runner GitRunner) SyncResult {
 	}
 
 	return SyncAndRestore(repoPath, name, defaultBranch, currentBranch, wipBranch, isDirty, runner)
-}
-
-// DetectDefaultBranch detects the default branch from the remote HEAD reference.
-func DetectDefaultBranch(repoPath string, runner GitRunner) string {
-	branch := runner.Output(repoPath, "symbolic-ref", "refs/remotes/origin/HEAD")
-	branch = strings.TrimPrefix(branch, "refs/remotes/origin/")
-	if branch == "" {
-		return "main"
-	}
-	return branch
 }
 
 // DetectCurrentBranch detects the currently checked out branch.
@@ -131,18 +133,14 @@ func SaveWIPState(repoPath, name, currentBranch, wipBranch string, runner GitRun
 	return SyncResult{}, true
 }
 
-// SyncAndRestore performs the fetch/rebase and restores the original branch state.
+// SyncAndRestore checks out the default branch, rebases it onto its upstream, and restores
+// the original branch state. The repository must already be fetched.
 func SyncAndRestore(
 	repoPath, name, defaultBranch, currentBranch, wipBranch string, isDirty bool, runner GitRunner,
 ) SyncResult {
-	if err := runner.Run(repoPath, "checkout", defaultBranch); err != nil {
+	if err := checkoutDefaultBranch(repoPath, defaultBranch, runner); err != nil {
 		RestoreBranch(repoPath, currentBranch, wipBranch, isDirty, runner)
 		return SyncResult{Name: name, Status: fmt.Sprintf("FAIL (checkout %s: %v)", defaultBranch, err)}
-	}
-
-	if err := runner.Run(repoPath, "fetch", "--all", "--prune", "-q"); err != nil {
-		RestoreBranch(repoPath, currentBranch, wipBranch, isDirty, runner)
-		return SyncResult{Name: name, Status: fmt.Sprintf("FAIL (fetch: %v)", err)}
 	}
 
 	if err := runner.Run(repoPath, "pull", "--rebase"); err != nil {
@@ -152,6 +150,17 @@ func SyncAndRestore(
 	}
 
 	return FinalizeSync(repoPath, name, defaultBranch, wipBranch, isDirty, runner)
+}
+
+// checkoutDefaultBranch switches to the default branch, creating it from origin when it was
+// never checked out here, as happens after the remote renames its default. The remote is
+// named explicitly because a bare checkout cannot choose when another remote, such as a
+// fork's upstream, carries a branch with the same name.
+func checkoutDefaultBranch(repoPath, defaultBranch string, runner GitRunner) error {
+	if refExists(repoPath, localBranchRefPrefix+defaultBranch, runner) {
+		return runner.Run(repoPath, "checkout", defaultBranch)
+	}
+	return runner.Run(repoPath, "checkout", "--track", originRemote+"/"+defaultBranch)
 }
 
 // RestoreBranch restores the appropriate branch after a failure.
