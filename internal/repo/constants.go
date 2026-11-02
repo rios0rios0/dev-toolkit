@@ -9,6 +9,15 @@ const (
 	ProviderCodeberg    = "codeberg"
 )
 
+// Remote names the sync workflows read default branches from.
+const (
+	originRemote   = "origin"
+	upstreamRemote = "upstream"
+)
+
+// localBranchRefPrefix qualifies a branch name as a local branch ref.
+const localBranchRefPrefix = "refs/heads/"
+
 // Log field keys reused across repo workflows (clone, sync, prune, mirror, failover, restore).
 const (
 	logFieldRepo   = "repo"

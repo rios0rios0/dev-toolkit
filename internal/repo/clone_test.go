@@ -722,7 +722,7 @@ func TestRunCloneWithPruneWorktrees(t *testing.T) {
 			"worktree " + root + "/repo-a-wt\nHEAD def\nbranch refs/heads/feat/done\n"
 		runner := doubles.NewGitRunnerStub().
 			WithOutput([]string{"worktree", "list", "--porcelain"}, porcelain).
-			WithOutput([]string{"symbolic-ref", "refs/remotes/origin/HEAD"}, "refs/remotes/origin/main").
+			WithRemoteHEAD("origin", "main").
 			WithOutput([]string{"branch", "--merged", "main"}, "* main\n+ feat/done")
 		provider := doubles.NewForgeProviderStub().WithRepos([]globalEntities.Repository{
 			builders.NewRepositoryBuilder().WithName("repo-a").Build(),

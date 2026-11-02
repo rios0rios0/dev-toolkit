@@ -33,7 +33,7 @@ func worktreeEntry(path, branch string, extra ...string) string {
 func worktreeRunner(porcelain string) *doubles.GitRunnerStub {
 	return doubles.NewGitRunnerStub().
 		WithOutput([]string{"worktree", "list", "--porcelain"}, porcelain).
-		WithOutput([]string{"symbolic-ref", "refs/remotes/origin/HEAD"}, "refs/remotes/origin/main").
+		WithRemoteHEAD("origin", "main").
 		WithOutput([]string{"branch", "--merged", "main"}, "* main")
 }
 
@@ -193,6 +193,25 @@ func TestScanWorktrees(t *testing.T) {
 		require.Len(t, candidates, 2)
 		assert.False(t, candidates[1].Keep)
 		assert.Equal(t, repo.WorktreeReasonMerged, candidates[1].Reason)
+	})
+
+	t.Run("should not mark a worktree merged when the default branch is unknown", func(t *testing.T) {
+		t.Parallel()
+		// given: nothing reveals the default branch, so the answer for main must not be consulted
+		runner := doubles.NewGitRunnerStub().
+			WithOutput(
+				[]string{"worktree", "list", "--porcelain"},
+				worktreeEntry("/root/repo", "main")+"\n"+worktreeEntry("/root/repo-wt", "feat/done"),
+			).
+			WithOutput([]string{"branch", "--merged", "main"}, "* main\n+ feat/done")
+
+		// when
+		candidates := repo.ScanWorktrees("/root/repo", "/root", runner)
+
+		// then
+		require.Len(t, candidates, 2)
+		assert.True(t, candidates[1].Keep)
+		assert.Equal(t, repo.WorktreeKeepActive, candidates[1].Reason)
 	})
 
 	t.Run("should mark a worktree whose upstream was deleted", func(t *testing.T) {

@@ -36,10 +36,7 @@ func TestRunSync(t *testing.T) {
 		createGistRepo(t, root+"/snippet-one")
 		createGistRepo(t, root+"/snippet-two")
 		runner := doubles.NewGitRunnerStub().
-			WithOutput(
-				[]string{"symbolic-ref", "refs/remotes/origin/HEAD"},
-				"refs/remotes/origin/main",
-			).
+			WithRemoteHEAD("origin", "main").
 			WithOutput([]string{"branch", "--show-current"}, "main").
 			WithOutput([]string{"status", "--porcelain"}, "")
 		var buf bytes.Buffer

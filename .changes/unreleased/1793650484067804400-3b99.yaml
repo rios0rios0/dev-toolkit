@@ -1,0 +1,3 @@
+kind: 'Changed'
+body: 'changed `dev repo sync` and `dev gist sync` to fetch before touching the working tree and to refresh `origin/HEAD` with `git remote set-head origin --auto`, so a renamed or switched default branch is followed (and created from `origin` when it was never checked out locally) and a failed fetch no longer leaves the repository on a `wip/` branch'
+time: '2026-11-02T20:14:44.067764393Z'

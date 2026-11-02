@@ -87,7 +87,7 @@ func TestPruneSingleRepo(t *testing.T) {
 		t.Parallel()
 		// given
 		runner := doubles.NewGitRunnerStub().
-			WithOutput([]string{"symbolic-ref", "refs/remotes/origin/HEAD"}, "refs/remotes/origin/main").
+			WithRemoteHEAD("origin", "main").
 			WithOutput([]string{"branch", "--merged", "main"}, "* main")
 
 		// when
@@ -103,7 +103,7 @@ func TestPruneSingleRepo(t *testing.T) {
 		t.Parallel()
 		// given
 		runner := doubles.NewGitRunnerStub().
-			WithOutput([]string{"symbolic-ref", "refs/remotes/origin/HEAD"}, "refs/remotes/origin/main").
+			WithRemoteHEAD("origin", "main").
 			WithOutput([]string{"branch", "--merged", "main"}, "  feat/old\n* main\n  fix/done")
 
 		// when
@@ -119,7 +119,7 @@ func TestPruneSingleRepo(t *testing.T) {
 		t.Parallel()
 		// given
 		runner := doubles.NewGitRunnerStub().
-			WithOutput([]string{"symbolic-ref", "refs/remotes/origin/HEAD"}, "refs/remotes/origin/main").
+			WithRemoteHEAD("origin", "main").
 			WithOutput([]string{"branch", "--merged", "main"}, "  feat/old\n* main")
 
 		// when
@@ -134,7 +134,7 @@ func TestPruneSingleRepo(t *testing.T) {
 		t.Parallel()
 		// given
 		runner := doubles.NewGitRunnerStub().
-			WithOutput([]string{"symbolic-ref", "refs/remotes/origin/HEAD"}, "refs/remotes/origin/main").
+			WithRemoteHEAD("origin", "main").
 			WithOutput([]string{"branch", "--merged", "main"}, "  feat/old\n  fix/done\n* main").
 			WithRunError([]string{"branch", "-d", "fix/done"}, errors.New("not fully merged"))
 
@@ -145,6 +145,36 @@ func TestPruneSingleRepo(t *testing.T) {
 		assert.Contains(t, result.Status, "deleted 1")
 		assert.Contains(t, result.Status, "failed 1")
 		assert.Equal(t, []string{"feat/old"}, result.Deleted)
+	})
+
+	t.Run("should prune against the detected default branch instead of main", func(t *testing.T) {
+		t.Parallel()
+		// given: a leftover main also exists, with a different set of merged branches
+		runner := doubles.NewGitRunnerStub().
+			WithRemoteHEAD("origin", "develop").
+			WithOutput([]string{"branch", "--merged", "develop"}, "  feat/old\n* develop").
+			WithOutput([]string{"branch", "--merged", "main"}, "  feat/unrelated\n  main")
+
+		// when
+		result := repo.PruneSingleRepo("/root/my-repo", "/root", runner, false)
+
+		// then
+		assert.Equal(t, []string{"feat/old"}, result.Deleted)
+	})
+
+	t.Run("should report a failure and delete nothing when the default branch is unknown", func(t *testing.T) {
+		t.Parallel()
+		// given
+		runner := doubles.NewGitRunnerStub()
+		calls := recordRunCalls(runner)
+
+		// when
+		result := repo.PruneSingleRepo("/root/my-repo", "/root", runner, false)
+
+		// then
+		assert.Equal(t, "FAIL (default branch not found for remote origin)", result.Status)
+		assert.Empty(t, result.Deleted)
+		assert.Empty(t, *calls)
 	})
 }
 
@@ -173,7 +203,7 @@ func TestRunPrune(t *testing.T) {
 		createGitRepo(t, root+"/repo-a")
 		createGitRepo(t, root+"/repo-b")
 		runner := doubles.NewGitRunnerStub().
-			WithOutput([]string{"symbolic-ref", "refs/remotes/origin/HEAD"}, "refs/remotes/origin/main").
+			WithRemoteHEAD("origin", "main").
 			WithOutput([]string{"branch", "--merged", "main"}, "  feat/old\n* main")
 		var buf bytes.Buffer
 
@@ -192,7 +222,7 @@ func TestRunPrune(t *testing.T) {
 		root := t.TempDir()
 		createGitRepo(t, root+"/repo-a")
 		runner := doubles.NewGitRunnerStub().
-			WithOutput([]string{"symbolic-ref", "refs/remotes/origin/HEAD"}, "refs/remotes/origin/main").
+			WithRemoteHEAD("origin", "main").
 			WithOutput([]string{"branch", "--merged", "main"}, "  feat/old\n* main")
 		var buf bytes.Buffer
 
@@ -211,7 +241,7 @@ func TestRunPrune(t *testing.T) {
 		root := t.TempDir()
 		createGitRepo(t, root+"/repo-a")
 		runner := doubles.NewGitRunnerStub().
-			WithOutput([]string{"symbolic-ref", "refs/remotes/origin/HEAD"}, "refs/remotes/origin/main").
+			WithRemoteHEAD("origin", "main").
 			WithOutput([]string{"branch", "--merged", "main"}, "* main")
 		var buf bytes.Buffer
 
@@ -230,7 +260,7 @@ func TestRunPrune(t *testing.T) {
 		createGitRepo(t, root+"/project-a/repo-one")
 		createGitRepo(t, root+"/project-b/repo-two")
 		runner := doubles.NewGitRunnerStub().
-			WithOutput([]string{"symbolic-ref", "refs/remotes/origin/HEAD"}, "refs/remotes/origin/main").
+			WithRemoteHEAD("origin", "main").
 			WithOutput([]string{"branch", "--merged", "main"}, "  feat/old\n* main")
 		var buf bytes.Buffer
 

@@ -3,6 +3,7 @@ package repo_test
 import (
 	"bytes"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,33 +13,16 @@ import (
 	"github.com/rios0rios0/dev-toolkit/internal/testutil/doubles"
 )
 
-func TestDetectDefaultBranch(t *testing.T) {
-	t.Parallel()
-
-	t.Run("should return branch name from symbolic-ref output", func(t *testing.T) {
-		t.Parallel()
-		// given
-		runner := doubles.NewGitRunnerStub().
-			WithOutput([]string{"symbolic-ref", "refs/remotes/origin/HEAD"}, "refs/remotes/origin/develop")
-
-		// when
-		branch := repo.DetectDefaultBranch("/repo", runner)
-
-		// then
-		assert.Equal(t, "develop", branch)
-	})
-
-	t.Run("should return main when symbolic-ref returns empty", func(t *testing.T) {
-		t.Parallel()
-		// given
-		runner := doubles.NewGitRunnerStub()
-
-		// when
-		branch := repo.DetectDefaultBranch("/repo", runner)
-
-		// then
-		assert.Equal(t, "main", branch)
-	})
+// recordRunCalls makes runner remember every command it runs, joined with spaces, while
+// still answering them through the behavior already configured.
+func recordRunCalls(runner *doubles.GitRunnerStub) *[]string {
+	var calls []string
+	answer := runner.RunFunc
+	runner.RunFunc = func(dir string, args ...string) error {
+		calls = append(calls, strings.Join(args, " "))
+		return answer(dir, args...)
+	}
+	return &calls
 }
 
 func TestDetectCurrentBranch(t *testing.T) {
@@ -164,6 +148,7 @@ func TestSyncAndRestore(t *testing.T) {
 		t.Parallel()
 		// given
 		runner := doubles.NewGitRunnerStub().
+			WithRef("refs/heads/main").
 			WithRunError([]string{"checkout", "main"}, errors.New("checkout failed"))
 
 		// when
@@ -173,17 +158,18 @@ func TestSyncAndRestore(t *testing.T) {
 		assert.Contains(t, result.Status, "FAIL (checkout main")
 	})
 
-	t.Run("should return failure when fetch fails", func(t *testing.T) {
+	t.Run("should create the default branch from origin when it was never checked out locally", func(t *testing.T) {
 		t.Parallel()
 		// given
-		runner := doubles.NewGitRunnerStub().
-			WithRunError([]string{"fetch", "--all", "--prune", "-q"}, errors.New("network error"))
+		runner := doubles.NewGitRunnerStub().WithRef("refs/remotes/origin/develop")
+		calls := recordRunCalls(runner)
 
 		// when
-		result := repo.SyncAndRestore("/repo", "my-repo", "main", "feat/x", "wip/feat/x", false, runner)
+		result := repo.SyncAndRestore("/repo", "my-repo", "develop", "master", "wip/master", false, runner)
 
 		// then
-		assert.Contains(t, result.Status, "FAIL (fetch")
+		assert.Equal(t, "synced", result.Status)
+		assert.Equal(t, []string{"checkout --track origin/develop", "pull --rebase"}, *calls)
 	})
 
 	t.Run("should return failure when pull rebase fails", func(t *testing.T) {
@@ -203,7 +189,7 @@ func TestSyncAndRestore(t *testing.T) {
 		t.Parallel()
 		// given
 		var checkouts []string
-		runner := doubles.NewGitRunnerStub()
+		runner := doubles.NewGitRunnerStub().WithRef("refs/heads/main")
 		runner.RunFunc = func(_ string, args ...string) error {
 			if len(args) > 0 && args[0] == "checkout" {
 				checkouts = append(checkouts, args[1])
@@ -362,10 +348,7 @@ func TestRunSync(t *testing.T) {
 		createGitRepo(t, root+"/repo-a")
 		createGitRepo(t, root+"/repo-b")
 		runner := doubles.NewGitRunnerStub().
-			WithOutput(
-				[]string{"symbolic-ref", "refs/remotes/origin/HEAD"},
-				"refs/remotes/origin/main",
-			).
+			WithRemoteHEAD("origin", "main").
 			WithOutput([]string{"branch", "--show-current"}, "main").
 			WithOutput([]string{"status", "--porcelain"}, "")
 		var buf bytes.Buffer
@@ -385,10 +368,7 @@ func TestRunSync(t *testing.T) {
 		root := t.TempDir()
 		createGitRepo(t, root+"/repo-a")
 		runner := doubles.NewGitRunnerStub().
-			WithOutput(
-				[]string{"symbolic-ref", "refs/remotes/origin/HEAD"},
-				"refs/remotes/origin/main",
-			).
+			WithRemoteHEAD("origin", "main").
 			WithOutput([]string{"branch", "--show-current"}, "main").
 			WithOutput([]string{"status", "--porcelain"}, "").
 			WithRunError([]string{"fetch", "--all", "--prune", "-q"}, errors.New("network error"))
@@ -411,10 +391,7 @@ func TestSyncSingleRepo(t *testing.T) {
 		t.Parallel()
 		// given
 		runner := doubles.NewGitRunnerStub().
-			WithOutput(
-				[]string{"symbolic-ref", "refs/remotes/origin/HEAD"},
-				"refs/remotes/origin/main",
-			).
+			WithRemoteHEAD("origin", "main").
 			WithOutput([]string{"branch", "--show-current"}, "main").
 			WithOutput([]string{"status", "--porcelain"}, "")
 
@@ -430,10 +407,7 @@ func TestSyncSingleRepo(t *testing.T) {
 		t.Parallel()
 		// given
 		runner := doubles.NewGitRunnerStub().
-			WithOutput(
-				[]string{"symbolic-ref", "refs/remotes/origin/HEAD"},
-				"refs/remotes/origin/main",
-			).
+			WithRemoteHEAD("origin", "main").
 			WithOutput([]string{"branch", "--show-current"}, "feat/x").
 			WithOutput([]string{"status", "--porcelain"}, " M file.go")
 
@@ -443,5 +417,101 @@ func TestSyncSingleRepo(t *testing.T) {
 		// then
 		assert.Equal(t, "my-repo", result.Name)
 		assert.Contains(t, result.Status, "synced (wip:")
+	})
+
+	t.Run("should fetch and refresh origin/HEAD before switching to the default branch", func(t *testing.T) {
+		t.Parallel()
+		// given
+		runner := doubles.NewGitRunnerStub().
+			WithRemoteHEAD("origin", "main").
+			WithRef("refs/heads/main").
+			WithOutput([]string{"branch", "--show-current"}, "main")
+		calls := recordRunCalls(runner)
+
+		// when
+		result := repo.SyncSingleRepo("/root/my-repo", "/root", runner)
+
+		// then
+		assert.Equal(t, "synced", result.Status)
+		assert.Equal(t, []string{
+			"fetch --all --prune -q",
+			"remote set-head origin --auto",
+			"checkout main",
+			"pull --rebase",
+		}, *calls)
+	})
+
+	t.Run("should sync the branch the remote reports when origin/HEAD was never recorded", func(t *testing.T) {
+		t.Parallel()
+		// given: a leftover local main must not be mistaken for the default branch
+		runner := doubles.NewGitRunnerStub().
+			WithOutput([]string{"ls-remote", "--symref", "origin", "HEAD"}, advertisedHEAD("develop")).
+			WithRef("refs/heads/develop").
+			WithRef("refs/heads/main").
+			WithOutput([]string{"branch", "--show-current"}, "feat/x")
+		calls := recordRunCalls(runner)
+
+		// when
+		result := repo.SyncSingleRepo("/root/my-repo", "/root", runner)
+
+		// then
+		assert.Equal(t, "synced", result.Status)
+		assert.Contains(t, *calls, "checkout develop")
+		assert.NotContains(t, *calls, "checkout main")
+	})
+
+	t.Run("should follow a renamed default branch instead of the deleted one origin/HEAD names", func(t *testing.T) {
+		t.Parallel()
+		// given: the remote renamed master to main, the pruning fetch removed origin/master
+		// while origin/HEAD still names it, and main was never checked out here
+		runner := doubles.NewGitRunnerStub().
+			WithOutput([]string{"symbolic-ref", "refs/remotes/origin/HEAD"}, "refs/remotes/origin/master").
+			WithOutput([]string{"ls-remote", "--symref", "origin", "HEAD"}, advertisedHEAD("main")).
+			WithRef("refs/heads/master").
+			WithRef("refs/remotes/origin/main").
+			WithOutput([]string{"branch", "--show-current"}, "master")
+		calls := recordRunCalls(runner)
+
+		// when
+		result := repo.SyncSingleRepo("/root/my-repo", "/root", runner)
+
+		// then
+		assert.Equal(t, "synced", result.Status)
+		assert.Contains(t, *calls, "checkout --track origin/main")
+		assert.NotContains(t, *calls, "checkout master")
+	})
+
+	t.Run("should fail without touching the repository when the default branch is unknown", func(t *testing.T) {
+		t.Parallel()
+		// given
+		runner := doubles.NewGitRunnerStub().
+			WithOutput([]string{"branch", "--show-current"}, "feat/x").
+			WithOutput([]string{"status", "--porcelain"}, " M file.go")
+		calls := recordRunCalls(runner)
+
+		// when
+		result := repo.SyncSingleRepo("/root/my-repo", "/root", runner)
+
+		// then
+		assert.Equal(t, "FAIL (default branch not found for remote origin)", result.Status)
+		assert.Equal(t, []string{"fetch --all --prune -q", "remote set-head origin --auto"}, *calls)
+	})
+
+	t.Run("should leave a dirty repository untouched when fetch fails", func(t *testing.T) {
+		t.Parallel()
+		// given
+		runner := doubles.NewGitRunnerStub().
+			WithRemoteHEAD("origin", "main").
+			WithOutput([]string{"branch", "--show-current"}, "feat/x").
+			WithOutput([]string{"status", "--porcelain"}, " M file.go").
+			WithRunError([]string{"fetch", "--all", "--prune", "-q"}, errors.New("network error"))
+		calls := recordRunCalls(runner)
+
+		// when
+		result := repo.SyncSingleRepo("/root/my-repo", "/root", runner)
+
+		// then
+		assert.Contains(t, result.Status, "FAIL (fetch")
+		assert.Equal(t, []string{"fetch --all --prune -q"}, *calls)
 	})
 }
