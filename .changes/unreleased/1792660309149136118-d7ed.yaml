@@ -1,3 +1,0 @@
-kind: 'Changed'
-body: 'changed the gist provider and the fork resolver from `github.com/google/go-github/v66` to `github.com/google/go-github/v93`, building their clients with the new options constructor and reporting a client that cannot be built as an error'
-time: '2026-10-22T09:11:49.149136118Z'

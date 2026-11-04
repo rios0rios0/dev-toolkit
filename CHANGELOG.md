@@ -22,6 +22,21 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
+## [0.10.15] - 2026-11-04
+
+### Changed
+
+- changed `dev repo sync` and `dev gist sync` to fetch before touching the working tree and to refresh `origin/HEAD` with `git remote set-head origin --auto`, so a renamed or switched default branch is followed (and created from `origin` when it was never checked out locally) and a failed fetch no longer leaves the repository on a `wip/` branch
+- changed the gist provider and the fork resolver from `github.com/google/go-github/v66` to `github.com/google/go-github/v93`, building their clients with the new options constructor and reporting a client that cannot be built as an error
+- changed the Go module `go.yaml.in/yaml/v3` from `v3.0.5` to `v3.0.6`
+- changed the Go module `golang.org/x/net` from `v0.61.0` to `v0.62.0`
+- changed the Go modules `github.com/rios0rios0/cliforge` from `v0.5.1` to `v0.5.2` and `github.com/rios0rios0/langforge` from `v1.1.9` to `v1.1.10`
+- moved the agent instructions from `CLAUDE.md` to `AGENTS.md`, keeping a `CLAUDE.md` that imports it, and refreshed `AGENTS.md`, `.github/copilot-instructions.md` and the code-review skill to drop the live `repo sync` smoke test, list the missing interfaces and describe the credential chain
+
+### Fixed
+
+- fixed `dev repo sync`, `dev repo prune`, `dev repo fork-sync`, `dev repo worktree`, and `dev gist sync` treating `main` as the default branch of repositories without `origin/HEAD`, and using a deleted branch after a remote renamed its default; the default branch is now detected per repository (the recorded `origin/HEAD` while its branch exists, then the remote itself, then `main` or `master` only when present), and a repository whose default branch cannot be determined is reported as failed instead of being synced or pruned against a guess
+
 ## [0.10.14] - 2026-10-21
 
 ### Changed
