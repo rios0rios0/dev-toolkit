@@ -22,6 +22,15 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
+## [0.10.16] - 2026-11-11
+
+### Changed
+
+- changed the Go module `github.com/spf13/pflag` from `v1.0.10` to `v1.1.0`
+- changed the Go module `gitlab.com/gitlab-org/api/client-go/v3` from `v3.43.0` to `v3.46.1`
+- changed the Go modules `github.com/rios0rios0/gitforge/v4` from `v4.3.1` to `v4.3.2` and `github.com/rios0rios0/langforge` from `v1.1.10` to `v1.1.11`
+- changed the Go modules `golang.org/x/mod` from `v0.42.0` to `v0.43.0`, `golang.org/x/oauth2` from `v0.37.0` to `v0.38.0` and `golang.org/x/sys` from `v0.49.0` to `v0.50.0`
+
 ## [0.10.15] - 2026-11-04
 
 ### Changed
