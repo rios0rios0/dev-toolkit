@@ -4,9 +4,9 @@ go 1.27.4
 
 require (
 	github.com/google/go-github/v93 v93.0.0
-	github.com/rios0rios0/cliforge v0.5.2
-	github.com/rios0rios0/gitforge/v4 v4.3.2
-	github.com/rios0rios0/langforge v1.1.11
+	github.com/rios0rios0/cliforge v0.5.3
+	github.com/rios0rios0/gitforge/v4 v4.4.0
+	github.com/rios0rios0/langforge v1.1.12
 	github.com/sirupsen/logrus v1.10.2
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
@@ -26,9 +26,9 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/pjbgf/sha1cd v0.7.0 // indirect
-	github.com/sergi/go-diff v1.4.0 // indirect
+	github.com/sergi/go-diff v1.4.5 // indirect
 	github.com/spf13/pflag v1.1.0 // indirect
-	gitlab.com/gitlab-org/api/client-go/v3 v3.51.0 // indirect
+	gitlab.com/gitlab-org/api/client-go/v3 v3.52.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.6 // indirect
 	golang.org/x/mod v0.43.0 // indirect
 	golang.org/x/net v0.62.0 // indirect
