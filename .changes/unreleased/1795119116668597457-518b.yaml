@@ -1,3 +1,0 @@
-kind: 'Changed'
-body: 'changed provider API credentials to come from the shared credential chain of gitforge `v4.7.0` instead of a copy kept in dev-toolkit: GitHub now reads `GITHUB_TOKEN` before `GH_TOKEN`, so an exported `GITHUB_TOKEN` wins over `GH_TOKEN` when both are set, Azure DevOps also reads `SYSTEM_ACCESSTOKEN` after `AZURE_DEVOPS_EXT_PAT`, GitLab also reads `GL_TOKEN` after `GITLAB_TOKEN`, every variable still wins over the `gh` or `az` CLI, and those CLIs now run by their absolute path from the home directory'
-time: '2026-11-19T20:11:56.668515272Z'

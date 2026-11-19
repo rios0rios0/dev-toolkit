@@ -1,3 +1,0 @@
-kind: 'Fixed'
-body: 'fixed tokens issued for another server reaching the public APIs: the `gh` CLI fallback asked for the token of its default host, which can be a GitHub Enterprise server, and now runs `gh auth token --hostname github.com`, and `GITLAB_TOKEN` or `GL_TOKEN` is now declined when `GITLAB_HOST` or `GL_HOST` names a server other than `gitlab.com`'
-time: '2026-11-19T20:11:56.670708162Z'
