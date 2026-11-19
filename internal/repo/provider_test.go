@@ -132,28 +132,6 @@ func TestProviderScanDepth(t *testing.T) {
 	})
 }
 
-func TestProviderTokenEnv(t *testing.T) {
-	t.Parallel()
-
-	t.Run("should return GH_TOKEN for github", func(t *testing.T) {
-		t.Parallel()
-		// given / when
-		env := repo.ProviderTokenEnv("github")
-
-		// then
-		assert.Equal(t, "GH_TOKEN", env)
-	})
-
-	t.Run("should return AZURE_DEVOPS_EXT_PAT for azuredevops", func(t *testing.T) {
-		t.Parallel()
-		// given / when
-		env := repo.ProviderTokenEnv("azuredevops")
-
-		// then
-		assert.Equal(t, "AZURE_DEVOPS_EXT_PAT", env)
-	})
-}
-
 func TestProviderHost(t *testing.T) {
 	t.Parallel()
 

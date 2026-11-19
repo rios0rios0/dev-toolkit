@@ -81,7 +81,7 @@ them before the generic ones.
 - **SSH preflight runs before batch cloning.** Removing it turns one auth failure into a hundred hanging processes; any git subprocess needs `GIT_SSH_COMMAND` batch mode and a timeout.
 - **System commands are platform-gated** through `runtime.GOOS` at registration time — a command that only makes sense on Linux must not appear in the Windows help.
 - **SAST orchestration isolates per-tool failure.** One scanner failing must not abort the rest; the embedded default configs are the fallback when a repository has none.
-- Tokens come from the `CredentialResolver` chain: the provider's env var (`GH_TOKEN`, `AZURE_DEVOPS_EXT_PAT`, `GITLAB_TOKEN`, `CODEBERG_TOKEN`) first, then its CLI (`gh auth token`, `az account get-access-token`, `glab auth token`; Codeberg is env-only). A token must never be interpolated into a URL that gets logged.
+- Tokens come from gitforge's `CredentialResolver` chain (`gitforge/v4/pkg/credentials`), never from a dev-toolkit copy of it: the provider's env vars (`GITHUB_TOKEN`/`GH_TOKEN`, `AZURE_DEVOPS_EXT_PAT`/`SYSTEM_ACCESSTOKEN`, `GITLAB_TOKEN`/`GL_TOKEN`, `CODEBERG_TOKEN`) first, then its CLI (`gh auth token --hostname github.com`, `az account get-access-token`; GitLab and Codeberg are env-only). A token must never be interpolated into a URL that gets logged, and a token the chain hands out goes only to that provider's fixed API host.
 - All business logic accepts interfaces, and the doubles live in `internal/testutil/`.
 
 ### Commands a reviewer should be able to quote

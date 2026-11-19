@@ -1,0 +1,3 @@
+kind: 'Removed'
+body: 'removed the `glab auth token` fallback for GitLab credentials, which never worked because `glab` has no `auth token` command: GitLab authenticates through `GITLAB_TOKEN` or `GL_TOKEN` alone, and the error no longer suggests `glab auth login`'
+time: '2026-11-19T20:11:56.67246086Z'

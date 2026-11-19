@@ -3,6 +3,9 @@ package repo
 import (
 	"context"
 	"fmt"
+
+	credentialEntities "github.com/rios0rios0/gitforge/v4/pkg/credentials/domain/entities"
+	credentialInfra "github.com/rios0rios0/gitforge/v4/pkg/credentials/infrastructure"
 )
 
 // ParentInfo holds the upstream parent repository's SSH URL and default branch.
@@ -27,21 +30,23 @@ var resolverFactoryMap = map[string]func(token string) (ForkResolver, error){
 	},
 }
 
-// ResolveForkResolver creates a ForkResolver for the given provider using the default
-// credential chain.
+// ResolveForkResolver creates a ForkResolver for the given provider using gitforge's
+// default credential chain.
 func ResolveForkResolver(providerName string) (ForkResolver, error) {
-	return ResolveForkResolverWith(providerName, DefaultCredentialResolver())
+	return ResolveForkResolverWith(providerName, credentialInfra.NewDefaultCredentialResolver())
 }
 
 // ResolveForkResolverWith creates a ForkResolver from whatever credential the given
 // resolver supplies.
-func ResolveForkResolverWith(providerName string, resolver CredentialResolver) (ForkResolver, error) {
+func ResolveForkResolverWith(
+	providerName string, resolver credentialEntities.CredentialResolver,
+) (ForkResolver, error) {
 	factory, ok := resolverFactoryMap[providerName]
 	if !ok {
 		return nil, fmt.Errorf("fork resolution not supported for provider: %s", providerName)
 	}
 
-	cred, err := resolver.Resolve(providerName)
+	cred, err := resolveCredential(providerName, "", resolver)
 	if err != nil {
 		return nil, err
 	}
