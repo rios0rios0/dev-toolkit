@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	gh "github.com/google/go-github/v93/github"
-	"github.com/rios0rios0/dev-toolkit/internal/repo"
+	credentialEntities "github.com/rios0rios0/gitforge/v4/pkg/credentials/domain/entities"
+	credentialInfra "github.com/rios0rios0/gitforge/v4/pkg/credentials/infrastructure"
+	globalEntities "github.com/rios0rios0/gitforge/v4/pkg/global/domain/entities"
 )
 
 // Provider lists gists for a given owner.
@@ -53,17 +55,19 @@ func (p *GitHubProvider) ListGists(ctx context.Context, owner string) ([]Gist, e
 	return gists, nil
 }
 
-// ResolveProvider builds a Provider using the default GitHub credential chain: the
-// GH_TOKEN environment variable when it is exported, and otherwise the token held by an
-// authenticated "gh" CLI.
+// ResolveProvider builds a Provider using gitforge's default GitHub credential chain:
+// GITHUB_TOKEN or GH_TOKEN when one is exported, and otherwise the github.com token held
+// by an authenticated "gh" CLI.
 func ResolveProvider() (Provider, error) {
-	return ResolveProviderWith(repo.DefaultCredentialResolver())
+	return ResolveProviderWith(credentialInfra.NewDefaultCredentialResolver())
 }
 
 // ResolveProviderWith builds a Provider from whatever credential the given resolver
 // supplies for GitHub.
-func ResolveProviderWith(resolver repo.CredentialResolver) (Provider, error) {
-	cred, err := resolver.Resolve(repo.ProviderGitHub)
+func ResolveProviderWith(resolver credentialEntities.CredentialResolver) (Provider, error) {
+	cred, err := resolver.Resolve(context.Background(), credentialEntities.CredentialRequest{
+		ServiceType: globalEntities.GITHUB,
+	})
 	if err != nil {
 		return nil, err
 	}

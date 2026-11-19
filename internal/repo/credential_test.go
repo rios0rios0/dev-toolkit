@@ -2,501 +2,121 @@ package repo_test
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
+	credentialEntities "github.com/rios0rios0/gitforge/v4/pkg/credentials/domain/entities"
+	credentialInfra "github.com/rios0rios0/gitforge/v4/pkg/credentials/infrastructure"
+	globalEntities "github.com/rios0rios0/gitforge/v4/pkg/global/domain/entities"
+	gitRegistry "github.com/rios0rios0/gitforge/v4/pkg/registry/infrastructure"
+	gitforgeDoubles "github.com/rios0rios0/gitforge/v4/test/doubles"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/rios0rios0/dev-toolkit/internal/repo"
-	"github.com/rios0rios0/dev-toolkit/internal/testutil/doubles"
 )
 
-func TestEnvCredentialResolver(t *testing.T) {
-	t.Parallel()
+const (
+	fixtureToken        = "fixture-token-placeholder"
+	fixtureOtherToken   = "fixture-other-token-placeholder"
+	fixturePAT          = "fixture-pat-placeholder"
+	fixtureOrganization = "example-org"
+	fixtureTenant       = "11111111-2222-3333-4444-555555555555"
+)
 
-	t.Run("should return the token when the provider env var is set", func(t *testing.T) {
-		t.Parallel()
-		// given
-		resolver := &repo.EnvCredentialResolver{
-			Lookup: func(key string) string {
-				if key == "GH_TOKEN" {
-					return "env-token"
-				}
-				return ""
-			},
-		}
-
-		// when
-		cred, err := resolver.Resolve(repo.ProviderGitHub)
-
-		// then
-		require.NoError(t, err)
-		assert.Equal(t, "env-token", cred.Token)
-		assert.Equal(t, "GH_TOKEN environment variable", cred.Source)
-	})
-
-	t.Run("should return an error when the provider env var is empty", func(t *testing.T) {
-		t.Parallel()
-		// given
-		resolver := &repo.EnvCredentialResolver{Lookup: func(_ string) string { return "" }}
-
-		// when
-		_, err := resolver.Resolve(repo.ProviderGitHub)
-
-		// then
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "GH_TOKEN environment variable not set")
-	})
-
-	t.Run("should return an error when the provider is unknown", func(t *testing.T) {
-		t.Parallel()
-		// given
-		resolver := &repo.EnvCredentialResolver{Lookup: func(_ string) string { return "token" }}
-
-		// when
-		_, err := resolver.Resolve("bitbucket")
-
-		// then
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "unknown provider: bitbucket")
-	})
-
-	t.Run("should reject an unknown provider without consulting a zero-value lookup", func(t *testing.T) {
-		t.Parallel()
-		// given
-		resolver := &repo.EnvCredentialResolver{}
-
-		// when
-		_, err := resolver.Resolve("bitbucket")
-
-		// then
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "unknown provider: bitbucket")
-	})
-}
-
-func TestCLICredentialResolver(t *testing.T) {
-	t.Parallel()
-
-	t.Run("should return the token when the gh CLI is authenticated", func(t *testing.T) {
-		t.Parallel()
-		// given
-		runner := doubles.NewCLIRunnerStub().WithToken("gh", "gho_from_cli")
-		resolver := &repo.CLICredentialResolver{Runner: runner}
-
-		// when
-		cred, err := resolver.Resolve(repo.ProviderGitHub)
-
-		// then
-		require.NoError(t, err)
-		assert.Equal(t, "gho_from_cli", cred.Token)
-		assert.Equal(t, "gh CLI", cred.Source)
-		assert.Equal(t, []string{"gh auth token"}, runner.Calls)
-	})
-
-	t.Run("should ask az for an Azure DevOps token when the provider is azuredevops", func(t *testing.T) {
-		t.Parallel()
-		// given
-		runner := doubles.NewCLIRunnerStub().WithToken("az", "aad-access-token")
-		resolver := &repo.CLICredentialResolver{Runner: runner}
-
-		// when
-		cred, err := resolver.Resolve(repo.ProviderAzureDevOps)
-
-		// then
-		require.NoError(t, err)
-		assert.Equal(t, "aad-access-token", cred.Token)
-		assert.Equal(t, "az CLI", cred.Source)
-		require.Len(t, runner.Calls, 1)
-		assert.Contains(t, runner.Calls[0], "account get-access-token")
-		assert.Contains(t, runner.Calls[0], "499b84ac-1321-427f-aa17-267ca6975798")
-	})
-
-	t.Run("should ask glab for a token when the provider is gitlab", func(t *testing.T) {
-		t.Parallel()
-		// given
-		runner := doubles.NewCLIRunnerStub().WithToken("glab", "glpat-from-cli")
-		resolver := &repo.CLICredentialResolver{Runner: runner}
-
-		// when
-		cred, err := resolver.Resolve(repo.ProviderGitLab)
-
-		// then
-		require.NoError(t, err)
-		assert.Equal(t, "glpat-from-cli", cred.Token)
-		assert.Equal(t, []string{"glab auth token"}, runner.Calls)
-	})
-
-	t.Run("should return an error when the CLI is not installed", func(t *testing.T) {
-		t.Parallel()
-		// given
-		resolver := &repo.CLICredentialResolver{Runner: doubles.NewCLIRunnerStub()}
-
-		// when
-		_, err := resolver.Resolve(repo.ProviderGitHub)
-
-		// then
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "gh CLI is not installed")
-	})
-
-	t.Run("should suggest logging in when the CLI is installed but not authenticated", func(t *testing.T) {
-		t.Parallel()
-		// given
-		runner := doubles.NewCLIRunnerStub().
-			WithError("gh", errors.New("gh auth token: no oauth token found"))
-		resolver := &repo.CLICredentialResolver{Runner: runner}
-
-		// when
-		_, err := resolver.Resolve(repo.ProviderGitHub)
-
-		// then
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "gh auth login")
-		assert.Contains(t, err.Error(), "no oauth token found")
-	})
-
-	t.Run("should not blame authentication when the token command fails for another reason", func(t *testing.T) {
-		t.Parallel()
-		// given
-		runner := doubles.NewCLIRunnerStub().
-			WithError("az", errors.New("context deadline exceeded"))
-		resolver := &repo.CLICredentialResolver{Runner: runner}
-
-		// when
-		_, err := resolver.Resolve(repo.ProviderAzureDevOps)
-
-		// then
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "context deadline exceeded")
-		assert.NotContains(t, err.Error(), "not authenticated")
-	})
-
-	t.Run("should return an error when the CLI returns an empty token", func(t *testing.T) {
-		t.Parallel()
-		// given
-		resolver := &repo.CLICredentialResolver{Runner: doubles.NewCLIRunnerStub().WithInstalled("gh")}
-
-		// when
-		_, err := resolver.Resolve(repo.ProviderGitHub)
-
-		// then
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "empty token")
-	})
-
-	t.Run("should return an error when the provider has no CLI integration", func(t *testing.T) {
-		t.Parallel()
-		// given
-		resolver := &repo.CLICredentialResolver{Runner: doubles.NewCLIRunnerStub()}
-
-		// when
-		_, err := resolver.Resolve(repo.ProviderCodeberg)
-
-		// then
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "no CLI integration for provider: codeberg")
-	})
-
-	t.Run("should reject a provider with no CLI without using a zero-value runner", func(t *testing.T) {
-		t.Parallel()
-		// given
-		resolver := &repo.CLICredentialResolver{}
-
-		// when
-		_, err := resolver.Resolve(repo.ProviderCodeberg)
-
-		// then
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "no CLI integration for provider: codeberg")
-	})
-}
-
-func TestProviderCLIFor(t *testing.T) {
-	t.Parallel()
-
-	t.Run("should return the gh integration for github", func(t *testing.T) {
-		t.Parallel()
-		// given / when
-		cli, ok := repo.ProviderCLIFor(repo.ProviderGitHub)
-
-		// then
-		require.True(t, ok)
-		assert.Equal(t, "gh", cli.Binary)
-		assert.Equal(t, "gh auth login", cli.LoginHint)
-	})
-
-	t.Run("should report no integration for codeberg", func(t *testing.T) {
-		t.Parallel()
-		// given / when
-		_, ok := repo.ProviderCLIFor(repo.ProviderCodeberg)
-
-		// then
-		assert.False(t, ok)
-	})
-}
-
-func TestAzureOrganizationCredentials(t *testing.T) {
-	t.Parallel()
-
-	const tenantID = "11111111-2222-3333-4444-555555555555"
-	t.Run("should authenticate the provider in the organization tenant without an exported PAT", func(t *testing.T) {
-		t.Parallel()
-		// given
-		runner := doubles.NewCLIRunnerStub().WithToken("az", "fixture-token-placeholder")
-		cli := &repo.CLICredentialResolver{
-			Runner: runner, Organization: "example-org",
-			TenantResolver: &doubles.AzureTenantResolverStub{Tenant: tenantID},
-		}
-		chain := repo.NewChainCredentialResolver(
-			&repo.EnvCredentialResolver{Lookup: func(_ string) string { return "" }}, cli,
-		)
-
-		// when
-		provider, err := repo.ResolveProviderWith(repo.ProviderAzureDevOps, chain)
-
-		// then
-		require.NoError(t, err)
-		assert.Equal(t, "fixture-token-placeholder", provider.AuthToken())
-		assert.Equal(t, repo.ProviderAzureDevOps, provider.Name())
-		assert.Equal(t, []string{"az account get-access-token --resource 499b84ac-1321-427f-aa17-267ca6975798" +
-			" --query accessToken --output tsv --tenant " + tenantID}, runner.Calls)
-	})
-
-	t.Run("should preserve explicit PAT precedence even when tenant discovery would fail", func(t *testing.T) {
-		t.Parallel()
-		// given
-		cli := &repo.CLICredentialResolver{
-			Runner: doubles.NewCLIRunnerStub(), Organization: "example-org",
-			TenantResolver: &doubles.AzureTenantResolverStub{Err: errors.New("metadata unavailable")},
-		}
-		chain := repo.NewChainCredentialResolver(
-			&repo.EnvCredentialResolver{Lookup: func(_ string) string { return "fixture-pat-placeholder" }}, cli,
-		)
-
-		// when
-		provider, err := repo.ResolveProviderWith(repo.ProviderAzureDevOps, chain)
-
-		// then
-		require.NoError(t, err)
-		assert.Equal(t, "fixture-pat-placeholder", provider.AuthToken())
-	})
-
-	for _, scenario := range []struct {
-		name     string
-		provider string
-		binary   string
-		tenant   string
-	}{
-		{"should retain the default Azure account for personal organizations", repo.ProviderAzureDevOps, "az", ""},
-		{"should leave GitHub CLI authentication unchanged", repo.ProviderGitHub, "gh", tenantID},
-		{"should leave GitLab CLI authentication unchanged", repo.ProviderGitLab, "glab", tenantID},
-	} {
-		t.Run(scenario.name, func(t *testing.T) {
-			t.Parallel()
-			// given
-			runner := doubles.NewCLIRunnerStub().WithToken(scenario.binary, "fixture-token-placeholder")
-			cli := &repo.CLICredentialResolver{
-				Runner: runner, Organization: "example-org",
-				TenantResolver: &doubles.AzureTenantResolverStub{Tenant: scenario.tenant},
-			}
-
-			// when
-			cred, err := cli.Resolve(scenario.provider)
-
-			// then
-			require.NoError(t, err)
-			assert.Equal(t, "fixture-token-placeholder", cred.Token)
-			require.Len(t, runner.Calls, 1)
-			assert.NotContains(t, runner.Calls[0], "--tenant")
-		})
+// stubCredential returns a resolver that hands out the fixture token for every request.
+func stubCredential() *gitforgeDoubles.CredentialResolverStub {
+	return &gitforgeDoubles.CredentialResolverStub{
+		Credential: credentialEntities.Credential{Token: fixtureToken, Source: "stub"},
 	}
-
-	t.Run("should suggest tenant-specific login when the Azure session is unavailable", func(t *testing.T) {
-		t.Parallel()
-		// given
-		cli := &repo.CLICredentialResolver{
-			Runner:       doubles.NewCLIRunnerStub().WithError("az", errors.New("session expired")),
-			Organization: "example-org", TenantResolver: &doubles.AzureTenantResolverStub{Tenant: tenantID},
-		}
-
-		// when
-		_, err := cli.Resolve(repo.ProviderAzureDevOps)
-
-		// then
-		require.ErrorContains(t, err, "az login --tenant "+tenantID+" --allow-no-subscriptions")
-		assert.Contains(t, err.Error(), "session expired")
-	})
-
-	t.Run("should report missing az before attempting tenant discovery", func(t *testing.T) {
-		t.Parallel()
-		// given
-		cli := &repo.CLICredentialResolver{
-			Runner: doubles.NewCLIRunnerStub(), Organization: "example-org",
-			TenantResolver: &doubles.AzureTenantResolverStub{Err: errors.New("metadata unavailable")},
-		}
-
-		// when
-		_, err := cli.Resolve(repo.ProviderAzureDevOps)
-
-		// then
-		require.EqualError(t, err, "az CLI is not installed")
-	})
-
-	t.Run("should report tenant discovery failures instead of using a different tenant", func(t *testing.T) {
-		t.Parallel()
-		// given
-		cli := &repo.CLICredentialResolver{
-			Runner:         doubles.NewCLIRunnerStub().WithToken("az", "fixture-token-placeholder"),
-			Organization:   "example-org",
-			TenantResolver: &doubles.AzureTenantResolverStub{Err: errors.New("metadata unavailable")},
-		}
-
-		// when
-		cred, err := cli.Resolve(repo.ProviderAzureDevOps)
-
-		// then
-		require.ErrorContains(t, err, "could not determine Azure DevOps organization tenant")
-		assert.Contains(t, err.Error(), "metadata unavailable")
-		assert.Empty(t, cred.Token)
-	})
 }
 
-func TestChainCredentialResolver(t *testing.T) {
-	t.Parallel()
-
-	t.Run("should prefer the environment token when both sources are available", func(t *testing.T) {
-		t.Parallel()
-		// given
-		env := &repo.EnvCredentialResolver{Lookup: func(_ string) string { return "env-token" }}
-		cli := &repo.CLICredentialResolver{Runner: doubles.NewCLIRunnerStub().WithToken("gh", "cli-token")}
-		chain := repo.NewChainCredentialResolver(env, cli)
-
-		// when
-		cred, err := chain.Resolve(repo.ProviderGitHub)
-
-		// then
-		require.NoError(t, err)
-		assert.Equal(t, "env-token", cred.Token)
-	})
-
-	t.Run("should fall back to the CLI when no token is exported", func(t *testing.T) {
-		t.Parallel()
-		// given
-		env := &repo.EnvCredentialResolver{Lookup: func(_ string) string { return "" }}
-		cli := &repo.CLICredentialResolver{Runner: doubles.NewCLIRunnerStub().WithToken("gh", "cli-token")}
-		chain := repo.NewChainCredentialResolver(env, cli)
-
-		// when
-		cred, err := chain.Resolve(repo.ProviderGitHub)
-
-		// then
-		require.NoError(t, err)
-		assert.Equal(t, "cli-token", cred.Token)
-		assert.Equal(t, "gh CLI", cred.Source)
-	})
-
-	t.Run("should report every reason when no source can authenticate", func(t *testing.T) {
-		t.Parallel()
-		// given
-		env := &repo.EnvCredentialResolver{Lookup: func(_ string) string { return "" }}
-		cli := &repo.CLICredentialResolver{Runner: doubles.NewCLIRunnerStub()}
-		chain := repo.NewChainCredentialResolver(env, cli)
-
-		// when
-		_, err := chain.Resolve(repo.ProviderGitHub)
-
-		// then
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "no github credential available")
-		assert.Contains(t, err.Error(), "GH_TOKEN environment variable not set")
-		assert.Contains(t, err.Error(), "gh CLI is not installed")
-	})
-
-	t.Run("should return an error when the chain has no resolvers", func(t *testing.T) {
-		t.Parallel()
-		// given
-		chain := repo.NewChainCredentialResolver()
-
-		// when
-		_, err := chain.Resolve(repo.ProviderGitHub)
-
-		// then
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "no credential resolver configured")
-	})
-}
-
-func TestDefaultCredentialResolver(t *testing.T) {
-	t.Parallel()
-
-	t.Run("should build a chain that rejects providers with no source at all", func(t *testing.T) {
-		t.Parallel()
-		// given
-		resolver := repo.DefaultCredentialResolver()
-
-		// when
-		_, err := resolver.Resolve("bitbucket")
-
-		// then
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "no bitbucket credential available")
-	})
+// newCredentialChain builds gitforge's chain in its default order -- environment, then
+// CLI -- over an environment, CLIs and a tenant lookup that exist only in the test.
+func newCredentialChain(
+	env map[string]string,
+	runner *gitforgeDoubles.CLIRunnerStub,
+	tenants *gitforgeDoubles.AzureTenantResolverStub,
+) *credentialInfra.ChainCredentialResolver {
+	return credentialInfra.NewChainCredentialResolver(
+		&credentialInfra.EnvCredentialResolver{Lookup: func(name string) string { return env[name] }},
+		&credentialInfra.CLICredentialResolver{Runner: runner, TenantResolver: tenants},
+	)
 }
 
 func TestResolveProviderWith(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should build a provider when the resolver supplies a credential", func(t *testing.T) {
+	for _, providerName := range []string{
+		repo.ProviderGitHub, repo.ProviderAzureDevOps, repo.ProviderGitLab, repo.ProviderCodeberg,
+	} {
+		t.Run("should request the "+providerName+" credential when building its provider", func(t *testing.T) {
+			t.Parallel()
+			// given
+			resolver := stubCredential()
+
+			// when
+			provider, err := repo.ResolveProviderWith(providerName, "", resolver)
+
+			// then
+			require.NoError(t, err)
+			assert.Equal(t, providerName, provider.Name())
+			assert.Equal(t, fixtureToken, provider.AuthToken())
+			requests := resolver.Requests()
+			require.Len(t, requests, 1)
+			assert.Equal(t, providerName, gitRegistry.ServiceTypeToProviderName(requests[0].ServiceType))
+		})
+	}
+
+	t.Run("should send the owner as the organization when an owner is given", func(t *testing.T) {
 		t.Parallel()
 		// given
-		resolver := doubles.NewCredentialResolverStub().
-			WithCredential(repo.Credential{Token: "cli-token", Source: "gh CLI"})
+		resolver := stubCredential()
 
 		// when
-		provider, err := repo.ResolveProviderWith(repo.ProviderGitHub, resolver)
+		_, err := repo.ResolveProviderWith(repo.ProviderAzureDevOps, fixtureOrganization, resolver)
 
 		// then
 		require.NoError(t, err)
-		assert.Equal(t, repo.ProviderGitHub, provider.Name())
-		assert.Equal(t, "cli-token", provider.AuthToken())
-		assert.Equal(t, repo.ProviderGitHub, resolver.LastProvider)
+		assert.Equal(t, []credentialEntities.CredentialRequest{
+			{ServiceType: globalEntities.AZUREDEVOPS, Organization: fixtureOrganization},
+		}, resolver.Requests())
 	})
 
-	t.Run("should return an error when the resolver supplies no credential", func(t *testing.T) {
+	t.Run("should return the resolver's error when no credential is available", func(t *testing.T) {
 		t.Parallel()
 		// given
-		resolver := doubles.NewCredentialResolverStub().WithError(errors.New("not authenticated"))
+		notAuthenticated := errors.New("not authenticated")
+		resolver := &gitforgeDoubles.CredentialResolverStub{Err: notAuthenticated}
 
 		// when
-		_, err := repo.ResolveProviderWith(repo.ProviderGitHub, resolver)
+		_, err := repo.ResolveProviderWith(repo.ProviderGitHub, "", resolver)
 
 		// then
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "not authenticated")
+		require.ErrorIs(t, err, notAuthenticated)
 	})
 
-	t.Run("should return an error when the provider is unknown", func(t *testing.T) {
+	t.Run("should refuse an unknown provider without asking for a credential", func(t *testing.T) {
 		t.Parallel()
 		// given
-		resolver := doubles.NewCredentialResolverStub()
+		resolver := stubCredential()
 
 		// when
-		_, err := repo.ResolveProviderWith("bitbucket", resolver)
+		_, err := repo.ResolveProviderWith("bitbucket", "", resolver)
 
 		// then
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "unknown provider: bitbucket")
+		require.EqualError(t, err, "unknown provider: bitbucket")
+		assert.Empty(t, resolver.Requests())
 	})
 }
 
 func TestResolveForkResolverWith(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should build a fork resolver when the credential resolves", func(t *testing.T) {
+	t.Run("should build a fork resolver from the GitHub credential when it resolves", func(t *testing.T) {
 		t.Parallel()
 		// given
-		resolver := doubles.NewCredentialResolverStub()
+		resolver := stubCredential()
 
 		// when
 		forkResolver, err := repo.ResolveForkResolverWith(repo.ProviderGitHub, resolver)
@@ -504,46 +124,212 @@ func TestResolveForkResolverWith(t *testing.T) {
 		// then
 		require.NoError(t, err)
 		assert.NotNil(t, forkResolver)
+		assert.Equal(t, []credentialEntities.CredentialRequest{
+			{ServiceType: globalEntities.GITHUB},
+		}, resolver.Requests())
 	})
 
-	t.Run("should return an error when fork resolution is unsupported", func(t *testing.T) {
+	t.Run("should refuse without asking for a credential when fork resolution is unsupported", func(t *testing.T) {
 		t.Parallel()
 		// given
-		resolver := doubles.NewCredentialResolverStub()
+		resolver := stubCredential()
 
 		// when
 		_, err := repo.ResolveForkResolverWith(repo.ProviderCodeberg, resolver)
 
 		// then
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "fork resolution not supported")
+		require.ErrorContains(t, err, "fork resolution not supported")
+		assert.Empty(t, resolver.Requests())
 	})
 
-	t.Run("should return an error when the credential does not resolve", func(t *testing.T) {
+	t.Run("should return the resolver's error when the credential does not resolve", func(t *testing.T) {
 		t.Parallel()
 		// given
-		resolver := doubles.NewCredentialResolverStub().WithError(errors.New("not authenticated"))
+		notAuthenticated := errors.New("not authenticated")
+		resolver := &gitforgeDoubles.CredentialResolverStub{Err: notAuthenticated}
 
 		// when
 		_, err := repo.ResolveForkResolverWith(repo.ProviderGitHub, resolver)
 
 		// then
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "not authenticated")
+		require.ErrorIs(t, err, notAuthenticated)
 	})
 
 	t.Run("should return an error when the GitHub client cannot be built", func(t *testing.T) {
 		t.Parallel()
 		// given
-		resolver := doubles.NewCredentialResolverStub().
-			WithCredential(repo.Credential{Token: "", Source: "stub"})
+		resolver := &gitforgeDoubles.CredentialResolverStub{
+			Credential: credentialEntities.Credential{Token: "", Source: "stub"},
+		}
 
 		// when
 		forkResolver, err := repo.ResolveForkResolverWith(repo.ProviderGitHub, resolver)
 
 		// then
-		require.Error(t, err)
+		require.ErrorContains(t, err, "failed to create GitHub client")
 		assert.Nil(t, forkResolver)
-		assert.Contains(t, err.Error(), "failed to create GitHub client")
+	})
+}
+
+func TestResolveProviderWithCredentialChain(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should issue the az token in the organization's tenant when no PAT is exported", func(t *testing.T) {
+		t.Parallel()
+		// given
+		runner := &gitforgeDoubles.CLIRunnerStub{Paths: map[string]string{"az": "/usr/bin/az"}, Token: fixtureToken}
+		tenants := &gitforgeDoubles.AzureTenantResolverStub{Tenant: fixtureTenant}
+		chain := newCredentialChain(nil, runner, tenants)
+
+		// when
+		provider, err := repo.ResolveProviderWith(repo.ProviderAzureDevOps, fixtureOrganization, chain)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, fixtureToken, provider.AuthToken())
+		assert.Equal(t, []string{fixtureOrganization}, tenants.Organizations())
+		calls := runner.Calls()
+		require.Len(t, calls, 1)
+		assert.Contains(t, strings.Join(calls[0], " "), "--tenant "+fixtureTenant)
+	})
+
+	t.Run("should use the exported PAT without discovering the tenant when one is exported", func(t *testing.T) {
+		t.Parallel()
+		// given
+		runner := &gitforgeDoubles.CLIRunnerStub{Paths: map[string]string{"az": "/usr/bin/az"}, Token: fixtureToken}
+		tenants := &gitforgeDoubles.AzureTenantResolverStub{Err: errors.New("metadata unavailable")}
+		chain := newCredentialChain(map[string]string{"AZURE_DEVOPS_EXT_PAT": fixturePAT}, runner, tenants)
+
+		// when
+		provider, err := repo.ResolveProviderWith(repo.ProviderAzureDevOps, fixtureOrganization, chain)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, fixturePAT, provider.AuthToken())
+		assert.Empty(t, tenants.Organizations())
+		assert.Empty(t, runner.Calls())
+	})
+
+	t.Run("should not scope the gh token to the owner when the provider is GitHub", func(t *testing.T) {
+		t.Parallel()
+		// given
+		runner := &gitforgeDoubles.CLIRunnerStub{Paths: map[string]string{"gh": "/usr/bin/gh"}, Token: fixtureToken}
+		tenants := &gitforgeDoubles.AzureTenantResolverStub{Tenant: fixtureTenant}
+		chain := newCredentialChain(nil, runner, tenants)
+
+		// when
+		provider, err := repo.ResolveProviderWith(repo.ProviderGitHub, fixtureOrganization, chain)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, fixtureToken, provider.AuthToken())
+		assert.Empty(t, tenants.Organizations())
+		calls := runner.Calls()
+		require.Len(t, calls, 1)
+		assert.NotContains(t, calls[0], "--tenant")
+	})
+
+	t.Run("should name the GitLab variables without running glab when no GitLab token is exported", func(t *testing.T) {
+		t.Parallel()
+		// given
+		runner := &gitforgeDoubles.CLIRunnerStub{Paths: map[string]string{"glab": "/usr/bin/glab"}, Token: fixtureToken}
+		chain := newCredentialChain(nil, runner, &gitforgeDoubles.AzureTenantResolverStub{})
+
+		// when
+		_, err := repo.ResolveProviderWith(repo.ProviderGitLab, "", chain)
+
+		// then
+		require.ErrorIs(t, err, credentialEntities.ErrNoCredential)
+		require.ErrorContains(t, err, "GITLAB_TOKEN")
+		require.ErrorContains(t, err, "GL_TOKEN")
+		assert.Empty(t, runner.Calls())
+	})
+
+	t.Run("should decline the GitLab token when GITLAB_HOST names another server", func(t *testing.T) {
+		t.Parallel()
+		// given
+		env := map[string]string{"GITLAB_TOKEN": fixtureToken, "GITLAB_HOST": "gitlab.example.com"}
+		chain := newCredentialChain(env, &gitforgeDoubles.CLIRunnerStub{}, &gitforgeDoubles.AzureTenantResolverStub{})
+
+		// when
+		_, err := repo.ResolveProviderWith(repo.ProviderGitLab, "", chain)
+
+		// then
+		require.ErrorIs(t, err, credentialEntities.ErrNoCredential)
+		require.ErrorContains(t, err, "gitlab.example.com")
+	})
+
+	t.Run("should prefer GITHUB_TOKEN over GH_TOKEN when both are exported", func(t *testing.T) {
+		t.Parallel()
+		// given
+		env := map[string]string{"GITHUB_TOKEN": fixtureToken, "GH_TOKEN": fixtureOtherToken}
+		chain := newCredentialChain(env, &gitforgeDoubles.CLIRunnerStub{}, &gitforgeDoubles.AzureTenantResolverStub{})
+
+		// when
+		provider, err := repo.ResolveProviderWith(repo.ProviderGitHub, "", chain)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, fixtureToken, provider.AuthToken())
+	})
+
+	for _, scenario := range []struct {
+		providerName string
+		variable     string
+	}{
+		{repo.ProviderGitHub, "GITHUB_TOKEN"},
+		{repo.ProviderGitHub, "GH_TOKEN"},
+		{repo.ProviderAzureDevOps, "AZURE_DEVOPS_EXT_PAT"},
+		{repo.ProviderAzureDevOps, "SYSTEM_ACCESSTOKEN"},
+		{repo.ProviderGitLab, "GITLAB_TOKEN"},
+		{repo.ProviderGitLab, "GL_TOKEN"},
+		{repo.ProviderCodeberg, "CODEBERG_TOKEN"},
+	} {
+		t.Run("should authenticate "+scenario.providerName+" with "+scenario.variable+" when only it is exported",
+			func(t *testing.T) {
+				t.Parallel()
+				// given
+				runner := &gitforgeDoubles.CLIRunnerStub{}
+				env := map[string]string{scenario.variable: fixtureToken}
+				chain := newCredentialChain(env, runner, &gitforgeDoubles.AzureTenantResolverStub{})
+
+				// when
+				provider, err := repo.ResolveProviderWith(scenario.providerName, "", chain)
+
+				// then
+				require.NoError(t, err)
+				assert.Equal(t, fixtureToken, provider.AuthToken())
+				assert.Empty(t, runner.Calls())
+			})
+	}
+}
+
+func TestResolveWithDefaultCredentialChain(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should refuse an unknown provider when no resolver is given", func(t *testing.T) {
+		t.Parallel()
+		// given
+		const providerName = "bitbucket"
+
+		// when
+		_, providerErr := repo.ResolveProvider(providerName)
+		_, ownerErr := repo.ResolveProviderForOwner(providerName, fixtureOrganization)
+
+		// then
+		require.EqualError(t, providerErr, "unknown provider: bitbucket")
+		require.EqualError(t, ownerErr, "unknown provider: bitbucket")
+	})
+
+	t.Run("should refuse a provider without fork resolution when no resolver is given", func(t *testing.T) {
+		t.Parallel()
+		// given
+		const providerName = repo.ProviderCodeberg
+
+		// when
+		_, err := repo.ResolveForkResolver(providerName)
+
+		// then
+		require.ErrorContains(t, err, "fork resolution not supported")
 	})
 }

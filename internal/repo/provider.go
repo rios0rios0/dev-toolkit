@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	credentialEntities "github.com/rios0rios0/gitforge/v4/pkg/credentials/domain/entities"
+	credentialInfra "github.com/rios0rios0/gitforge/v4/pkg/credentials/infrastructure"
 	globalEntities "github.com/rios0rios0/gitforge/v4/pkg/global/domain/entities"
 	adoProvider "github.com/rios0rios0/gitforge/v4/pkg/providers/infrastructure/azuredevops"
 	cbProvider "github.com/rios0rios0/gitforge/v4/pkg/providers/infrastructure/codeberg"
@@ -32,14 +34,6 @@ var providerScanDepth = map[string]int{
 	ProviderAzureDevOps: ScanDepthNested,
 	ProviderGitLab:      1,
 	ProviderCodeberg:    1,
-}
-
-//nolint:gochecknoglobals // read-only configuration lookup table
-var providerTokenEnv = map[string]string{
-	ProviderGitHub:      "GH_TOKEN",
-	ProviderAzureDevOps: "AZURE_DEVOPS_EXT_PAT",
-	ProviderGitLab:      "GITLAB_TOKEN",
-	ProviderCodeberg:    "CODEBERG_TOKEN",
 }
 
 //nolint:gochecknoglobals // read-only configuration lookup table
@@ -72,11 +66,6 @@ func ProviderScanDepth(providerName string) int {
 	return providerScanDepth[providerName]
 }
 
-// ProviderTokenEnv returns the environment variable name for the given provider's token.
-func ProviderTokenEnv(providerName string) string {
-	return providerTokenEnv[providerName]
-}
-
 // ProviderHost returns the alias hostname for the given provider (used in SSH config aliases).
 func ProviderHost(providerName string) string {
 	return providerHostMap[providerName]
@@ -100,26 +89,27 @@ func NewProviderRegistry() *gitRegistry.ProviderRegistry {
 	return r
 }
 
-// ResolveProvider creates a ForgeProvider using the default credential chain, so an
-// authenticated provider CLI is enough when no token is exported.
+// ResolveProvider creates a ForgeProvider using gitforge's default credential chain: the
+// provider's token environment variables first, then its own CLI, so an authenticated
+// provider CLI is enough when no token is exported.
 func ResolveProvider(providerName string) (globalEntities.ForgeProvider, error) {
-	return ResolveProviderWith(providerName, DefaultCredentialResolver())
+	return ResolveProviderWith(providerName, "", credentialInfra.NewDefaultCredentialResolver())
 }
 
-// ResolveProviderForOwner uses the target organization when resolving CLI credentials.
-// Explicit environment tokens still take precedence and skip tenant discovery entirely.
+// ResolveProviderForOwner is ResolveProvider for the repositories of one owner, which the
+// credential request carries as its organization: for Azure DevOps the az token is then
+// issued in that organization's tenant. An exported token still takes precedence and skips
+// the tenant discovery entirely.
 func ResolveProviderForOwner(providerName, owner string) (globalEntities.ForgeProvider, error) {
-	cli := NewCLICredentialResolver()
-	cli.Organization = owner
-	return ResolveProviderWith(providerName, NewChainCredentialResolver(NewEnvCredentialResolver(), cli))
+	return ResolveProviderWith(providerName, owner, credentialInfra.NewDefaultCredentialResolver())
 }
 
-// ResolveProviderWith creates a ForgeProvider from whatever credential the given
-// resolver supplies.
+// ResolveProviderWith creates a ForgeProvider from whatever credential the given resolver
+// supplies, asking for it on behalf of owner ("" for none).
 func ResolveProviderWith(
-	providerName string, resolver CredentialResolver,
+	providerName, owner string, resolver credentialEntities.CredentialResolver,
 ) (globalEntities.ForgeProvider, error) {
-	cred, credErr := resolver.Resolve(providerName)
+	cred, credErr := resolveCredential(providerName, owner, resolver)
 	if credErr != nil {
 		return nil, credErr
 	}

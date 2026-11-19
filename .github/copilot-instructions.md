@@ -74,23 +74,26 @@ Dev-Toolkit is a Go-based CLI tool (binary: `dev`) that manages Git repositories
 - **Default branch detection**: Ordered rules find each repo's default branch -- `origin/HEAD` only while its branch still exists, then `git ls-remote --symref`, then `main`/`master` only when present -- and `ErrDefaultBranchNotFound` fails the repo instead of a guess; `repo sync` fetches first and refreshes `origin/HEAD` with `git remote set-head origin --auto`
 - **Worktree rule tables**: Ordered guard/removal rule slices classify linked worktrees; guards (locked, detached, dirty, unpushed) always win over removal rules
 - **Dependency injection**: All business logic accepts interfaces for testability
-- **External tool resolution**: `executable.Resolve` is the single place that looks the fixed toolchain (`git`, `docker`, `ssh`, `sh`) up on the user's PATH; those runners execute the resolved absolute path instead of a bare tool name (SonarCloud `go:S4036`). `system.DefaultRunner` and `DefaultCLIRunner` still take the binary from their caller
+- **External tool resolution**: `executable.Resolve` is the single place that looks the fixed toolchain (`git`, `docker`, `ssh`, `sh`) up on the user's PATH; those runners execute the resolved absolute path instead of a bare tool name (SonarCloud `go:S4036`). `system.DefaultRunner` still takes the binary from its caller, and the provider CLIs (`gh`, `az`) are looked up and run by absolute path inside gitforge's credential chain
 - **SAST orchestration**: Per-tool failure isolation with embedded default configs
 - **Platform gating**: System commands conditionally registered via `runtime.GOOS`
 - **Automatic update check**: On startup via cliforge (skipped for `version`, `self-update`, shell completion, dev builds)
 
 ### Authentication
-| Provider | Environment Variable | CLI Fallback |
-|----------|---------------------|--------------|
-| GitHub | `GH_TOKEN` | `gh auth token` |
-| Azure DevOps | `AZURE_DEVOPS_EXT_PAT` | `az account get-access-token` |
-| GitLab | `GITLAB_TOKEN` | `glab auth token` |
+| Provider | Environment Variables | CLI Fallback |
+|----------|----------------------|--------------|
+| GitHub | `GITHUB_TOKEN` or `GH_TOKEN` | `gh auth token --hostname github.com` |
+| Azure DevOps | `AZURE_DEVOPS_EXT_PAT` or `SYSTEM_ACCESSTOKEN` | `az account get-access-token` |
+| GitLab | `GITLAB_TOKEN` or `GL_TOKEN`, declined when `GITLAB_HOST`/`GL_HOST` names a server other than `gitlab.com` | None (`glab` has no command that prints a token) |
 | Codeberg | `CODEBERG_TOKEN` | None |
 
-Explicit environment tokens take precedence. Repository cloning uses `ResolveProviderForOwner`
-to discover the Azure DevOps organization's tenant before requesting an Azure CLI token with
-`--tenant`. Discovery uses an unauthenticated request and does not follow sign-in redirects.
-Git transfers retain their existing SSH authentication; `repo sync` does not need an API token.
+Credentials come from gitforge's shared chain (`gitforge/v4/pkg/credentials`); dev-toolkit only
+maps its provider names to gitforge `ServiceType`s in `internal/repo/credential.go`. Explicit
+environment tokens take precedence. Repository cloning uses `ResolveProviderForOwner`, which sends
+the owner as the request's `Organization`, so gitforge discovers the Azure DevOps organization's
+tenant before requesting an Azure CLI token with `--tenant`. Discovery uses an unauthenticated
+request and does not follow sign-in redirects. Git transfers retain their existing SSH
+authentication; `repo sync` does not need an API token.
 
 <!-- chlog:start -->
 ## Changelog (chlog) — MANDATORY

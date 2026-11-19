@@ -72,8 +72,7 @@ internal/
   repo/
     git.go                   -- GitRunner interface + DefaultGitRunner (exec.Command wrapper around the resolved git binary)
     provider.go              -- provider detection, maps, registry (includes Codeberg)
-    credential.go            -- CredentialResolver contract + Env/CLI/Chain resolvers, CLIRunner
-    azure_tenant.go          -- public Azure DevOps tenant discovery for organization-scoped Azure CLI tokens
+    credential.go            -- maps provider names to gitforge ServiceTypes and asks gitforge's credential chain for a token
     logger.go                -- NewLogger factory for isolated logrus instances
     scanner.go               -- local repo scanning (flat/nested/recursive)
     clone.go                 -- clone orchestration with dependency injection
@@ -132,7 +131,7 @@ internal/
     executable.go            -- Resolver + Resolve: locate external tools (git, docker, ssh, sh) on PATH once per process
     *_test.go                -- BDD tests
   testutil/
-    doubles/                 -- hand-written <Interface>Stub test doubles, one file per interface
+    doubles/                 -- hand-written <Interface>Stub test doubles, one file per interface (credential doubles come from gitforge's test/doubles)
     builders/                -- RepositoryBuilder
 ```
 
@@ -146,21 +145,21 @@ internal/
 - **Language detection**: Uses langforge's `LanguageRegistry` behind `LanguageDetector` interface for testability
 - **Docker operations**: Uses `exec.Command` on the resolved `docker` binary behind `docker.Runner` interface for testability
 - **System operations**: Uses `exec.Command(...)` behind `system.Runner` and `FileSystem` interfaces; platform-gated via `runtime.GOOS`
-- **Credential resolution**: A `CredentialResolver` chain, not a bare `os.Getenv`. `EnvCredentialResolver` reads the provider's token env var; `CLICredentialResolver` asks the provider's own CLI for one (`gh auth token`, `az account get-access-token` scoped to the Azure DevOps resource, `glab auth token`), so an already authenticated CLI removes the need to export a second token. `ChainCredentialResolver` tries them in order -- env first, so an explicit token still overrides the CLI -- and on total failure reports *every* reason rather than only the last. Providers with no CLI integration (Codeberg) simply have no entry in `providerCLIMap` and stay env-only. Every consumer (`ResolveProvider`, `ResolveForkResolver`, `gist.ResolveProvider`) goes through the chain
+- **Credential resolution**: gitforge's shared chain (`credentialInfra.NewDefaultCredentialResolver()` from `gitforge/v4/pkg/credentials`), not a bare `os.Getenv` and not a dev-toolkit copy. It reads the provider's token variables first (`GITHUB_TOKEN` then `GH_TOKEN`, `AZURE_DEVOPS_EXT_PAT` then `SYSTEM_ACCESSTOKEN`, `GITLAB_TOKEN` then `GL_TOKEN` -- declined when `GITLAB_HOST`/`GL_HOST` names a server other than gitlab.com -- and `CODEBERG_TOKEN`), so an explicit token still overrides the CLI, then asks the provider's own CLI (`gh auth token --hostname github.com`, `az account get-access-token` scoped to the Azure DevOps resource), run by absolute path from the home directory; on total failure the error matches `ErrNoCredential` and names *every* reason rather than only the last. GitLab (`glab` has no command that prints a token) and Codeberg have no CLI and stay env-only. `credential.go` keeps only what is dev-toolkit's: `providerServiceTypeMap` (the inverse of the registry's `ServiceTypeToProviderName`) and `resolveCredential`, which refuses an unknown provider before any source is consulted. Every consumer (`ResolveProvider`, `ResolveProviderForOwner`, `ResolveForkResolver`, `gist.ResolveProvider`) goes through the chain, and their `...With` variants take gitforge's `CredentialResolver` for tests
 - **Default branch detection**: Never a hardcoded `main`. `DetectDefaultBranch` walks an ordered rule table (`repositoryDefaultBranchRules`): the recorded `refs/remotes/origin/HEAD` only while the branch it names still exists (after a remote renames its default and a pruning fetch removes the old branch, `git symbolic-ref` keeps printing the dead name), then the remote's own answer (`git ls-remote --symref origin HEAD`), then `main`/`master` among the remote-tracking and finally the local branches. A rule never answers with a branch it has not seen exist; when none answers, `ErrDefaultBranchNotFound` makes the repository fail rather than be synced or pruned against a guess. `DetectRemoteDefaultBranch` (used for a fork's `upstream`) drops the local-branch rule, since local branches say nothing about another remote. `SyncSingleRepo` fetches first, then runs `git remote set-head origin --auto` because git records `origin/HEAD` only at clone time and no fetch updates it; that refresh is what keeps `prune` and `worktree`, which do not fetch, accurate afterwards. A default branch never checked out locally is created with `git checkout --track origin/<branch>`, since a bare checkout is ambiguous when another remote has the same branch
 - **Fork sync**: Uses `ForkResolver` interface to query provider APIs for parent repo info; auto-adds `upstream` remote
-- **Azure CLI tenant selection**: Repository cloning uses `ResolveProviderForOwner` and public Azure DevOps metadata to request a token for the organization's tenant. Explicit PATs skip discovery; organizations without an Entra tenant retain the default Azure CLI account. Git sync uses the existing Git/SSH credentials.
+- **Azure CLI tenant selection**: Repository cloning uses `ResolveProviderForOwner`, which sends the owner as the credential request's `Organization`; gitforge then reads the organization's tenant from public Azure DevOps metadata and passes `--tenant` to `az`. Other providers ignore the organization. Explicit PATs skip discovery; organizations without an Entra tenant retain the default Azure CLI account. Git sync uses the existing Git/SSH credentials.
 - **Worktree detection**: A linked worktree stores `.git` as a *file*, so the `.git`-directory scanners (`ScanFlatRepos`, `ScanNestedRepos`, `FindAllRepos`) never see one. This is intentional: worktrees are extra checkouts of repos that exist on the remote, so they must stay out of the clone remote-vs-local diff. `worktree.go` reads them from `git worktree list --porcelain` instead
 - **Worktree classification**: Ordered rule tables (`worktreeGuardRules`, `worktreeRemovalRules`) instead of branching; guards (locked, detached, dirty, unpushed) are always evaluated before removal rules, so preserving work wins over cleaning up. Removal always goes through `git worktree remove`/`git worktree prune`, never `os.RemoveAll`, to keep the parent repo's metadata consistent
 - **SAST orchestration**: Runs each tool (CodeQL, Semgrep, Trivy, Hadolint, Gitleaks) with per-tool failure isolation and embedded default configs
-- **Dependency injection**: Business logic accepts interfaces (`GitRunner`, `ForgeProvider`, `ForkResolver`, `CredentialResolver`, `CLIRunner`, `AzureTenantResolver`, `gist.Provider`, `SASTTool`, `LanguageDetector`, `CommandRunner`, `ConfigReader`, `docker.Runner`, `system.Runner`, `FileSystem`, `io.Writer`) for testability
+- **Dependency injection**: Business logic accepts interfaces (`GitRunner`, `ForgeProvider`, `ForkResolver`, gitforge's `CredentialResolver`, `gist.Provider`, `SASTTool`, `LanguageDetector`, `CommandRunner`, `ConfigReader`, `docker.Runner`, `system.Runner`, `FileSystem`, `io.Writer`) for testability
 - **Project dependencies**: `.dev.yaml` declares relative paths to dependent projects; resolved via DFS topological sort with cycle detection
 - **Automatic update check**: On startup (via cliforge), skipped for `version`, `self-update`, shell completion (`completion` and cobra's hidden `__complete`, which run on every shell start and TAB press), and local dev builds
 - **No switch/case**: All dispatch uses mapper pattern (maps of string -> value/function)
 
 ### Dependencies
 
-- **gitforge** -- Multi-provider Git hosting abstractions (GitHub, Azure DevOps, GitLab, Codeberg)
+- **gitforge** -- Multi-provider Git hosting abstractions (GitHub, Azure DevOps, GitLab, Codeberg) and the provider credential chain
 - **go-github** -- GitHub API client (used by `ForkResolver` to get fork parent info)
 - **langforge** -- Language detection, version management, and runtime information (Go, Dart, Node, Python, Java, C#, Ruby, Terraform)
 - **cliforge** -- Self-update mechanism and automatic version check on startup
