@@ -22,6 +22,21 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
+## [0.10.18] - 2026-11-19
+
+### Changed
+
+- changed provider API credentials to come from the shared credential chain of gitforge `v4.7.0` instead of a copy kept in dev-toolkit: GitHub now reads `GITHUB_TOKEN` before `GH_TOKEN`, so an exported `GITHUB_TOKEN` wins over `GH_TOKEN` when both are set, Azure DevOps also reads `SYSTEM_ACCESSTOKEN` after `AZURE_DEVOPS_EXT_PAT`, GitLab also reads `GL_TOKEN` after `GITLAB_TOKEN`, every variable still wins over the `gh` or `az` CLI, and those CLIs now run by their absolute path from the home directory
+- changed the Go modules `github.com/rios0rios0/cliforge` from `v0.5.3` to `v0.5.4`, `github.com/rios0rios0/gitforge/v4` from `v4.4.0` to `v4.6.0`, `github.com/rios0rios0/langforge` from `v1.1.12` to `v1.1.13`, `gitlab.com/gitlab-org/api/client-go/v3` from `v3.52.0` to `v3.53.0` and `golang.org/x/net` from `v0.62.0` to `v0.63.0`
+
+### Fixed
+
+- fixed tokens issued for another server reaching the public APIs: the `gh` CLI fallback asked for the token of its default host, which can be a GitHub Enterprise server, and now runs `gh auth token --hostname github.com`, and `GITLAB_TOKEN` or `GL_TOKEN` is now declined when `GITLAB_HOST` or `GL_HOST` names a server other than `gitlab.com`
+
+### Removed
+
+- removed the `glab auth token` fallback for GitLab credentials, which never worked because `glab` has no `auth token` command: GitLab authenticates through `GITLAB_TOKEN` or `GL_TOKEN` alone, and the error no longer suggests `glab auth login`
+
 ## [0.10.17] - 2026-11-18
 
 ### Changed
