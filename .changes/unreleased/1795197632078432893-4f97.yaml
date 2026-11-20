@@ -1,0 +1,3 @@
+kind: 'Changed'
+body: 'changed the credential tests to check that `dev repo clone` sends the directory''s owner as the credential request''s organization, which scopes the `az` token to the Azure DevOps organization''s Microsoft Entra tenant, and to loop over every registered provider instead of a hard-coded list'
+time: '2026-11-20T18:00:32.078372897Z'

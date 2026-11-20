@@ -1,6 +1,7 @@
 package repo_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"testing"
@@ -154,6 +155,28 @@ func TestRunForkSync(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "API error")
 	})
+
+	t.Run("should log where the credential came from at info when the fork-sync workflow starts",
+		func(t *testing.T) {
+			t.Parallel()
+			// given
+			root := t.TempDir() + "/github.com/owner"
+			var buf bytes.Buffer
+
+			// when
+			err := repo.RunForkSync(repo.ForkSyncConfig{
+				RootDir:          root,
+				Provider:         doubles.NewForgeProviderStub().WithRepos(nil),
+				Resolver:         doubles.NewForkResolverStub(),
+				CredentialSource: "gh CLI",
+				Runner:           doubles.NewGitRunnerStub(),
+				Output:           repo.NewLogger(&buf),
+			})
+
+			// then
+			require.NoError(t, err)
+			assert.Contains(t, buf.String(), `level=info msg="fork-sync workflow started" credential="gh CLI"`)
+		})
 }
 
 func TestForkSyncSingleRepo(t *testing.T) {

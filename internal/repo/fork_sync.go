@@ -20,8 +20,11 @@ type ForkSyncConfig struct {
 	DryRun   bool
 	Provider globalEntities.ForgeProvider
 	Resolver ForkResolver
-	Runner   GitRunner
-	Output   logger.FieldLogger
+	// CredentialSource says where the credential behind Provider and Resolver came from
+	// ("gh CLI"), so the log shows which identity discovery ran as; it never holds the token.
+	CredentialSource string
+	Runner           GitRunner
+	Output           logger.FieldLogger
 }
 
 // ForkSyncResult holds the outcome of syncing a single forked repository.
@@ -40,8 +43,9 @@ func RunForkSync(cfg ForkSyncConfig) error {
 	}
 
 	log.WithFields(logger.Fields{
-		"provider":    providerName,
-		logFieldOwner: owner,
+		"provider":         providerName,
+		logFieldOwner:      owner,
+		logFieldCredential: cfg.CredentialSource,
 	}).Info("fork-sync workflow started")
 
 	remoteRepos, discoverErr := DiscoverRepos(cfg.Provider, owner, false, log)

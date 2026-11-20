@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	credentialEntities "github.com/rios0rios0/gitforge/v4/pkg/credentials/domain/entities"
 	globalEntities "github.com/rios0rios0/gitforge/v4/pkg/global/domain/entities"
 	logger "github.com/sirupsen/logrus"
 )
@@ -19,21 +20,42 @@ const (
 	mirrorStatusFailed = "failed"
 )
 
-// MirrorConfig holds all dependencies for a mirror operation.
+// MirrorConfig holds all dependencies for a mirror operation. There is no source provider:
+// the repositories are found on disk and Codeberg pulls each one from its public address, so
+// mirror never calls the source provider's API.
 type MirrorConfig struct {
 	SourceDir      string
 	SSHAlias       string
 	DryRun         bool
-	SourceProvider globalEntities.ForgeProvider
 	TargetProvider globalEntities.ForgeProvider
-	Runner         GitRunner
-	Output         logger.FieldLogger
+	// TargetCredentialSource says where TargetProvider's credential came from
+	// ("CODEBERG_TOKEN environment variable"), for the log; it never holds the token.
+	TargetCredentialSource string
+	Runner                 GitRunner
+	Output                 logger.FieldLogger
 }
 
 // MirrorResult holds the outcome of mirroring a single repository.
 type MirrorResult struct {
 	Name   string
 	Status string
+}
+
+// ResolveMirrorTarget builds the Codeberg provider that mirror creates its pull mirrors on, from
+// gitforge's default credential chain; see ResolveMirrorTargetWith.
+func ResolveMirrorTarget() (globalEntities.ForgeProvider, string, error) {
+	return ResolveMirrorTargetWith(newCredentialResolver())
+}
+
+// ResolveMirrorTargetWith builds the Codeberg provider that mirror creates its pull mirrors on,
+// from the credential the given resolver supplies, and returns where that credential came
+// from. It is the only credential mirror needs: Codeberg pulls each repository from its public
+// address on the source provider, so no source provider credential is asked for -- for
+// GitHub, one that would run gh for nothing.
+func ResolveMirrorTargetWith(
+	resolver credentialEntities.CredentialResolver,
+) (globalEntities.ForgeProvider, string, error) {
+	return ResolveProviderWith(ProviderCodeberg, "", resolver)
 }
 
 // RunMirror creates pull mirrors on the target provider for all repos found under SourceDir.
@@ -56,8 +78,9 @@ func RunMirror(cfg MirrorConfig) error {
 	}
 
 	log.WithFields(logger.Fields{
-		"count":       len(repos),
-		logFieldOwner: owner,
+		"count":            len(repos),
+		logFieldOwner:      owner,
+		logFieldCredential: cfg.TargetCredentialSource,
 	}).Info("starting mirror")
 
 	mirrorProvider, ok := cfg.TargetProvider.(globalEntities.MirrorProvider)

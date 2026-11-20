@@ -24,11 +24,12 @@ func TestResolveProviderWith(t *testing.T) {
 		}
 
 		// when
-		provider, err := gist.ResolveProviderWith(resolver)
+		provider, source, err := gist.ResolveProviderWith(resolver)
 
 		// then
 		require.NoError(t, err)
 		assert.NotNil(t, provider)
+		assert.Equal(t, "gh CLI", source)
 		assert.Equal(t, []credentialEntities.CredentialRequest{
 			{ServiceType: globalEntities.GITHUB},
 		}, resolver.Requests())
@@ -41,7 +42,7 @@ func TestResolveProviderWith(t *testing.T) {
 		resolver := &gitforgeDoubles.CredentialResolverStub{Err: notAuthenticated}
 
 		// when
-		_, err := gist.ResolveProviderWith(resolver)
+		_, _, err := gist.ResolveProviderWith(resolver)
 
 		// then
 		require.ErrorIs(t, err, notAuthenticated)
@@ -55,7 +56,7 @@ func TestResolveProviderWith(t *testing.T) {
 		}
 
 		// when
-		provider, err := gist.ResolveProviderWith(resolver)
+		provider, _, err := gist.ResolveProviderWith(resolver)
 
 		// then
 		require.ErrorContains(t, err, "failed to create GitHub client")

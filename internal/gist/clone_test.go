@@ -275,6 +275,60 @@ func TestRunClone(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, buf.String(), "would clone gist")
 	})
+
+	t.Run("should log where the credential came from at info when the gist clone workflow starts",
+		func(t *testing.T) {
+			t.Parallel()
+			// given
+			var buf bytes.Buffer
+			cfg := gist.CloneConfig{
+				RootDir:          t.TempDir(),
+				Owner:            "alice",
+				SSHAlias:         "mine",
+				DryRun:           true,
+				Provider:         doubles.NewGistProviderStub(),
+				CredentialSource: "gh CLI",
+				Output:           &buf,
+				Logger:           repo.NewLogger(&buf),
+			}
+
+			// when
+			err := gist.RunClone(cfg)
+
+			// then
+			require.NoError(t, err)
+			assert.Contains(t, buf.String(), `level=info msg="gist clone workflow started" credential="gh CLI"`)
+		})
+
+	t.Run("should name the credential when warning about a local gist the remote did not return",
+		func(t *testing.T) {
+			t.Parallel()
+			// given
+			var buf bytes.Buffer
+			root := t.TempDir()
+			createGistRepo(t, root+"/old-snippet")
+			cfg := gist.CloneConfig{
+				RootDir:          root,
+				Owner:            "alice",
+				SSHAlias:         "mine",
+				Provider:         doubles.NewGistProviderStub(),
+				CredentialSource: "gh CLI",
+				Runner:           doubles.NewGitRunnerStub(),
+				Output:           &buf,
+				Logger:           repo.NewLogger(&buf),
+			}
+
+			// when
+			err := gist.RunClone(cfg)
+
+			// then
+			require.NoError(t, err)
+			assert.Contains(t, buf.String(), `level=warning msg="extra local gist, which was not returned for the `+
+				`credential from the gh CLI: it was deleted on the remote, or that credential cannot see it" `+
+				`gist=old-snippet`)
+			assert.NotContains(t, buf.String(), "not on remote")
+			assert.DirExists(t, root+"/old-snippet")
+		})
 }
 
 func TestParallelClone(t *testing.T) {

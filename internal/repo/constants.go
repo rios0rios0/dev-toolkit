@@ -24,6 +24,9 @@ const (
 	logFieldStatus = "status"
 	logFieldOwner  = "owner"
 	logFieldTarget = "target"
+	// logFieldCredential carries where a workflow's provider credential came from -- gitforge's
+	// Credential.Source, such as "gh CLI" -- and never the token itself.
+	logFieldCredential = "credential"
 )
 
 // Status categories surfaced in summary log fields and result-classification maps.

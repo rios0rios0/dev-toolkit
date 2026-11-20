@@ -56,24 +56,27 @@ func (p *GitHubProvider) ListGists(ctx context.Context, owner string) ([]Gist, e
 }
 
 // ResolveProvider builds a Provider using gitforge's default GitHub credential chain:
-// GITHUB_TOKEN or GH_TOKEN when one is exported, and otherwise the github.com token held
-// by an authenticated "gh" CLI.
-func ResolveProvider() (Provider, error) {
+// GH_TOKEN or GITHUB_TOKEN when one is exported, and otherwise the github.com token held
+// by an authenticated "gh" CLI. Like ResolveProviderWith, it also returns where the
+// credential came from.
+func ResolveProvider() (Provider, string, error) {
 	return ResolveProviderWith(credentialInfra.NewDefaultCredentialResolver())
 }
 
 // ResolveProviderWith builds a Provider from whatever credential the given resolver
-// supplies for GitHub.
-func ResolveProviderWith(resolver credentialEntities.CredentialResolver) (Provider, error) {
+// supplies for GitHub. It also returns the credential's source ("GH_TOKEN environment
+// variable", "gh CLI"), so the command can say which credential it works with; the token
+// itself stays inside the provider.
+func ResolveProviderWith(resolver credentialEntities.CredentialResolver) (Provider, string, error) {
 	cred, err := resolver.Resolve(context.Background(), credentialEntities.CredentialRequest{
 		ServiceType: globalEntities.GITHUB,
 	})
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	provider, err := NewGitHubProvider(cred.Token)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return provider, nil
+	return provider, cred.Source, nil
 }

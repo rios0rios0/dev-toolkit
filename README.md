@@ -117,14 +117,14 @@ cloning your repositories needs nothing else -- there is no second token to expo
 
 | Provider | Environment Variables | CLI Fallback | Authenticate With |
 |----------|----------------------|--------------|-------------------|
-| GitHub | `GITHUB_TOKEN` or `GH_TOKEN` | `gh auth token --hostname github.com` | `gh auth login --hostname github.com` |
+| GitHub | `GH_TOKEN` or `GITHUB_TOKEN` | `gh auth token --hostname github.com` | `gh auth login --hostname github.com` |
 | Azure DevOps | `AZURE_DEVOPS_EXT_PAT` or `SYSTEM_ACCESSTOKEN` | `az account get-access-token` | `az login` |
 | GitLab | `GITLAB_TOKEN` or `GL_TOKEN` (`gitlab.com` only) | -- | -- |
 | Codeberg | `CODEBERG_TOKEN` | -- | -- |
 
-The variables are read in the order listed, so an exported `GITHUB_TOKEN` wins over `GH_TOKEN` when
-both are set, and any of them wins over the CLI, so an explicitly exported token still overrides
-whatever the CLI happens to be logged in as. `gh` is asked for its `github.com` token even when
+The variables are read in the order listed, so an exported `GH_TOKEN` wins over `GITHUB_TOKEN` when
+both are set, as in gh itself, and any of them wins over the CLI, so an explicitly exported token still overrides
+whatever the CLI happens to be logged in as. A GitHub token is declined while `GITHUB_SERVER_URL`, `GITHUB_API_URL` or a `*.ghe.com` `GH_HOST` names another GitHub server, and `gh` then runs without them, so it reports only its own login. `gh` is asked for its `github.com` token even when
 `GH_HOST` names a GitHub Enterprise server, because every GitHub API call goes to `api.github.com`.
 The CLI is found on `PATH` and run by its absolute path, with your home directory as its working
 directory rather than the repository you are working in. GitLab has no CLI fallback: `glab` has no
@@ -166,6 +166,39 @@ no GitHub credential available: GITHUB_TOKEN and GH_TOKEN are not set; the gh CL
 
 These credentials are only used for the provider APIs -- discovering repositories, gists, and fork
 parents. Cloning and syncing go over SSH, so SSH keys are still required (see below).
+
+Every command that calls a provider API -- `repo clone`, `repo fork-sync`, `repo mirror` and
+`gist clone` -- logs at info where its credential came from, never the token itself:
+
+```
+level=info msg="clone workflow started" credential="GH_TOKEN environment variable" owner=rios0rios0 provider=github
+```
+
+That way, a token exported for another account, or one that sees fewer repositories than your
+`gh` session, shows up before its results do.
+
+`repo clone` asks before deleting a local repository the provider did not return, and the question
+names that credential, because a token that cannot see a private repository leaves it out exactly as
+a deletion on the remote does:
+
+```
+[dev] "private-repo" exists locally but was not returned for the credential from the GH_TOKEN environment variable: it was deleted on the remote, or that credential cannot see it. Delete? [y/N]
+```
+
+Only `y` deletes the folder, and any unpushed work in it; any other answer, including Enter, keeps it.
+`--dry-run` and a non-interactive run only list such repositories, with the same explanation, and
+`gist clone`, which never deletes, warns about a local gist the remote did not return in the same
+words:
+
+```
+level=warning msg="extra repository, which was not returned for the credential from the GH_TOKEN environment variable: it was deleted on the remote, or that credential cannot see it" repo=private-repo
+```
+
+`repo fork-sync` looks fork parents up on GitHub only. In another provider's directory it stops with
+`fork resolution not supported` before asking for any credential, so an Azure DevOps directory never
+runs `az` just to be told that; on GitHub, one credential serves both the discovery and the parent
+lookups. `repo mirror` reads `CODEBERG_TOKEN` alone: Codeberg pulls each repository from its public
+GitHub address, so no GitHub token is asked for and `gh` never runs.
 
 ### SSH Aliases
 

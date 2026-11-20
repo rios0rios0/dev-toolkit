@@ -1,0 +1,3 @@
+kind: 'Changed'
+body: 'changed `dev repo clone`, `dev repo fork-sync`, `dev repo mirror` and `dev gist clone` to log at info where their provider credential came from, such as the `GH_TOKEN` environment variable or the `gh` CLI, never the token itself, so the identity a discovery ran as is visible; gitforge logged it at debug only'
+time: '2026-11-20T18:11:45.775986735Z'

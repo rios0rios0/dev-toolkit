@@ -71,6 +71,7 @@ Dev-Toolkit is a Go-based CLI tool (binary: `dev`) that manages Git repositories
 - **Parallel execution**: Goroutines with semaphore channel for controlled concurrency
 - **SSH preflight**: Verifies SSH connectivity before batch cloning
 - **WIP branches**: Preserves dirty state during sync via temporary commits
+- **Extra-repo prompt**: `repo clone` asks before deleting a local repository the provider did not return, saying it was not returned for the credential in use and naming that credential's source (a narrower token hides repositories just as a deletion does); only `y` deletes. The `--dry-run` and non-interactive warnings and `gist clone`'s warning about a local gist explain it with the same phrase, `repo.NotReturnedFor`
 - **Default branch detection**: Ordered rules find each repo's default branch -- `origin/HEAD` only while its branch still exists, then `git ls-remote --symref`, then `main`/`master` only when present -- and `ErrDefaultBranchNotFound` fails the repo instead of a guess; `repo sync` fetches first and refreshes `origin/HEAD` with `git remote set-head origin --auto`
 - **Worktree rule tables**: Ordered guard/removal rule slices classify linked worktrees; guards (locked, detached, dirty, unpushed) always win over removal rules
 - **Dependency injection**: All business logic accepts interfaces for testability
@@ -82,7 +83,7 @@ Dev-Toolkit is a Go-based CLI tool (binary: `dev`) that manages Git repositories
 ### Authentication
 | Provider | Environment Variables | CLI Fallback |
 |----------|----------------------|--------------|
-| GitHub | `GITHUB_TOKEN` or `GH_TOKEN` | `gh auth token --hostname github.com` |
+| GitHub | `GH_TOKEN` or `GITHUB_TOKEN` | `gh auth token --hostname github.com` |
 | Azure DevOps | `AZURE_DEVOPS_EXT_PAT` or `SYSTEM_ACCESSTOKEN` | `az account get-access-token` |
 | GitLab | `GITLAB_TOKEN` or `GL_TOKEN`, declined (best effort) when `GITLAB_HOST`, `GITLAB_URI`, `GL_HOST`, `GITLAB_API_HOST`, `GITLAB_REPO`, `GL_URL`, `GITLAB_URL`, `GL_API_URL`, `GITLAB_BASE_URL` or GitLab CI's `CI_SERVER_*`/`CI_API_V4_URL` names a server other than `gitlab.com` | None (`glab` has no `auth token` command) |
 | Codeberg | `CODEBERG_TOKEN` | None |
@@ -94,6 +95,18 @@ the owner as the request's `Organization`, so gitforge discovers the Azure DevOp
 tenant before requesting an Azure CLI token with `--tenant`. Discovery uses an unauthenticated
 request and does not follow sign-in redirects. Git transfers retain their existing SSH
 authentication; `repo sync` does not need an API token.
+
+The functions without a resolver argument get the default chain from `newCredentialResolver`,
+a factory that only the non-parallel `credential_internal_test.go` replaces, to pin the owner
+`ResolveProviderForOwner` sends for every registered provider.
+`repo fork-sync` goes through `ResolveForkSync`, which refuses a provider without fork
+resolution (all but GitHub) before asking for any credential, then builds both of its clients
+from one.
+`repo mirror` goes through `ResolveMirrorTarget`, which asks for the Codeberg credential alone:
+Codeberg pulls each repository from its public address, so no GitHub token is involved.
+Every resolve function also returns the credential's `Source` (never the token), and
+`repo clone`, `repo fork-sync`, `repo mirror` and `gist clone` log it at Info in a `credential`
+field.
 
 <!-- chlog:start -->
 ## Changelog (chlog) — MANDATORY

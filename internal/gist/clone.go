@@ -25,15 +25,19 @@ type PreflightFunc func(sshAlias string, log logger.FieldLogger) error
 
 // CloneConfig wires dependencies for the gist clone workflow.
 type CloneConfig struct {
-	RootDir   string
-	Owner     string
-	SSHAlias  string
-	DryRun    bool
-	Provider  Provider
-	Runner    repo.GitRunner
-	Output    io.Writer
-	Logger    logger.FieldLogger
-	Preflight PreflightFunc
+	RootDir  string
+	Owner    string
+	SSHAlias string
+	DryRun   bool
+	Provider Provider
+	// CredentialSource says where Provider's credential came from ("GH_TOKEN environment
+	// variable", "gh CLI"), so the log shows which identity discovery ran as and the warning
+	// about a local gist the remote did not return names it; it never holds the token.
+	CredentialSource string
+	Runner           repo.GitRunner
+	Output           io.Writer
+	Logger           logger.FieldLogger
+	Preflight        PreflightFunc
 }
 
 func (c *CloneConfig) log() logger.FieldLogger {
@@ -51,7 +55,10 @@ func RunClone(cfg CloneConfig) error {
 		return errors.New("owner must be provided to clone gists")
 	}
 
-	log.WithField("owner", cfg.Owner).Info("gist clone workflow started")
+	log.WithFields(logger.Fields{
+		"owner":            cfg.Owner,
+		logFieldCredential: cfg.CredentialSource,
+	}).Info("gist clone workflow started")
 	if cfg.DryRun {
 		log.Info("dry-run mode enabled")
 	}
@@ -77,8 +84,9 @@ func RunClone(cfg CloneConfig) error {
 	}
 
 	cloned, failed := CloneMissing(missing, cfg)
+	notReturned := repo.NotReturnedFor(cfg.CredentialSource)
 	for _, name := range extra {
-		log.WithField(logFieldGist, name).Warn("extra local gist (not on remote)")
+		log.WithField(logFieldGist, name).Warn("extra local gist, which " + notReturned)
 	}
 
 	log.WithFields(logger.Fields{

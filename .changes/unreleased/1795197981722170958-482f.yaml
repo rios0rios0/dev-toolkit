@@ -1,0 +1,3 @@
+kind: 'Fixed'
+body: 'fixed `dev repo mirror` asking for a GitHub token, which runs the `gh` CLI when none is exported, for a source provider it never used: Codeberg pulls each repository from its public GitHub address, so `CODEBERG_TOKEN` is now the only credential mirror asks for'
+time: '2026-11-20T18:06:21.722112759Z'

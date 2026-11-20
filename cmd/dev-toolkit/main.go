@@ -136,7 +136,9 @@ func newCloneCmd() *cobra.Command {
 		Use:   "clone <ssh-alias> [root-dir]",
 		Short: "Clone missing repositories from a Git provider",
 		Long: `Discovers repositories from the Git provider, compares with local directories,
-clones missing repos via SSH, and optionally removes extra local repos.
+clones missing repos via SSH, and optionally removes extra local repos. Before
+removing one it asks, naming the credential the provider did not return it for:
+a token that cannot see a repository leaves it out just as a deletion does.
 
 Linked worktrees are not part of that comparison: they are extra checkouts of
 repositories that do exist on the remote. Pass --prune-worktrees to also run the
@@ -154,21 +156,22 @@ worktree cleanup pass (the same one as "dev repo worktree prune") afterwards.`,
 			if detectErr != nil {
 				return detectErr
 			}
-			provider, resolveErr := repo.ResolveProviderForOwner(providerName, owner)
+			provider, credentialSource, resolveErr := repo.ResolveProviderForOwner(providerName, owner)
 			if resolveErr != nil {
 				return resolveErr
 			}
 
 			return repo.RunClone(repo.CloneConfig{
-				RootDir:         rootDir,
-				SSHAlias:        sshAlias,
-				DryRun:          dryRun,
-				IncludeArchived: includeArchived,
-				PruneWorktrees:  pruneWorktrees,
-				Provider:        provider,
-				Runner:          &repo.DefaultGitRunner{},
-				Output:          os.Stderr,
-				Input:           os.Stdin,
+				RootDir:          rootDir,
+				SSHAlias:         sshAlias,
+				DryRun:           dryRun,
+				IncludeArchived:  includeArchived,
+				PruneWorktrees:   pruneWorktrees,
+				Provider:         provider,
+				CredentialSource: credentialSource,
+				Runner:           &repo.DefaultGitRunner{},
+				Output:           os.Stderr,
+				Input:            os.Stdin,
 			})
 		},
 	}
@@ -220,23 +223,19 @@ occur, creates a fork-sync/upstream branch and pushes it for manual resolution.`
 			rootDir = filepath.Clean(rootDir)
 
 			providerName := mustDetectProvider(rootDir)
-			provider, resolveErr := repo.ResolveProvider(providerName)
+			provider, forkResolver, credentialSource, resolveErr := repo.ResolveForkSync(providerName)
 			if resolveErr != nil {
 				return resolveErr
 			}
 
-			resolver, resolverErr := repo.ResolveForkResolver(providerName)
-			if resolverErr != nil {
-				return resolverErr
-			}
-
 			return repo.RunForkSync(repo.ForkSyncConfig{
-				RootDir:  rootDir,
-				DryRun:   dryRun,
-				Provider: provider,
-				Resolver: resolver,
-				Runner:   &repo.DefaultGitRunner{},
-				Output:   repo.NewLogger(os.Stderr),
+				RootDir:          rootDir,
+				DryRun:           dryRun,
+				Provider:         provider,
+				Resolver:         forkResolver,
+				CredentialSource: credentialSource,
+				Runner:           &repo.DefaultGitRunner{},
+				Output:           repo.NewLogger(os.Stderr),
 			})
 		},
 	}
@@ -367,19 +366,20 @@ missing gists via SSH. Each gist lands directly under that directory at
 				return ownerErr
 			}
 
-			provider, providerErr := gist.ResolveProvider()
+			provider, credentialSource, providerErr := gist.ResolveProvider()
 			if providerErr != nil {
 				return providerErr
 			}
 
 			return gist.RunClone(gist.CloneConfig{
-				RootDir:  rootDir,
-				Owner:    owner,
-				SSHAlias: sshAlias,
-				DryRun:   dryRun,
-				Provider: provider,
-				Runner:   &repo.DefaultGitRunner{},
-				Output:   os.Stderr,
+				RootDir:          rootDir,
+				Owner:            owner,
+				SSHAlias:         sshAlias,
+				DryRun:           dryRun,
+				Provider:         provider,
+				CredentialSource: credentialSource,
+				Runner:           &repo.DefaultGitRunner{},
+				Output:           os.Stderr,
 			})
 		},
 	}
@@ -569,7 +569,8 @@ func newMirrorCmd() *cobra.Command {
 		Long: `For each repository under the source directory, creates a pull mirror
 on Codeberg via the Forgejo migration API and adds a 'codeberg' remote locally.
 
-Requires CODEBERG_TOKEN environment variable.`,
+Requires the CODEBERG_TOKEN environment variable. No GitHub token is read:
+Codeberg pulls each repository from its public GitHub address.`,
 		Args: cobra.RangeArgs(1, repo.MaxMirrorArgs()),
 		RunE: func(_ *cobra.Command, args []string) error {
 			sshAlias := args[0]
@@ -579,23 +580,19 @@ Requires CODEBERG_TOKEN environment variable.`,
 			}
 			sourceDir = filepath.Clean(sourceDir)
 
-			targetProvider, targetErr := repo.ResolveProvider("codeberg")
+			targetProvider, targetCredentialSource, targetErr := repo.ResolveMirrorTarget()
 			if targetErr != nil {
 				return targetErr
 			}
 
-			// source provider is optional (used for metadata)
-			sourceProviderName, _, _ := repo.DetectProviderAndOwner(sourceDir)
-			sourceProvider, _ := repo.ResolveProvider(sourceProviderName)
-
 			return repo.RunMirror(repo.MirrorConfig{
-				SourceDir:      sourceDir,
-				SSHAlias:       sshAlias,
-				DryRun:         dryRun,
-				SourceProvider: sourceProvider,
-				TargetProvider: targetProvider,
-				Runner:         &repo.DefaultGitRunner{},
-				Output:         repo.NewLogger(os.Stderr),
+				SourceDir:              sourceDir,
+				SSHAlias:               sshAlias,
+				DryRun:                 dryRun,
+				TargetProvider:         targetProvider,
+				TargetCredentialSource: targetCredentialSource,
+				Runner:                 &repo.DefaultGitRunner{},
+				Output:                 repo.NewLogger(os.Stderr),
 			})
 		},
 	}
