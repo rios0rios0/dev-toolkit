@@ -396,6 +396,34 @@ func TestRunClone(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, buf.String(), "everything is in sync")
 	})
+
+	t.Run("should log where the credential came from at info when the clone workflow starts", func(t *testing.T) {
+		t.Parallel()
+		// given
+		provider := doubles.NewForgeProviderStub().WithRepos(nil)
+		provider.AuthTokenVal = fixtureToken
+		var buf bytes.Buffer
+		cfg := repo.CloneConfig{
+			RootDir:          "/home/user/Development/github.com/owner",
+			SSHAlias:         "mine",
+			DryRun:           true,
+			Provider:         provider,
+			CredentialSource: "GH_TOKEN environment variable",
+			Runner:           doubles.NewGitRunnerStub(),
+			Output:           &buf,
+			Logger:           repo.NewLogger(&buf),
+			Input:            strings.NewReader(""),
+		}
+
+		// when
+		err := repo.RunClone(cfg)
+
+		// then
+		require.NoError(t, err)
+		assert.Contains(t, buf.String(),
+			`level=info msg="clone workflow started" credential="GH_TOKEN environment variable"`)
+		assert.NotContains(t, buf.String(), fixtureToken)
+	})
 }
 
 func TestParallelClone(t *testing.T) {

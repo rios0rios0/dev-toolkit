@@ -93,21 +93,28 @@ func NewProviderRegistry() *gitRegistry.ProviderRegistry {
 // its own CLI, so an authenticated provider CLI is enough when no token is exported. The owner
 // travels as the credential request's organization: for Azure DevOps the az token is then
 // issued in that organization's tenant. An exported token still takes precedence and skips
-// the tenant discovery entirely.
-func ResolveProviderForOwner(providerName, owner string) (globalEntities.ForgeProvider, error) {
+// the tenant discovery entirely. Like ResolveProviderWith, it also returns where the
+// credential came from.
+func ResolveProviderForOwner(providerName, owner string) (globalEntities.ForgeProvider, string, error) {
 	return ResolveProviderWith(providerName, owner, newCredentialResolver())
 }
 
 // ResolveProviderWith creates a ForgeProvider from whatever credential the given resolver
-// supplies, asking for it on behalf of owner ("" for none).
+// supplies, asking for it on behalf of owner ("" for none). It also returns the credential's
+// source ("GH_TOKEN environment variable", "gh CLI"), so the command can say which credential
+// it works with; the token itself stays inside the provider.
 func ResolveProviderWith(
 	providerName, owner string, resolver credentialEntities.CredentialResolver,
-) (globalEntities.ForgeProvider, error) {
+) (globalEntities.ForgeProvider, string, error) {
 	cred, credErr := resolveCredential(providerName, owner, resolver)
 	if credErr != nil {
-		return nil, credErr
+		return nil, "", credErr
 	}
-	return newProvider(providerName, cred.Token)
+	provider, err := newProvider(providerName, cred.Token)
+	if err != nil {
+		return nil, "", err
+	}
+	return provider, cred.Source, nil
 }
 
 // newProvider builds the named provider's API client around token.

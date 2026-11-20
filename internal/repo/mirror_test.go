@@ -154,6 +154,31 @@ func TestRunMirror(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, buf.String(), "mirrored")
 	})
+
+	t.Run("should log where the Codeberg credential came from at info when the mirror starts", func(t *testing.T) {
+		t.Parallel()
+		// given
+		root := t.TempDir()
+		createDirStructure(t, root, "github.com/owner")
+		sourceDir := root + "/github.com/owner"
+		createGitRepo(t, sourceDir+"/repo-a")
+		var buf bytes.Buffer
+
+		// when
+		err := repo.RunMirror(repo.MirrorConfig{
+			SourceDir:              sourceDir,
+			DryRun:                 true,
+			TargetProvider:         doubles.NewMirrorProviderStub(),
+			TargetCredentialSource: "CODEBERG_TOKEN environment variable",
+			Runner:                 doubles.NewGitRunnerStub(),
+			Output:                 repo.NewLogger(&buf),
+		})
+
+		// then
+		require.NoError(t, err)
+		assert.Contains(t, buf.String(),
+			`level=info msg="starting mirror" count=1 credential="CODEBERG_TOKEN environment variable"`)
+	})
 }
 
 func TestResolveMirrorTargetWith(t *testing.T) {
@@ -165,12 +190,13 @@ func TestResolveMirrorTargetWith(t *testing.T) {
 		resolver := stubCredential()
 
 		// when
-		provider, err := repo.ResolveMirrorTargetWith(resolver)
+		provider, source, err := repo.ResolveMirrorTargetWith(resolver)
 
 		// then
 		require.NoError(t, err)
 		assert.Equal(t, repo.ProviderCodeberg, provider.Name())
 		assert.Implements(t, (*globalEntities.MirrorProvider)(nil), provider)
+		assert.Equal(t, "stub", source)
 		assert.Equal(t, []credentialEntities.CredentialRequest{
 			{ServiceType: globalEntities.CODEBERG},
 		}, resolver.Requests())
@@ -183,7 +209,7 @@ func TestResolveMirrorTargetWith(t *testing.T) {
 		resolver := &gitforgeDoubles.CredentialResolverStub{Err: notAuthenticated}
 
 		// when
-		_, err := repo.ResolveMirrorTargetWith(resolver)
+		_, _, err := repo.ResolveMirrorTargetWith(resolver)
 
 		// then
 		require.ErrorIs(t, err, notAuthenticated)

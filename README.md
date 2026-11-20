@@ -167,6 +167,16 @@ no GitHub credential available: GITHUB_TOKEN and GH_TOKEN are not set; the gh CL
 These credentials are only used for the provider APIs -- discovering repositories, gists, and fork
 parents. Cloning and syncing go over SSH, so SSH keys are still required (see below).
 
+Every command that calls a provider API -- `repo clone`, `repo fork-sync`, `repo mirror` and
+`gist clone` -- logs at info where its credential came from, never the token itself:
+
+```
+level=info msg="clone workflow started" credential="GH_TOKEN environment variable" owner=rios0rios0 provider=github
+```
+
+That way, a token exported for another account, or one that sees fewer repositories than your
+`gh` session, shows up before its results do.
+
 `repo fork-sync` looks fork parents up on GitHub only. In another provider's directory it stops with
 `fork resolution not supported` before asking for any credential, so an Azure DevOps directory never
 runs `az` just to be told that; on GitHub, one credential serves both the discovery and the parent

@@ -28,8 +28,11 @@ type MirrorConfig struct {
 	SSHAlias       string
 	DryRun         bool
 	TargetProvider globalEntities.ForgeProvider
-	Runner         GitRunner
-	Output         logger.FieldLogger
+	// TargetCredentialSource says where TargetProvider's credential came from
+	// ("CODEBERG_TOKEN environment variable"), for the log; it never holds the token.
+	TargetCredentialSource string
+	Runner                 GitRunner
+	Output                 logger.FieldLogger
 }
 
 // MirrorResult holds the outcome of mirroring a single repository.
@@ -40,17 +43,18 @@ type MirrorResult struct {
 
 // ResolveMirrorTarget builds the Codeberg provider that mirror creates its pull mirrors on, from
 // gitforge's default credential chain; see ResolveMirrorTargetWith.
-func ResolveMirrorTarget() (globalEntities.ForgeProvider, error) {
+func ResolveMirrorTarget() (globalEntities.ForgeProvider, string, error) {
 	return ResolveMirrorTargetWith(newCredentialResolver())
 }
 
 // ResolveMirrorTargetWith builds the Codeberg provider that mirror creates its pull mirrors on,
-// from the credential the given resolver supplies. It is the only credential mirror needs:
-// Codeberg pulls each repository from its public address on the source provider, so no source
-// provider credential is asked for -- for GitHub, one that would run gh for nothing.
+// from the credential the given resolver supplies, and returns where that credential came
+// from. It is the only credential mirror needs: Codeberg pulls each repository from its public
+// address on the source provider, so no source provider credential is asked for -- for
+// GitHub, one that would run gh for nothing.
 func ResolveMirrorTargetWith(
 	resolver credentialEntities.CredentialResolver,
-) (globalEntities.ForgeProvider, error) {
+) (globalEntities.ForgeProvider, string, error) {
 	return ResolveProviderWith(ProviderCodeberg, "", resolver)
 }
 
@@ -74,8 +78,9 @@ func RunMirror(cfg MirrorConfig) error {
 	}
 
 	log.WithFields(logger.Fields{
-		"count":       len(repos),
-		logFieldOwner: owner,
+		"count":            len(repos),
+		logFieldOwner:      owner,
+		logFieldCredential: cfg.TargetCredentialSource,
 	}).Info("starting mirror")
 
 	mirrorProvider, ok := cfg.TargetProvider.(globalEntities.MirrorProvider)

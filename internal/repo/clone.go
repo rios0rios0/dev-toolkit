@@ -37,11 +37,15 @@ type CloneConfig struct {
 	IncludeArchived bool
 	PruneWorktrees  bool
 	Provider        globalEntities.ForgeProvider
-	Runner          GitRunner
-	Output          io.Writer
-	Input           io.Reader
-	Preflight       PreflightFunc
-	Logger          logger.FieldLogger
+	// CredentialSource says where Provider's credential came from ("GH_TOKEN environment
+	// variable", "gh CLI"), so the log shows which identity discovery ran as; it never holds
+	// the token.
+	CredentialSource string
+	Runner           GitRunner
+	Output           io.Writer
+	Input            io.Reader
+	Preflight        PreflightFunc
+	Logger           logger.FieldLogger
 }
 
 func (c *CloneConfig) log() logger.FieldLogger {
@@ -61,8 +65,9 @@ func RunClone(cfg CloneConfig) error {
 	}
 
 	log.WithFields(logger.Fields{
-		"provider":    providerName,
-		logFieldOwner: owner,
+		"provider":         providerName,
+		logFieldOwner:      owner,
+		logFieldCredential: cfg.CredentialSource,
 	}).Info("clone workflow started")
 	if cfg.DryRun {
 		log.Info("dry-run mode enabled")

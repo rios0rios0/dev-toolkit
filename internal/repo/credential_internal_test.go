@@ -45,11 +45,12 @@ func TestResolveProviderForOwner(t *testing.T) {
 				replaceCredentialResolver(t, resolver)
 
 				// when
-				provider, err := ResolveProviderForOwner(providerName, seamFixtureOrganization)
+				provider, source, err := ResolveProviderForOwner(providerName, seamFixtureOrganization)
 
 				// then
 				require.NoError(t, err)
 				assert.Equal(t, providerName, provider.Name())
+				assert.Equal(t, "stub", source)
 				requests := resolver.Requests()
 				require.Len(t, requests, 1)
 				assert.Equal(t, providerName, gitRegistry.ServiceTypeToProviderName(requests[0].ServiceType))

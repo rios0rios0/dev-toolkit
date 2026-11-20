@@ -64,12 +64,13 @@ func TestResolveProviderWith(t *testing.T) {
 			resolver := stubCredential()
 
 			// when
-			provider, err := repo.ResolveProviderWith(providerName, "", resolver)
+			provider, source, err := repo.ResolveProviderWith(providerName, "", resolver)
 
 			// then
 			require.NoError(t, err)
 			assert.Equal(t, providerName, provider.Name())
 			assert.Equal(t, fixtureToken, provider.AuthToken())
+			assert.Equal(t, "stub", source)
 			requests := resolver.Requests()
 			require.Len(t, requests, 1)
 			assert.Equal(t, providerName, gitRegistry.ServiceTypeToProviderName(requests[0].ServiceType))
@@ -82,7 +83,7 @@ func TestResolveProviderWith(t *testing.T) {
 		resolver := stubCredential()
 
 		// when
-		_, err := repo.ResolveProviderWith(repo.ProviderAzureDevOps, fixtureOrganization, resolver)
+		_, _, err := repo.ResolveProviderWith(repo.ProviderAzureDevOps, fixtureOrganization, resolver)
 
 		// then
 		require.NoError(t, err)
@@ -98,7 +99,7 @@ func TestResolveProviderWith(t *testing.T) {
 		resolver := &gitforgeDoubles.CredentialResolverStub{Err: notAuthenticated}
 
 		// when
-		_, err := repo.ResolveProviderWith(repo.ProviderGitHub, "", resolver)
+		_, _, err := repo.ResolveProviderWith(repo.ProviderGitHub, "", resolver)
 
 		// then
 		require.ErrorIs(t, err, notAuthenticated)
@@ -110,7 +111,7 @@ func TestResolveProviderWith(t *testing.T) {
 		resolver := stubCredential()
 
 		// when
-		_, err := repo.ResolveProviderWith("bitbucket", "", resolver)
+		_, _, err := repo.ResolveProviderWith("bitbucket", "", resolver)
 
 		// then
 		require.EqualError(t, err, "unknown provider: bitbucket")
@@ -128,13 +129,14 @@ func TestResolveForkSyncWith(t *testing.T) {
 			resolver := stubCredential()
 
 			// when
-			provider, forkResolver, err := repo.ResolveForkSyncWith(repo.ProviderGitHub, resolver)
+			provider, forkResolver, source, err := repo.ResolveForkSyncWith(repo.ProviderGitHub, resolver)
 
 			// then
 			require.NoError(t, err)
 			assert.Equal(t, repo.ProviderGitHub, provider.Name())
 			assert.Equal(t, fixtureToken, provider.AuthToken())
 			assert.NotNil(t, forkResolver)
+			assert.Equal(t, "stub", source)
 			assert.Equal(t, []credentialEntities.CredentialRequest{
 				{ServiceType: globalEntities.GITHUB},
 			}, resolver.Requests())
@@ -151,7 +153,7 @@ func TestResolveForkSyncWith(t *testing.T) {
 				resolver := stubCredential()
 
 				// when
-				provider, forkResolver, err := repo.ResolveForkSyncWith(providerName, resolver)
+				provider, forkResolver, _, err := repo.ResolveForkSyncWith(providerName, resolver)
 
 				// then
 				require.EqualError(t, err, "fork resolution not supported for provider: "+providerName)
@@ -168,7 +170,7 @@ func TestResolveForkSyncWith(t *testing.T) {
 		resolver := &gitforgeDoubles.CredentialResolverStub{Err: notAuthenticated}
 
 		// when
-		_, _, err := repo.ResolveForkSyncWith(repo.ProviderGitHub, resolver)
+		_, _, _, err := repo.ResolveForkSyncWith(repo.ProviderGitHub, resolver)
 
 		// then
 		require.ErrorIs(t, err, notAuthenticated)
@@ -182,7 +184,7 @@ func TestResolveForkSyncWith(t *testing.T) {
 		}
 
 		// when
-		provider, forkResolver, err := repo.ResolveForkSyncWith(repo.ProviderGitHub, resolver)
+		provider, forkResolver, _, err := repo.ResolveForkSyncWith(repo.ProviderGitHub, resolver)
 
 		// then
 		require.ErrorContains(t, err, "failed to create GitHub client")
@@ -202,11 +204,12 @@ func TestResolveProviderWithCredentialChain(t *testing.T) {
 		chain := newCredentialChain(nil, runner, tenants)
 
 		// when
-		provider, err := repo.ResolveProviderWith(repo.ProviderAzureDevOps, fixtureOrganization, chain)
+		provider, source, err := repo.ResolveProviderWith(repo.ProviderAzureDevOps, fixtureOrganization, chain)
 
 		// then
 		require.NoError(t, err)
 		assert.Equal(t, fixtureToken, provider.AuthToken())
+		assert.Equal(t, "az CLI", source)
 		assert.Equal(t, []string{fixtureOrganization}, tenants.Organizations())
 		calls := runner.Calls()
 		require.Len(t, calls, 1)
@@ -221,11 +224,12 @@ func TestResolveProviderWithCredentialChain(t *testing.T) {
 		chain := newCredentialChain(map[string]string{"AZURE_DEVOPS_EXT_PAT": fixturePAT}, runner, tenants)
 
 		// when
-		provider, err := repo.ResolveProviderWith(repo.ProviderAzureDevOps, fixtureOrganization, chain)
+		provider, source, err := repo.ResolveProviderWith(repo.ProviderAzureDevOps, fixtureOrganization, chain)
 
 		// then
 		require.NoError(t, err)
 		assert.Equal(t, fixturePAT, provider.AuthToken())
+		assert.Equal(t, "AZURE_DEVOPS_EXT_PAT environment variable", source)
 		assert.Empty(t, tenants.Organizations())
 		assert.Empty(t, runner.Calls())
 	})
@@ -238,7 +242,7 @@ func TestResolveProviderWithCredentialChain(t *testing.T) {
 		chain := newCredentialChain(nil, runner, tenants)
 
 		// when
-		provider, err := repo.ResolveProviderWith(repo.ProviderGitHub, fixtureOrganization, chain)
+		provider, _, err := repo.ResolveProviderWith(repo.ProviderGitHub, fixtureOrganization, chain)
 
 		// then
 		require.NoError(t, err)
@@ -256,7 +260,7 @@ func TestResolveProviderWithCredentialChain(t *testing.T) {
 		chain := newCredentialChain(nil, runner, &gitforgeDoubles.AzureTenantResolverStub{})
 
 		// when
-		_, err := repo.ResolveProviderWith(repo.ProviderGitLab, "", chain)
+		_, _, err := repo.ResolveProviderWith(repo.ProviderGitLab, "", chain)
 
 		// then
 		require.ErrorIs(t, err, credentialEntities.ErrNoCredential)
@@ -272,7 +276,7 @@ func TestResolveProviderWithCredentialChain(t *testing.T) {
 		chain := newCredentialChain(env, &gitforgeDoubles.CLIRunnerStub{}, &gitforgeDoubles.AzureTenantResolverStub{})
 
 		// when
-		_, err := repo.ResolveProviderWith(repo.ProviderGitLab, "", chain)
+		_, _, err := repo.ResolveProviderWith(repo.ProviderGitLab, "", chain)
 
 		// then
 		require.ErrorIs(t, err, credentialEntities.ErrNoCredential)
@@ -286,7 +290,7 @@ func TestResolveProviderWithCredentialChain(t *testing.T) {
 		chain := newCredentialChain(env, &gitforgeDoubles.CLIRunnerStub{}, &gitforgeDoubles.AzureTenantResolverStub{})
 
 		// when
-		_, err := repo.ResolveProviderWith(repo.ProviderGitLab, "", chain)
+		_, _, err := repo.ResolveProviderWith(repo.ProviderGitLab, "", chain)
 
 		// then
 		require.ErrorIs(t, err, credentialEntities.ErrNoCredential)
@@ -300,7 +304,7 @@ func TestResolveProviderWithCredentialChain(t *testing.T) {
 		chain := newCredentialChain(env, &gitforgeDoubles.CLIRunnerStub{}, &gitforgeDoubles.AzureTenantResolverStub{})
 
 		// when
-		provider, err := repo.ResolveProviderWith(repo.ProviderGitHub, "", chain)
+		provider, _, err := repo.ResolveProviderWith(repo.ProviderGitHub, "", chain)
 
 		// then
 		require.NoError(t, err)
@@ -328,7 +332,7 @@ func TestResolveProviderWithCredentialChain(t *testing.T) {
 				chain := newCredentialChain(env, runner, &gitforgeDoubles.AzureTenantResolverStub{})
 
 				// when
-				provider, err := repo.ResolveProviderWith(scenario.providerName, "", chain)
+				provider, _, err := repo.ResolveProviderWith(scenario.providerName, "", chain)
 
 				// then
 				require.NoError(t, err)
@@ -347,7 +351,7 @@ func TestResolveWithDefaultCredentialChain(t *testing.T) {
 		const providerName = "bitbucket"
 
 		// when
-		_, err := repo.ResolveProviderForOwner(providerName, fixtureOrganization)
+		_, _, err := repo.ResolveProviderForOwner(providerName, fixtureOrganization)
 
 		// then
 		require.EqualError(t, err, "unknown provider: bitbucket")
@@ -359,7 +363,7 @@ func TestResolveWithDefaultCredentialChain(t *testing.T) {
 		const providerName = repo.ProviderCodeberg
 
 		// when
-		_, _, err := repo.ResolveForkSync(providerName)
+		_, _, _, err := repo.ResolveForkSync(providerName)
 
 		// then
 		require.ErrorContains(t, err, "fork resolution not supported")

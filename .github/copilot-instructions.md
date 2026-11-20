@@ -103,6 +103,9 @@ resolution (all but GitHub) before asking for any credential, then builds both o
 from one.
 `repo mirror` goes through `ResolveMirrorTarget`, which asks for the Codeberg credential alone:
 Codeberg pulls each repository from its public address, so no GitHub token is involved.
+Every resolve function also returns the credential's `Source` (never the token), and
+`repo clone`, `repo fork-sync`, `repo mirror` and `gist clone` log it at Info in a `credential`
+field.
 
 <!-- chlog:start -->
 ## Changelog (chlog) — MANDATORY
