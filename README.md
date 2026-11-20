@@ -128,9 +128,11 @@ whatever the CLI happens to be logged in as. `gh` is asked for its `github.com` 
 `GH_HOST` names a GitHub Enterprise server, because every GitHub API call goes to `api.github.com`.
 The CLI is found on `PATH` and run by its absolute path, with your home directory as its working
 directory rather than the repository you are working in. GitLab has no CLI fallback: `glab` has no
-command that prints a token, so export `GITLAB_TOKEN` or `GL_TOKEN`. Every GitLab API call goes to
-`gitlab.com`, so either is declined when `GITLAB_HOST` or `GL_HOST` names another server: a token for
-a self-managed GitLab is never sent to `gitlab.com`. Codeberg has no widely installed official CLI,
+`auth token` command, so export `GITLAB_TOKEN` or `GL_TOKEN`. Every GitLab API call goes to
+`gitlab.com`, so either is declined while a variable that names a GitLab server names another one:
+glab's `GITLAB_HOST`, `GITLAB_URI`, `GL_HOST` and `GITLAB_API_HOST`, and semantic-release's `GL_URL`
+and `GITLAB_URL`. A token exported for a self-managed GitLab beside one of them is not sent to
+`gitlab.com`; one exported with none of them is taken to be a `gitlab.com` token. Codeberg has no widely installed official CLI,
 so it stays on the environment variable alone.
 
 For Azure DevOps the `az` fallback requests a Microsoft Entra access token scoped to the Azure

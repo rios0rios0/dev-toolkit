@@ -5,7 +5,7 @@ go 1.27.4
 require (
 	github.com/google/go-github/v93 v93.0.0
 	github.com/rios0rios0/cliforge v0.5.4
-	github.com/rios0rios0/gitforge/v4 v4.7.1
+	github.com/rios0rios0/gitforge/v4 v4.8.0
 	github.com/rios0rios0/langforge v1.1.13
 	github.com/sirupsen/logrus v1.10.2
 	github.com/spf13/cobra v1.10.2
