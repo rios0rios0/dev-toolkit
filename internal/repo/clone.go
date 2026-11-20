@@ -377,9 +377,9 @@ func cloneSingleRepo(
 	return cloneResult{name: repoKey, success: true}
 }
 
-// HandleExtraRepos prompts for deletion of extra local repos or skips in non-interactive mode.
-// credentialSource is where the credential the provider listed repositories for came from;
-// the prompt names it (see PromptDeleteExtra).
+// HandleExtraRepos prompts for deletion of extra local repos or, in dry-run or non-interactive
+// mode, only warns about them. credentialSource is where the credential the provider listed
+// repositories for came from; the question and both warnings name it (see NotReturnedFor).
 func HandleExtraRepos(
 	extra []string,
 	rootDir, credentialSource string,
@@ -393,13 +393,14 @@ func HandleExtraRepos(
 	}
 
 	isInteractive := isTerminal(input)
+	notReturned := NotReturnedFor(credentialSource)
 
 	for _, name := range extra {
 		switch {
 		case dryRun:
-			log.WithField(logFieldRepo, name).Warn("extra repository")
+			log.WithField(logFieldRepo, name).Warn("extra repository, which " + notReturned)
 		case !isInteractive:
-			log.WithField(logFieldRepo, name).Warn("extra repository (kept, non-interactive)")
+			log.WithField(logFieldRepo, name).Warn("extra repository (kept, non-interactive), which " + notReturned)
 		default:
 			PromptDeleteExtra(name, rootDir, credentialSource, input, output, log)
 		}
@@ -419,18 +420,14 @@ func isTerminal(input io.Reader) bool {
 }
 
 // PromptDeleteExtra asks the user to confirm deletion of an extra local repo: one the provider
-// did not return for the credential in use. The question says so and names that credential's
-// source rather than claiming the repository is gone from the remote, because a credential that
-// cannot see a repository -- a narrower token, another account -- leaves it out exactly as a
-// deletion does, and deleting the folder takes any unpushed work with it. Only "y" deletes; any
-// other answer, or none, keeps the repository.
+// did not return for the credential in use. The question explains it with NotReturnedFor, naming
+// that credential's source rather than claiming the repository is gone from the remote, since
+// deleting the folder takes any unpushed work with it. Only "y" deletes; any other answer, or
+// none, keeps the repository.
 func PromptDeleteExtra(
 	name, rootDir, credentialSource string, input io.Reader, output io.Writer, log logger.FieldLogger,
 ) {
-	fmt.Fprintf(output,
-		"[dev] \"%s\" exists locally but was not returned for %s: it was deleted on the remote, "+
-			"or that credential cannot see it. Delete? [y/N] ",
-		name, describeCredential(credentialSource))
+	fmt.Fprintf(output, "[dev] \"%s\" exists locally but %s. Delete? [y/N] ", name, NotReturnedFor(credentialSource))
 	scanner := bufio.NewScanner(input)
 	if scanner.Scan() && strings.EqualFold(strings.TrimSpace(scanner.Text()), "y") {
 		if removeErr := os.RemoveAll(filepath.Join(rootDir, name)); removeErr != nil {
@@ -443,6 +440,18 @@ func PromptDeleteExtra(
 	} else {
 		log.WithField(logFieldRepo, name).Info("kept extra repository")
 	}
+}
+
+// NotReturnedFor explains a local checkout the provider did not list, naming the credential it
+// was compared against by that credential's source: "was not returned for the credential from
+// the gh CLI: it was deleted on the remote, or that credential cannot see it". A credential that
+// cannot see a repository or a gist -- a narrower token, another account -- leaves it out
+// exactly as a deletion does, so every message about such a checkout says this instead of
+// claiming it is gone from the remote: repo clone's deletion question and its dry-run and
+// non-interactive warnings, and gist clone's warning.
+func NotReturnedFor(credentialSource string) string {
+	return "was not returned for " + describeCredential(credentialSource) +
+		": it was deleted on the remote, or that credential cannot see it"
 }
 
 // describeCredential names a credential by where it came from ("the credential from the gh

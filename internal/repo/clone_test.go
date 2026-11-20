@@ -457,6 +457,66 @@ func TestRunClone(t *testing.T) {
 			assert.Contains(t, buf.String(), "kept extra repository")
 			assert.DirExists(t, root+"/private-repo")
 		})
+
+	t.Run("should name the credential when listing a local repository the provider did not return in dry-run mode",
+		func(t *testing.T) {
+			t.Parallel()
+			// given
+			root := t.TempDir() + "/github.com/owner"
+			createGitRepo(t, root+"/private-repo")
+			var buf bytes.Buffer
+			cfg := repo.CloneConfig{
+				RootDir:          root,
+				SSHAlias:         "mine",
+				DryRun:           true,
+				Provider:         doubles.NewForgeProviderStub().WithRepos(nil),
+				CredentialSource: "GH_TOKEN environment variable",
+				Runner:           doubles.NewGitRunnerStub(),
+				Output:           &buf,
+				Logger:           repo.NewLogger(&buf),
+				Input:            strings.NewReader(""),
+			}
+
+			// when
+			err := repo.RunClone(cfg)
+
+			// then
+			require.NoError(t, err)
+			assert.Contains(t, buf.String(), `msg="extra repository, which was not returned for the credential `+
+				`from the GH_TOKEN environment variable: it was deleted on the remote, or that credential cannot `+
+				`see it" repo=private-repo`)
+			assert.DirExists(t, root+"/private-repo")
+		})
+}
+
+func TestNotReturnedFor(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should name the credential's source when it is known", func(t *testing.T) {
+		t.Parallel()
+		// given
+		const source = "gh CLI"
+
+		// when
+		explanation := repo.NotReturnedFor(source)
+
+		// then
+		assert.Equal(t, "was not returned for the credential from the gh CLI: it was deleted on the remote, "+
+			"or that credential cannot see it", explanation)
+	})
+
+	t.Run("should speak of the credential in use when its source is unknown", func(t *testing.T) {
+		t.Parallel()
+		// given
+		const source = ""
+
+		// when
+		explanation := repo.NotReturnedFor(source)
+
+		// then
+		assert.Equal(t, "was not returned for the credential in use: it was deleted on the remote, "+
+			"or that credential cannot see it", explanation)
+	})
 }
 
 func TestParallelClone(t *testing.T) {
@@ -813,6 +873,42 @@ func TestHandleExtraRepos(t *testing.T) {
 		assert.Contains(t, buf.String(), "repo=a")
 		assert.Contains(t, buf.String(), "repo=b")
 	})
+
+	t.Run("should name the credential when warning about an extra repository in dry-run mode", func(t *testing.T) {
+		t.Parallel()
+		// given
+		var buf bytes.Buffer
+		log := repo.NewLogger(&buf)
+		input := strings.NewReader("")
+
+		// when
+		repo.HandleExtraRepos([]string{"extra-repo"}, "/tmp", "GH_TOKEN environment variable", true, input, &buf, log)
+
+		// then
+		assert.Contains(t, buf.String(), `level=warning msg="extra repository, which was not returned for the `+
+			`credential from the GH_TOKEN environment variable: it was deleted on the remote, or that `+
+			`credential cannot see it" repo=extra-repo`)
+		assert.NotContains(t, buf.String(), "not on remote")
+	})
+
+	t.Run("should name the credential when keeping an extra repository in non-interactive mode",
+		func(t *testing.T) {
+			t.Parallel()
+			// given
+			var buf bytes.Buffer
+			log := repo.NewLogger(&buf)
+			input := strings.NewReader("")
+
+			// when
+			repo.HandleExtraRepos([]string{"extra-repo"}, "/tmp", "GH_TOKEN environment variable", false, input,
+				&buf, log)
+
+			// then
+			assert.Contains(t, buf.String(), `level=warning msg="extra repository (kept, non-interactive), which `+
+				`was not returned for the credential from the GH_TOKEN environment variable: it was deleted on `+
+				`the remote, or that credential cannot see it" repo=extra-repo`)
+			assert.NotContains(t, buf.String(), "not on remote")
+		})
 
 	t.Run("should do nothing when extra list is empty", func(t *testing.T) {
 		t.Parallel()

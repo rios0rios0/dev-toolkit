@@ -186,7 +186,13 @@ a deletion on the remote does:
 ```
 
 Only `y` deletes the folder, and any unpushed work in it; any other answer, including Enter, keeps it.
-`--dry-run` and a non-interactive run only list such repositories.
+`--dry-run` and a non-interactive run only list such repositories, with the same explanation, and
+`gist clone`, which never deletes, warns about a local gist the remote did not return in the same
+words:
+
+```
+level=warning msg="extra repository, which was not returned for the credential from the GH_TOKEN environment variable: it was deleted on the remote, or that credential cannot see it" repo=private-repo
+```
 
 `repo fork-sync` looks fork parents up on GitHub only. In another provider's directory it stops with
 `fork resolution not supported` before asking for any credential, so an Azure DevOps directory never

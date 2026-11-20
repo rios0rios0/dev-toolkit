@@ -31,8 +31,8 @@ type CloneConfig struct {
 	DryRun   bool
 	Provider Provider
 	// CredentialSource says where Provider's credential came from ("GH_TOKEN environment
-	// variable", "gh CLI"), so the log shows which identity discovery ran as; it never holds
-	// the token.
+	// variable", "gh CLI"), so the log shows which identity discovery ran as and the warning
+	// about a local gist the remote did not return names it; it never holds the token.
 	CredentialSource string
 	Runner           repo.GitRunner
 	Output           io.Writer
@@ -84,8 +84,9 @@ func RunClone(cfg CloneConfig) error {
 	}
 
 	cloned, failed := CloneMissing(missing, cfg)
+	notReturned := repo.NotReturnedFor(cfg.CredentialSource)
 	for _, name := range extra {
-		log.WithField(logFieldGist, name).Warn("extra local gist (not on remote)")
+		log.WithField(logFieldGist, name).Warn("extra local gist, which " + notReturned)
 	}
 
 	log.WithFields(logger.Fields{
