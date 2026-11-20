@@ -112,9 +112,12 @@ func ResolveProviderWith(
 	if credErr != nil {
 		return nil, credErr
 	}
+	return newProvider(providerName, cred.Token)
+}
 
-	registry := NewProviderRegistry()
-	provider, err := registry.Get(providerName, cred.Token)
+// newProvider builds the named provider's API client around token.
+func newProvider(providerName, token string) (globalEntities.ForgeProvider, error) {
+	provider, err := NewProviderRegistry().Get(providerName, token)
 	if err != nil {
 		return nil, fmt.Errorf("unknown provider: %s", providerName)
 	}

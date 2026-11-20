@@ -167,6 +167,11 @@ no GitHub credential available: GITHUB_TOKEN and GH_TOKEN are not set; the gh CL
 These credentials are only used for the provider APIs -- discovering repositories, gists, and fork
 parents. Cloning and syncing go over SSH, so SSH keys are still required (see below).
 
+`repo fork-sync` looks fork parents up on GitHub only. In another provider's directory it stops with
+`fork resolution not supported` before asking for any credential, so an Azure DevOps directory never
+runs `az` just to be told that; on GitHub, one credential serves both the discovery and the parent
+lookups.
+
 ### SSH Aliases
 
 The clone command uses SSH config aliases (e.g., `github.com-mine`). Configure these in `~/.ssh/config`:

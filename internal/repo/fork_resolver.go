@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	credentialEntities "github.com/rios0rios0/gitforge/v4/pkg/credentials/domain/entities"
+	globalEntities "github.com/rios0rios0/gitforge/v4/pkg/global/domain/entities"
 )
 
 // ParentInfo holds the upstream parent repository's SSH URL and default branch.
@@ -29,26 +30,39 @@ var resolverFactoryMap = map[string]func(token string) (ForkResolver, error){
 	},
 }
 
-// ResolveForkResolver creates a ForkResolver for the given provider using gitforge's
-// default credential chain.
-func ResolveForkResolver(providerName string) (ForkResolver, error) {
-	return ResolveForkResolverWith(providerName, newCredentialResolver())
+// ResolveForkSync builds what fork-sync needs from gitforge's default credential chain; see
+// ResolveForkSyncWith.
+func ResolveForkSync(providerName string) (globalEntities.ForgeProvider, ForkResolver, error) {
+	return ResolveForkSyncWith(providerName, newCredentialResolver())
 }
 
-// ResolveForkResolverWith creates a ForkResolver from whatever credential the given
-// resolver supplies.
-func ResolveForkResolverWith(
+// ResolveForkSyncWith builds what fork-sync needs from the one credential the given resolver
+// supplies: the provider that lists the owner's repositories, among them the forks, and the
+// resolver that looks up each fork's parent. A provider without fork resolution is refused
+// before any credential source is consulted, so a directory of another provider is told so
+// instead of running that provider's CLI first -- for Azure DevOps, az in the default tenant,
+// which can fail with a sign-in error that hides the real reason.
+func ResolveForkSyncWith(
 	providerName string, resolver credentialEntities.CredentialResolver,
-) (ForkResolver, error) {
-	factory, ok := resolverFactoryMap[providerName]
-	if !ok {
-		return nil, fmt.Errorf("fork resolution not supported for provider: %s", providerName)
+) (globalEntities.ForgeProvider, ForkResolver, error) {
+	newForkResolver, supported := resolverFactoryMap[providerName]
+	if !supported {
+		return nil, nil, fmt.Errorf("fork resolution not supported for provider: %s", providerName)
 	}
 
 	cred, err := resolveCredential(providerName, "", resolver)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return factory(cred.Token)
+	provider, err := newProvider(providerName, cred.Token)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	forkResolver, err := newForkResolver(cred.Token)
+	if err != nil {
+		return nil, nil, err
+	}
+	return provider, forkResolver, nil
 }

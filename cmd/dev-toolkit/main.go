@@ -220,21 +220,16 @@ occur, creates a fork-sync/upstream branch and pushes it for manual resolution.`
 			rootDir = filepath.Clean(rootDir)
 
 			providerName := mustDetectProvider(rootDir)
-			provider, resolveErr := repo.ResolveProvider(providerName)
+			provider, forkResolver, resolveErr := repo.ResolveForkSync(providerName)
 			if resolveErr != nil {
 				return resolveErr
-			}
-
-			resolver, resolverErr := repo.ResolveForkResolver(providerName)
-			if resolverErr != nil {
-				return resolverErr
 			}
 
 			return repo.RunForkSync(repo.ForkSyncConfig{
 				RootDir:  rootDir,
 				DryRun:   dryRun,
 				Provider: provider,
-				Resolver: resolver,
+				Resolver: forkResolver,
 				Runner:   &repo.DefaultGitRunner{},
 				Output:   repo.NewLogger(os.Stderr),
 			})

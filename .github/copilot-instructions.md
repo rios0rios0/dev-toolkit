@@ -98,6 +98,9 @@ authentication; `repo sync` does not need an API token.
 The functions without a resolver argument get the default chain from `newCredentialResolver`,
 a factory that only the non-parallel `credential_internal_test.go` replaces, to pin the owner
 `ResolveProviderForOwner` sends for every registered provider.
+`repo fork-sync` goes through `ResolveForkSync`, which refuses a provider without fork
+resolution (all but GitHub) before asking for any credential, then builds both of its clients
+from one.
 
 <!-- chlog:start -->
 ## Changelog (chlog) — MANDATORY
