@@ -136,7 +136,9 @@ func newCloneCmd() *cobra.Command {
 		Use:   "clone <ssh-alias> [root-dir]",
 		Short: "Clone missing repositories from a Git provider",
 		Long: `Discovers repositories from the Git provider, compares with local directories,
-clones missing repos via SSH, and optionally removes extra local repos.
+clones missing repos via SSH, and optionally removes extra local repos. Before
+removing one it asks, naming the credential the provider did not return it for:
+a token that cannot see a repository leaves it out just as a deletion does.
 
 Linked worktrees are not part of that comparison: they are extra checkouts of
 repositories that do exist on the remote. Pass --prune-worktrees to also run the

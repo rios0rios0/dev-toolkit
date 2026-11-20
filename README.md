@@ -177,6 +177,17 @@ level=info msg="clone workflow started" credential="GH_TOKEN environment variabl
 That way, a token exported for another account, or one that sees fewer repositories than your
 `gh` session, shows up before its results do.
 
+`repo clone` asks before deleting a local repository the provider did not return, and the question
+names that credential, because a token that cannot see a private repository leaves it out exactly as
+a deletion on the remote does:
+
+```
+[dev] "private-repo" exists locally but was not returned for the credential from the GH_TOKEN environment variable: it was deleted on the remote, or that credential cannot see it. Delete? [y/N]
+```
+
+Only `y` deletes the folder, and any unpushed work in it; any other answer, including Enter, keeps it.
+`--dry-run` and a non-interactive run only list such repositories.
+
 `repo fork-sync` looks fork parents up on GitHub only. In another provider's directory it stops with
 `fork resolution not supported` before asking for any credential, so an Azure DevOps directory never
 runs `az` just to be told that; on GitHub, one credential serves both the discovery and the parent

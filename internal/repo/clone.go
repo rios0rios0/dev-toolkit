@@ -94,7 +94,7 @@ func RunClone(cfg CloneConfig) error {
 	}
 
 	cloned, failed := CloneMissing(missing, cfg)
-	HandleExtraRepos(extra, cfg.RootDir, cfg.DryRun, cfg.Input, cfg.Output, log)
+	HandleExtraRepos(extra, cfg.RootDir, cfg.CredentialSource, cfg.DryRun, cfg.Input, cfg.Output, log)
 
 	log.WithFields(logger.Fields{
 		"cloned":           cloned,
@@ -378,8 +378,15 @@ func cloneSingleRepo(
 }
 
 // HandleExtraRepos prompts for deletion of extra local repos or skips in non-interactive mode.
+// credentialSource is where the credential the provider listed repositories for came from;
+// the prompt names it (see PromptDeleteExtra).
 func HandleExtraRepos(
-	extra []string, rootDir string, dryRun bool, input io.Reader, output io.Writer, log logger.FieldLogger,
+	extra []string,
+	rootDir, credentialSource string,
+	dryRun bool,
+	input io.Reader,
+	output io.Writer,
+	log logger.FieldLogger,
 ) {
 	if len(extra) == 0 {
 		return
@@ -394,7 +401,7 @@ func HandleExtraRepos(
 		case !isInteractive:
 			log.WithField(logFieldRepo, name).Warn("extra repository (kept, non-interactive)")
 		default:
-			PromptDeleteExtra(name, rootDir, input, output, log)
+			PromptDeleteExtra(name, rootDir, credentialSource, input, output, log)
 		}
 	}
 }
@@ -411,9 +418,19 @@ func isTerminal(input io.Reader) bool {
 	return fi.Mode()&os.ModeCharDevice != 0
 }
 
-// PromptDeleteExtra asks the user to confirm deletion of an extra local repo.
-func PromptDeleteExtra(name, rootDir string, input io.Reader, output io.Writer, log logger.FieldLogger) {
-	fmt.Fprintf(output, "[dev] \"%s\" exists locally but not on remote. Delete? [y/N] ", name)
+// PromptDeleteExtra asks the user to confirm deletion of an extra local repo: one the provider
+// did not return for the credential in use. The question says so and names that credential's
+// source rather than claiming the repository is gone from the remote, because a credential that
+// cannot see a repository -- a narrower token, another account -- leaves it out exactly as a
+// deletion does, and deleting the folder takes any unpushed work with it. Only "y" deletes; any
+// other answer, or none, keeps the repository.
+func PromptDeleteExtra(
+	name, rootDir, credentialSource string, input io.Reader, output io.Writer, log logger.FieldLogger,
+) {
+	fmt.Fprintf(output,
+		"[dev] \"%s\" exists locally but was not returned for %s: it was deleted on the remote, "+
+			"or that credential cannot see it. Delete? [y/N] ",
+		name, describeCredential(credentialSource))
 	scanner := bufio.NewScanner(input)
 	if scanner.Scan() && strings.EqualFold(strings.TrimSpace(scanner.Text()), "y") {
 		if removeErr := os.RemoveAll(filepath.Join(rootDir, name)); removeErr != nil {
@@ -426,6 +443,15 @@ func PromptDeleteExtra(name, rootDir string, input io.Reader, output io.Writer, 
 	} else {
 		log.WithField(logFieldRepo, name).Info("kept extra repository")
 	}
+}
+
+// describeCredential names a credential by where it came from ("the credential from the gh
+// CLI"), for a message that has to tell one credential from another without showing either.
+func describeCredential(source string) string {
+	if source == "" {
+		return "the credential in use"
+	}
+	return "the credential from the " + source
 }
 
 // MaxCloneArgs returns the maximum number of positional arguments for the clone command.

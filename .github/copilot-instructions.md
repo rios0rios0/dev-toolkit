@@ -71,6 +71,7 @@ Dev-Toolkit is a Go-based CLI tool (binary: `dev`) that manages Git repositories
 - **Parallel execution**: Goroutines with semaphore channel for controlled concurrency
 - **SSH preflight**: Verifies SSH connectivity before batch cloning
 - **WIP branches**: Preserves dirty state during sync via temporary commits
+- **Extra-repo prompt**: `repo clone` asks before deleting a local repository the provider did not return, saying it was not returned for the credential in use and naming that credential's source (a narrower token hides repositories just as a deletion does); only `y` deletes
 - **Default branch detection**: Ordered rules find each repo's default branch -- `origin/HEAD` only while its branch still exists, then `git ls-remote --symref`, then `main`/`master` only when present -- and `ErrDefaultBranchNotFound` fails the repo instead of a guess; `repo sync` fetches first and refreshes `origin/HEAD` with `git remote set-head origin --auto`
 - **Worktree rule tables**: Ordered guard/removal rule slices classify linked worktrees; guards (locked, detached, dirty, unpushed) always win over removal rules
 - **Dependency injection**: All business logic accepts interfaces for testability

@@ -424,6 +424,39 @@ func TestRunClone(t *testing.T) {
 			`level=info msg="clone workflow started" credential="GH_TOKEN environment variable"`)
 		assert.NotContains(t, buf.String(), fixtureToken)
 	})
+
+	t.Run("should name the credential when asking to delete a local repository the provider did not return",
+		func(t *testing.T) {
+			t.Parallel()
+			// given: os.DevNull is a character device, so the clone takes it for a terminal and
+			// asks, and it reads as an immediate end of input -- no answer, so the default No applies
+			root := t.TempDir() + "/github.com/owner"
+			createGitRepo(t, root+"/private-repo")
+			input, openErr := os.Open(os.DevNull)
+			require.NoError(t, openErr)
+			t.Cleanup(func() { _ = input.Close() })
+			var buf bytes.Buffer
+			cfg := repo.CloneConfig{
+				RootDir:          root,
+				SSHAlias:         "mine",
+				Provider:         doubles.NewForgeProviderStub().WithRepos(nil),
+				CredentialSource: "GH_TOKEN environment variable",
+				Runner:           doubles.NewGitRunnerStub(),
+				Output:           &buf,
+				Logger:           repo.NewLogger(&buf),
+				Input:            input,
+			}
+
+			// when
+			err := repo.RunClone(cfg)
+
+			// then
+			require.NoError(t, err)
+			assert.Contains(t, buf.String(), `"private-repo" exists locally but was not returned for the `+
+				`credential from the GH_TOKEN environment variable`)
+			assert.Contains(t, buf.String(), "kept extra repository")
+			assert.DirExists(t, root+"/private-repo")
+		})
 }
 
 func TestParallelClone(t *testing.T) {
@@ -500,7 +533,7 @@ func TestPromptDeleteExtra(t *testing.T) {
 		log := repo.NewLogger(&buf)
 
 		// when
-		repo.HandleExtraRepos([]string{"extra-repo"}, root, false, nil, &buf, log)
+		repo.HandleExtraRepos([]string{"extra-repo"}, root, "", false, nil, &buf, log)
 
 		// then
 		assert.Contains(t, buf.String(), "kept, non-interactive")
@@ -516,10 +549,11 @@ func TestPromptDeleteExtra(t *testing.T) {
 		input := strings.NewReader("n\n")
 
 		// when
-		repo.PromptDeleteExtra("extra-repo", root, input, &buf, log)
+		repo.PromptDeleteExtra("extra-repo", root, "gh CLI", input, &buf, log)
 
 		// then
 		assert.Contains(t, buf.String(), "kept extra repository")
+		assert.DirExists(t, root+"/extra-repo")
 	})
 
 	t.Run("should delete repo when user answers y via PromptDeleteExtra", func(t *testing.T) {
@@ -532,10 +566,11 @@ func TestPromptDeleteExtra(t *testing.T) {
 		input := strings.NewReader("y\n")
 
 		// when
-		repo.PromptDeleteExtra("extra-repo", root, input, &buf, log)
+		repo.PromptDeleteExtra("extra-repo", root, "gh CLI", input, &buf, log)
 
 		// then
 		assert.Contains(t, buf.String(), "deleted extra repository")
+		assert.NoDirExists(t, root+"/extra-repo")
 	})
 
 	t.Run("should keep repo when scanner returns empty input", func(t *testing.T) {
@@ -548,10 +583,66 @@ func TestPromptDeleteExtra(t *testing.T) {
 		input := strings.NewReader("")
 
 		// when
-		repo.PromptDeleteExtra("extra-repo", root, input, &buf, log)
+		repo.PromptDeleteExtra("extra-repo", root, "gh CLI", input, &buf, log)
 
 		// then
 		assert.Contains(t, buf.String(), "kept extra repository")
+		assert.DirExists(t, root+"/extra-repo")
+	})
+
+	t.Run("should keep the repository when the user just presses Enter", func(t *testing.T) {
+		t.Parallel()
+		// given
+		root := t.TempDir()
+		createGitRepo(t, root+"/extra-repo")
+		var buf bytes.Buffer
+		log := repo.NewLogger(&buf)
+		input := strings.NewReader("\n")
+
+		// when
+		repo.PromptDeleteExtra("extra-repo", root, "gh CLI", input, &buf, log)
+
+		// then
+		assert.Contains(t, buf.String(), "kept extra repository")
+		assert.DirExists(t, root+"/extra-repo")
+	})
+
+	t.Run("should say the credential did not return the repository and name its source when asking to delete it",
+		func(t *testing.T) {
+			t.Parallel()
+			// given
+			root := t.TempDir()
+			createGitRepo(t, root+"/extra-repo")
+			var buf bytes.Buffer
+			log := repo.NewLogger(&buf)
+			input := strings.NewReader("n\n")
+
+			// when
+			repo.PromptDeleteExtra("extra-repo", root, "GH_TOKEN environment variable", input, &buf, log)
+
+			// then
+			assert.Contains(t, buf.String(), `[dev] "extra-repo" exists locally but was not returned for the `+
+				`credential from the GH_TOKEN environment variable: it was deleted on the remote, or that `+
+				`credential cannot see it. Delete? [y/N] `)
+			assert.NotContains(t, buf.String(), "not on remote")
+			assert.DirExists(t, root+"/extra-repo")
+		})
+
+	t.Run("should ask about the credential in use when its source is unknown", func(t *testing.T) {
+		t.Parallel()
+		// given
+		root := t.TempDir()
+		createGitRepo(t, root+"/extra-repo")
+		var buf bytes.Buffer
+		log := repo.NewLogger(&buf)
+		input := strings.NewReader("n\n")
+
+		// when
+		repo.PromptDeleteExtra("extra-repo", root, "", input, &buf, log)
+
+		// then
+		assert.Contains(t, buf.String(),
+			`[dev] "extra-repo" exists locally but was not returned for the credential in use: `)
 	})
 }
 
@@ -655,7 +746,7 @@ func TestIsTerminal(t *testing.T) {
 		input := strings.NewReader("")
 
 		// when
-		repo.HandleExtraRepos([]string{"repo"}, "/tmp", false, input, &buf, log)
+		repo.HandleExtraRepos([]string{"repo"}, "/tmp", "", false, input, &buf, log)
 
 		// then
 		assert.Contains(t, buf.String(), "kept, non-interactive")
@@ -672,7 +763,7 @@ func TestIsTerminal(t *testing.T) {
 		w.Close()
 
 		// when
-		repo.HandleExtraRepos([]string{"repo"}, "/tmp", false, r, &buf, log)
+		repo.HandleExtraRepos([]string{"repo"}, "/tmp", "", false, r, &buf, log)
 
 		// then
 		assert.Contains(t, buf.String(), "kept, non-interactive")
@@ -689,7 +780,7 @@ func TestHandleExtraRepos(t *testing.T) {
 		log := repo.NewLogger(&buf)
 
 		// when
-		repo.HandleExtraRepos([]string{"extra-repo"}, "/tmp", true, strings.NewReader(""), &buf, log)
+		repo.HandleExtraRepos([]string{"extra-repo"}, "/tmp", "", true, strings.NewReader(""), &buf, log)
 
 		// then
 		assert.Contains(t, buf.String(), "extra-repo")
@@ -703,7 +794,7 @@ func TestHandleExtraRepos(t *testing.T) {
 		log := repo.NewLogger(&buf)
 
 		// when
-		repo.HandleExtraRepos([]string{"extra-repo"}, "/tmp", false, strings.NewReader(""), &buf, log)
+		repo.HandleExtraRepos([]string{"extra-repo"}, "/tmp", "", false, strings.NewReader(""), &buf, log)
 
 		// then
 		assert.Contains(t, buf.String(), "kept, non-interactive")
@@ -716,7 +807,7 @@ func TestHandleExtraRepos(t *testing.T) {
 		log := repo.NewLogger(&buf)
 
 		// when
-		repo.HandleExtraRepos([]string{"a", "b"}, "/tmp", true, strings.NewReader(""), &buf, log)
+		repo.HandleExtraRepos([]string{"a", "b"}, "/tmp", "", true, strings.NewReader(""), &buf, log)
 
 		// then
 		assert.Contains(t, buf.String(), "repo=a")
@@ -730,7 +821,7 @@ func TestHandleExtraRepos(t *testing.T) {
 		log := repo.NewLogger(&buf)
 
 		// when
-		repo.HandleExtraRepos(nil, "/tmp", false, strings.NewReader(""), &buf, log)
+		repo.HandleExtraRepos(nil, "/tmp", "", false, strings.NewReader(""), &buf, log)
 
 		// then
 		assert.Empty(t, buf.String())
