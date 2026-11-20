@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	credentialEntities "github.com/rios0rios0/gitforge/v4/pkg/credentials/domain/entities"
-	credentialInfra "github.com/rios0rios0/gitforge/v4/pkg/credentials/infrastructure"
 )
 
 // ParentInfo holds the upstream parent repository's SSH URL and default branch.
@@ -33,7 +32,7 @@ var resolverFactoryMap = map[string]func(token string) (ForkResolver, error){
 // ResolveForkResolver creates a ForkResolver for the given provider using gitforge's
 // default credential chain.
 func ResolveForkResolver(providerName string) (ForkResolver, error) {
-	return ResolveForkResolverWith(providerName, credentialInfra.NewDefaultCredentialResolver())
+	return ResolveForkResolverWith(providerName, newCredentialResolver())
 }
 
 // ResolveForkResolverWith creates a ForkResolver from whatever credential the given

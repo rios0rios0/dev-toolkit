@@ -95,6 +95,10 @@ tenant before requesting an Azure CLI token with `--tenant`. Discovery uses an u
 request and does not follow sign-in redirects. Git transfers retain their existing SSH
 authentication; `repo sync` does not need an API token.
 
+The functions without a resolver argument get the default chain from `newCredentialResolver`,
+a factory that only the non-parallel `credential_internal_test.go` replaces, to pin the owner
+`ResolveProviderForOwner` sends for every registered provider.
+
 <!-- chlog:start -->
 ## Changelog (chlog) — MANDATORY
 

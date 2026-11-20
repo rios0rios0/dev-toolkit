@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	credentialEntities "github.com/rios0rios0/gitforge/v4/pkg/credentials/domain/entities"
-	credentialInfra "github.com/rios0rios0/gitforge/v4/pkg/credentials/infrastructure"
 	globalEntities "github.com/rios0rios0/gitforge/v4/pkg/global/domain/entities"
 	adoProvider "github.com/rios0rios0/gitforge/v4/pkg/providers/infrastructure/azuredevops"
 	cbProvider "github.com/rios0rios0/gitforge/v4/pkg/providers/infrastructure/codeberg"
@@ -93,7 +92,7 @@ func NewProviderRegistry() *gitRegistry.ProviderRegistry {
 // provider's token environment variables first, then its own CLI, so an authenticated
 // provider CLI is enough when no token is exported.
 func ResolveProvider(providerName string) (globalEntities.ForgeProvider, error) {
-	return ResolveProviderWith(providerName, "", credentialInfra.NewDefaultCredentialResolver())
+	return ResolveProviderWith(providerName, "", newCredentialResolver())
 }
 
 // ResolveProviderForOwner is ResolveProvider for the repositories of one owner, which the
@@ -101,7 +100,7 @@ func ResolveProvider(providerName string) (globalEntities.ForgeProvider, error) 
 // issued in that organization's tenant. An exported token still takes precedence and skips
 // the tenant discovery entirely.
 func ResolveProviderForOwner(providerName, owner string) (globalEntities.ForgeProvider, error) {
-	return ResolveProviderWith(providerName, owner, credentialInfra.NewDefaultCredentialResolver())
+	return ResolveProviderWith(providerName, owner, newCredentialResolver())
 }
 
 // ResolveProviderWith creates a ForgeProvider from whatever credential the given resolver

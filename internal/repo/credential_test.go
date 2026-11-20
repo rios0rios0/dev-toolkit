@@ -2,6 +2,7 @@ package repo_test
 
 import (
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 
@@ -44,12 +45,19 @@ func newCredentialChain(
 	)
 }
 
+// registeredProviders returns every provider the registry builds, sorted so the subtests run
+// in a stable order. A provider registered there without a ServiceType of its own fails the
+// tests that loop over them.
+func registeredProviders() []string {
+	providerNames := repo.NewProviderRegistry().Names()
+	slices.Sort(providerNames)
+	return providerNames
+}
+
 func TestResolveProviderWith(t *testing.T) {
 	t.Parallel()
 
-	for _, providerName := range []string{
-		repo.ProviderGitHub, repo.ProviderAzureDevOps, repo.ProviderGitLab, repo.ProviderCodeberg,
-	} {
+	for _, providerName := range registeredProviders() {
 		t.Run("should request the "+providerName+" credential when building its provider", func(t *testing.T) {
 			t.Parallel()
 			// given
