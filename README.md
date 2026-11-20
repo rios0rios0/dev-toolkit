@@ -117,14 +117,14 @@ cloning your repositories needs nothing else -- there is no second token to expo
 
 | Provider | Environment Variables | CLI Fallback | Authenticate With |
 |----------|----------------------|--------------|-------------------|
-| GitHub | `GITHUB_TOKEN` or `GH_TOKEN` | `gh auth token --hostname github.com` | `gh auth login --hostname github.com` |
+| GitHub | `GH_TOKEN` or `GITHUB_TOKEN` | `gh auth token --hostname github.com` | `gh auth login --hostname github.com` |
 | Azure DevOps | `AZURE_DEVOPS_EXT_PAT` or `SYSTEM_ACCESSTOKEN` | `az account get-access-token` | `az login` |
 | GitLab | `GITLAB_TOKEN` or `GL_TOKEN` (`gitlab.com` only) | -- | -- |
 | Codeberg | `CODEBERG_TOKEN` | -- | -- |
 
-The variables are read in the order listed, so an exported `GITHUB_TOKEN` wins over `GH_TOKEN` when
-both are set, and any of them wins over the CLI, so an explicitly exported token still overrides
-whatever the CLI happens to be logged in as. `gh` is asked for its `github.com` token even when
+The variables are read in the order listed, so an exported `GH_TOKEN` wins over `GITHUB_TOKEN` when
+both are set, as in gh itself, and any of them wins over the CLI, so an explicitly exported token still overrides
+whatever the CLI happens to be logged in as. A GitHub token is declined while `GITHUB_SERVER_URL`, `GITHUB_API_URL` or a `*.ghe.com` `GH_HOST` names another GitHub server, and `gh` then runs without them, so it reports only its own login. `gh` is asked for its `github.com` token even when
 `GH_HOST` names a GitHub Enterprise server, because every GitHub API call goes to `api.github.com`.
 The CLI is found on `PATH` and run by its absolute path, with your home directory as its working
 directory rather than the repository you are working in. GitLab has no CLI fallback: `glab` has no

@@ -56,7 +56,7 @@ func (p *GitHubProvider) ListGists(ctx context.Context, owner string) ([]Gist, e
 }
 
 // ResolveProvider builds a Provider using gitforge's default GitHub credential chain:
-// GITHUB_TOKEN or GH_TOKEN when one is exported, and otherwise the github.com token held
+// GH_TOKEN or GITHUB_TOKEN when one is exported, and otherwise the github.com token held
 // by an authenticated "gh" CLI. Like ResolveProviderWith, it also returns where the
 // credential came from.
 func ResolveProvider() (Provider, string, error) {

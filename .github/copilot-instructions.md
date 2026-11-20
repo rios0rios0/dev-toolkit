@@ -83,7 +83,7 @@ Dev-Toolkit is a Go-based CLI tool (binary: `dev`) that manages Git repositories
 ### Authentication
 | Provider | Environment Variables | CLI Fallback |
 |----------|----------------------|--------------|
-| GitHub | `GITHUB_TOKEN` or `GH_TOKEN` | `gh auth token --hostname github.com` |
+| GitHub | `GH_TOKEN` or `GITHUB_TOKEN` | `gh auth token --hostname github.com` |
 | Azure DevOps | `AZURE_DEVOPS_EXT_PAT` or `SYSTEM_ACCESSTOKEN` | `az account get-access-token` |
 | GitLab | `GITLAB_TOKEN` or `GL_TOKEN`, declined (best effort) when `GITLAB_HOST`, `GITLAB_URI`, `GL_HOST`, `GITLAB_API_HOST`, `GITLAB_REPO`, `GL_URL`, `GITLAB_URL`, `GL_API_URL`, `GITLAB_BASE_URL` or GitLab CI's `CI_SERVER_*`/`CI_API_V4_URL` names a server other than `gitlab.com` | None (`glab` has no `auth token` command) |
 | Codeberg | `CODEBERG_TOKEN` | None |

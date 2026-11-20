@@ -297,10 +297,10 @@ func TestResolveProviderWithCredentialChain(t *testing.T) {
 		require.ErrorContains(t, err, "GL_URL names the GitLab server gitlab.example.com")
 	})
 
-	t.Run("should prefer GITHUB_TOKEN over GH_TOKEN when both are exported", func(t *testing.T) {
+	t.Run("should prefer GH_TOKEN over GITHUB_TOKEN when both are exported", func(t *testing.T) {
 		t.Parallel()
-		// given
-		env := map[string]string{"GITHUB_TOKEN": fixtureToken, "GH_TOKEN": fixtureOtherToken}
+		// given: gh's own order, GH_TOKEN first
+		env := map[string]string{"GH_TOKEN": fixtureToken, "GITHUB_TOKEN": fixtureOtherToken}
 		chain := newCredentialChain(env, &gitforgeDoubles.CLIRunnerStub{}, &gitforgeDoubles.AzureTenantResolverStub{})
 
 		// when
