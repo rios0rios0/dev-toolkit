@@ -259,6 +259,20 @@ func TestResolveProviderWithCredentialChain(t *testing.T) {
 		require.ErrorContains(t, err, "gitlab.example.com")
 	})
 
+	t.Run("should decline GL_TOKEN when semantic-release's GL_URL names another server", func(t *testing.T) {
+		t.Parallel()
+		// given: the pair semantic-release's GitLab plugin documents for a self-managed server
+		env := map[string]string{"GL_TOKEN": fixtureToken, "GL_URL": "https://gitlab.example.com"}
+		chain := newCredentialChain(env, &gitforgeDoubles.CLIRunnerStub{}, &gitforgeDoubles.AzureTenantResolverStub{})
+
+		// when
+		_, err := repo.ResolveProviderWith(repo.ProviderGitLab, "", chain)
+
+		// then
+		require.ErrorIs(t, err, credentialEntities.ErrNoCredential)
+		require.ErrorContains(t, err, "GL_URL names the GitLab server gitlab.example.com")
+	})
+
 	t.Run("should prefer GITHUB_TOKEN over GH_TOKEN when both are exported", func(t *testing.T) {
 		t.Parallel()
 		// given
