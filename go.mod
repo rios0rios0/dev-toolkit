@@ -5,7 +5,7 @@ go 1.27.4
 require (
 	github.com/google/go-github/v93 v93.0.0
 	github.com/rios0rios0/cliforge v0.5.4
-	github.com/rios0rios0/gitforge/v4 v4.7.0
+	github.com/rios0rios0/gitforge/v4 v4.7.1
 	github.com/rios0rios0/langforge v1.1.13
 	github.com/sirupsen/logrus v1.10.2
 	github.com/spf13/cobra v1.10.2
@@ -28,7 +28,7 @@ require (
 	github.com/pjbgf/sha1cd v0.7.0 // indirect
 	github.com/sergi/go-diff v1.4.5 // indirect
 	github.com/spf13/pflag v1.1.0 // indirect
-	gitlab.com/gitlab-org/api/client-go/v3 v3.53.0 // indirect
+	gitlab.com/gitlab-org/api/client-go/v3 v3.54.1 // indirect
 	go.yaml.in/yaml/v3 v3.0.6 // indirect
 	golang.org/x/mod v0.43.0 // indirect
 	golang.org/x/net v0.63.0 // indirect
