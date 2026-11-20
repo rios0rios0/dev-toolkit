@@ -564,7 +564,8 @@ func newMirrorCmd() *cobra.Command {
 		Long: `For each repository under the source directory, creates a pull mirror
 on Codeberg via the Forgejo migration API and adds a 'codeberg' remote locally.
 
-Requires CODEBERG_TOKEN environment variable.`,
+Requires the CODEBERG_TOKEN environment variable. No GitHub token is read:
+Codeberg pulls each repository from its public GitHub address.`,
 		Args: cobra.RangeArgs(1, repo.MaxMirrorArgs()),
 		RunE: func(_ *cobra.Command, args []string) error {
 			sshAlias := args[0]
@@ -574,20 +575,15 @@ Requires CODEBERG_TOKEN environment variable.`,
 			}
 			sourceDir = filepath.Clean(sourceDir)
 
-			targetProvider, targetErr := repo.ResolveProvider("codeberg")
+			targetProvider, targetErr := repo.ResolveMirrorTarget()
 			if targetErr != nil {
 				return targetErr
 			}
-
-			// source provider is optional (used for metadata)
-			sourceProviderName, _, _ := repo.DetectProviderAndOwner(sourceDir)
-			sourceProvider, _ := repo.ResolveProvider(sourceProviderName)
 
 			return repo.RunMirror(repo.MirrorConfig{
 				SourceDir:      sourceDir,
 				SSHAlias:       sshAlias,
 				DryRun:         dryRun,
-				SourceProvider: sourceProvider,
 				TargetProvider: targetProvider,
 				Runner:         &repo.DefaultGitRunner{},
 				Output:         repo.NewLogger(os.Stderr),

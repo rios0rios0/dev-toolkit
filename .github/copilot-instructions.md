@@ -101,6 +101,8 @@ a factory that only the non-parallel `credential_internal_test.go` replaces, to 
 `repo fork-sync` goes through `ResolveForkSync`, which refuses a provider without fork
 resolution (all but GitHub) before asking for any credential, then builds both of its clients
 from one.
+`repo mirror` goes through `ResolveMirrorTarget`, which asks for the Codeberg credential alone:
+Codeberg pulls each repository from its public address, so no GitHub token is involved.
 
 <!-- chlog:start -->
 ## Changelog (chlog) — MANDATORY

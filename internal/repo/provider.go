@@ -88,15 +88,10 @@ func NewProviderRegistry() *gitRegistry.ProviderRegistry {
 	return r
 }
 
-// ResolveProvider creates a ForgeProvider using gitforge's default credential chain: the
-// provider's token environment variables first, then its own CLI, so an authenticated
-// provider CLI is enough when no token is exported.
-func ResolveProvider(providerName string) (globalEntities.ForgeProvider, error) {
-	return ResolveProviderWith(providerName, "", newCredentialResolver())
-}
-
-// ResolveProviderForOwner is ResolveProvider for the repositories of one owner, which the
-// credential request carries as its organization: for Azure DevOps the az token is then
+// ResolveProviderForOwner creates a ForgeProvider for the repositories of one owner using
+// gitforge's default credential chain: the provider's token environment variables first, then
+// its own CLI, so an authenticated provider CLI is enough when no token is exported. The owner
+// travels as the credential request's organization: for Azure DevOps the az token is then
 // issued in that organization's tenant. An exported token still takes precedence and skips
 // the tenant discovery entirely.
 func ResolveProviderForOwner(providerName, owner string) (globalEntities.ForgeProvider, error) {

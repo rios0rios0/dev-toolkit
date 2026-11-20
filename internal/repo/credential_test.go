@@ -347,12 +347,10 @@ func TestResolveWithDefaultCredentialChain(t *testing.T) {
 		const providerName = "bitbucket"
 
 		// when
-		_, providerErr := repo.ResolveProvider(providerName)
-		_, ownerErr := repo.ResolveProviderForOwner(providerName, fixtureOrganization)
+		_, err := repo.ResolveProviderForOwner(providerName, fixtureOrganization)
 
 		// then
-		require.EqualError(t, providerErr, "unknown provider: bitbucket")
-		require.EqualError(t, ownerErr, "unknown provider: bitbucket")
+		require.EqualError(t, err, "unknown provider: bitbucket")
 	})
 
 	t.Run("should refuse a provider without fork resolution when no resolver is given", func(t *testing.T) {

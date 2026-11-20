@@ -7,6 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	credentialEntities "github.com/rios0rios0/gitforge/v4/pkg/credentials/domain/entities"
+	globalEntities "github.com/rios0rios0/gitforge/v4/pkg/global/domain/entities"
+	gitforgeDoubles "github.com/rios0rios0/gitforge/v4/test/doubles"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -150,6 +153,40 @@ func TestRunMirror(t *testing.T) {
 		// then
 		require.NoError(t, err)
 		assert.Contains(t, buf.String(), "mirrored")
+	})
+}
+
+func TestResolveMirrorTargetWith(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should ask for the Codeberg credential alone when building the mirror target", func(t *testing.T) {
+		t.Parallel()
+		// given
+		resolver := stubCredential()
+
+		// when
+		provider, err := repo.ResolveMirrorTargetWith(resolver)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, repo.ProviderCodeberg, provider.Name())
+		assert.Implements(t, (*globalEntities.MirrorProvider)(nil), provider)
+		assert.Equal(t, []credentialEntities.CredentialRequest{
+			{ServiceType: globalEntities.CODEBERG},
+		}, resolver.Requests())
+	})
+
+	t.Run("should return the resolver's error when no Codeberg credential is available", func(t *testing.T) {
+		t.Parallel()
+		// given
+		notAuthenticated := errors.New("not authenticated")
+		resolver := &gitforgeDoubles.CredentialResolverStub{Err: notAuthenticated}
+
+		// when
+		_, err := repo.ResolveMirrorTargetWith(resolver)
+
+		// then
+		require.ErrorIs(t, err, notAuthenticated)
 	})
 }
 

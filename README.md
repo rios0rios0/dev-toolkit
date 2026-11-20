@@ -170,7 +170,8 @@ parents. Cloning and syncing go over SSH, so SSH keys are still required (see be
 `repo fork-sync` looks fork parents up on GitHub only. In another provider's directory it stops with
 `fork resolution not supported` before asking for any credential, so an Azure DevOps directory never
 runs `az` just to be told that; on GitHub, one credential serves both the discovery and the parent
-lookups.
+lookups. `repo mirror` reads `CODEBERG_TOKEN` alone: Codeberg pulls each repository from its public
+GitHub address, so no GitHub token is asked for and `gh` never runs.
 
 ### SSH Aliases
 
