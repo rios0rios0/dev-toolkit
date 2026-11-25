@@ -1,3 +1,0 @@
-kind: 'Fixed'
-body: 'fixed `dev repo fork-sync` asking for the credential of a provider it cannot sync, which in an Azure DevOps directory ran `az` in the default tenant and could fail with a sign-in error instead of `fork resolution not supported`: it now refuses a provider without fork resolution before asking for any credential, and builds both of its GitHub clients from one credential instead of asking twice'
-time: '2026-11-20T18:03:55.50881451Z'

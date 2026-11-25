@@ -1,3 +1,0 @@
-kind: 'Fixed'
-body: 'fixed the `dev repo clone` question before deleting a local repository the provider did not list, which claimed the repository was not on the remote: it now says the repository was not returned for the credential in use and names where that credential came from, because a token that cannot see a private repository leaves it out just as a deletion does, and it still deletes only on `y`'
-time: '2026-11-20T18:14:59.73019644Z'

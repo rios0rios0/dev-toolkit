@@ -22,6 +22,28 @@ Exceptions are acceptable depending on the circumstances (critical bug fixes tha
 
 ## [Unreleased]
 
+## [0.10.19] - 2026-11-25
+
+### Changed
+
+- changed `dev repo clone`, `dev repo fork-sync`, `dev repo mirror` and `dev gist clone` to log at info where their provider credential came from, such as the `GH_TOKEN` environment variable or the `gh` CLI, never the token itself, so the identity a discovery ran as is visible; gitforge logged it at debug only
+- changed the credential tests to check that `dev repo clone` sends the directory's owner as the credential request's organization, which scopes the `az` token to the Azure DevOps organization's Microsoft Entra tenant, and to loop over every registered provider instead of a hard-coded list
+- changed the Go module `github.com/rios0rios0/gitforge/v4` from `v4.8.0` to `v4.9.0`
+- changed the Go modules `github.com/rios0rios0/gitforge/v4` from `v4.7.0` to `v4.7.1` and `gitlab.com/gitlab-org/api/client-go/v3` from `v3.53.0` to `v3.56.1`
+- read `GH_TOKEN` before `GITHUB_TOKEN`, gh's own order, so when both hold different tokens `GH_TOKEN` now wins (gitforge v4.9.0)
+
+### Fixed
+
+- fixed `dev repo fork-sync` asking for the credential of a provider it cannot sync, which in an Azure DevOps directory ran `az` in the default tenant and could fail with a sign-in error instead of `fork resolution not supported`: it now refuses a provider without fork resolution before asking for any credential, and builds both of its GitHub clients from one credential instead of asking twice
+- fixed `dev repo mirror` asking for a GitHub token, which runs the `gh` CLI when none is exported, for a source provider it never used: Codeberg pulls each repository from its public GitHub address, so `CODEBERG_TOKEN` is now the only credential mirror asks for
+- fixed the `dev repo clone` question before deleting a local repository the provider did not list, which claimed the repository was not on the remote: it now says the repository was not returned for the credential in use and names where that credential came from, because a token that cannot see a private repository leaves it out just as a deletion does, and it still deletes only on `y`
+- fixed the `dev repo clone` warnings for a local repository the provider did not list in `--dry-run` and non-interactive runs, and the `dev gist clone` warning for such a gist, which said nothing of the credential or claimed the gist was not on the remote: they now name the credential the listing was compared against and explain it the way the deletion question does, since a credential that cannot see a repository or a gist leaves it out just as a deletion does
+
+### Security
+
+- stopped sending a `GITLAB_TOKEN` or `GL_TOKEN` to gitlab.com when another variable names a self-managed GitLab server: through gitforge v4.8.0, semantic-release's `GL_URL` and `GITLAB_URL`, glab's `GITLAB_URI`, `GITLAB_API_HOST` and `GITLAB_REPO`, Lerna's `GL_API_URL`, Terraform's `GITLAB_BASE_URL` and a GitLab CI job's `CI_SERVER_*` variables now count beside `GITLAB_HOST` and `GL_HOST`, so `dev repo clone` no longer sends such a server's token to gitlab.com. The docs also no longer claim that glab cannot print a token: it has no `auth token` command
+- stopped sending a GitHub token from the environment to github.com when `GITHUB_SERVER_URL`, `GITHUB_API_URL` or a `*.ghe.com` `GH_HOST` names another GitHub server, ran `gh` without the token variables so it reports only its own login, and recognised an HTTPS remote's forge only by its exact host, so a lookalike such as `github.com.evil.example` or `github.company.com` no longer passes as github.com (gitforge v4.9.0)
+
 ## [0.10.18] - 2026-11-19
 
 ### Changed
