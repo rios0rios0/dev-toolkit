@@ -1,3 +1,0 @@
-kind: 'Fixed'
-body: 'fixed the `dev repo clone` warnings for a local repository the provider did not list in `--dry-run` and non-interactive runs, and the `dev gist clone` warning for such a gist, which said nothing of the credential or claimed the gist was not on the remote: they now name the credential the listing was compared against and explain it the way the deletion question does, since a credential that cannot see a repository or a gist leaves it out just as a deletion does'
-time: '2026-11-20T18:24:08.620603735Z'
